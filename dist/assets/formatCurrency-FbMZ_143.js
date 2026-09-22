@@ -1,0 +1,1 @@
+function n(r=0,e="INR"){const t=typeof r=="number"?r:parseFloat(r)||0;try{return new Intl.NumberFormat("en-IN",{style:"currency",currency:e,maximumFractionDigits:2}).format(t)}catch{return`₹${t.toFixed(2)}`}}export{n as f};
