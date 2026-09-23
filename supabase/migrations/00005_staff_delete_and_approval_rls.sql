@@ -35,4 +35,13 @@ CREATE POLICY "Staff can delete staff_users"
     USING (true);
 
 -- Enable Realtime for staff_users so role and status changes reflect instantly across devices
-ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND tablename = 'staff_users'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE staff_users;
+    END IF;
+END $$;
+

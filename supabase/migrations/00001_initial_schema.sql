@@ -11,16 +11,38 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- 1. ENUMS
 -- ============================================================================
 
-CREATE TYPE org_plan AS ENUM ('starter', 'pro', 'enterprise');
-CREATE TYPE staff_role AS ENUM ('owner', 'manager', 'kitchen', 'waiter');
-CREATE TYPE table_status AS ENUM ('free', 'in_service');
-CREATE TYPE session_status AS ENUM ('open', 'settled');
-CREATE TYPE order_status AS ENUM ('placed', 'acknowledged', 'cooking', 'ready', 'served', 'cancelled');
-CREATE TYPE order_item_status AS ENUM ('pending', 'ready', 'served', 'cancelled');
-CREATE TYPE payment_method AS ENUM ('cash', 'card', 'upi', 'online');
-CREATE TYPE discount_type AS ENUM ('percent', 'flat');
-CREATE TYPE loyalty_tier AS ENUM ('bronze', 'silver', 'gold');
-CREATE TYPE kitchen_station AS ENUM ('hot', 'cold', 'bar');
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'org_plan') THEN
+        CREATE TYPE org_plan AS ENUM ('starter', 'pro', 'enterprise');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'staff_role') THEN
+        CREATE TYPE staff_role AS ENUM ('owner', 'manager', 'kitchen', 'waiter');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'table_status') THEN
+        CREATE TYPE table_status AS ENUM ('free', 'in_service');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'session_status') THEN
+        CREATE TYPE session_status AS ENUM ('open', 'settled');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
+        CREATE TYPE order_status AS ENUM ('placed', 'acknowledged', 'cooking', 'ready', 'served', 'cancelled');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_item_status') THEN
+        CREATE TYPE order_item_status AS ENUM ('pending', 'ready', 'served', 'cancelled');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_method') THEN
+        CREATE TYPE payment_method AS ENUM ('cash', 'card', 'upi', 'online');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'discount_type') THEN
+        CREATE TYPE discount_type AS ENUM ('percent', 'flat');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'loyalty_tier') THEN
+        CREATE TYPE loyalty_tier AS ENUM ('bronze', 'silver', 'gold');
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'kitchen_station') THEN
+        CREATE TYPE kitchen_station AS ENUM ('hot', 'cold', 'bar');
+    END IF;
+END $$;
 
 -- ============================================================================
 -- 2. HELPER FUNCTIONS & TRIGGERS
@@ -78,7 +100,7 @@ $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 -- ============================================================================
 
 -- 1. Organizations (Root tenant)
-CREATE TABLE organizations (
+CREATE TABLE IF NOT EXISTS organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     plan org_plan NOT NULL DEFAULT 'starter',
@@ -88,7 +110,7 @@ CREATE TABLE organizations (
 );
 
 -- 2. Venues (Multi-location support under org)
-CREATE TABLE venues (
+CREATE TABLE IF NOT EXISTS venues (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
@@ -105,7 +127,7 @@ CREATE TABLE venues (
 );
 
 -- 3. Staff Users
-CREATE TABLE staff_users (
+CREATE TABLE IF NOT EXISTS staff_users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
@@ -120,7 +142,7 @@ CREATE TABLE staff_users (
 );
 
 -- 4. Tables (Physical dining tables)
-CREATE TABLE tables (
+CREATE TABLE IF NOT EXISTS tables (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
@@ -135,7 +157,7 @@ CREATE TABLE tables (
 );
 
 -- 5. Menu Categories
-CREATE TABLE menu_categories (
+CREATE TABLE IF NOT EXISTS menu_categories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
@@ -148,7 +170,7 @@ CREATE TABLE menu_categories (
 );
 
 -- 6. Menu Items
-CREATE TABLE menu_items (
+CREATE TABLE IF NOT EXISTS menu_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
@@ -168,7 +190,7 @@ CREATE TABLE menu_items (
 );
 
 -- 7. Item Pairings (Upselling & combos)
-CREATE TABLE item_pairings (
+CREATE TABLE IF NOT EXISTS item_pairings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
     paired_item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
@@ -178,7 +200,7 @@ CREATE TABLE item_pairings (
 );
 
 -- 8. Guests (CRM, Loyalty & Order history across sessions)
-CREATE TABLE guests (
+CREATE TABLE IF NOT EXISTS guests (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     phone VARCHAR(20) NOT NULL,
@@ -194,7 +216,7 @@ CREATE TABLE guests (
 );
 
 -- 9. Table Sessions (Multi-round dining session per table)
-CREATE TABLE table_sessions (
+CREATE TABLE IF NOT EXISTS table_sessions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
@@ -212,7 +234,7 @@ CREATE TABLE table_sessions (
 );
 
 -- 10. Orders (Individual order rounds within a session)
-CREATE TABLE orders (
+CREATE TABLE IF NOT EXISTS orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
@@ -231,7 +253,7 @@ CREATE TABLE orders (
 );
 
 -- 11. Order Items (Items within an order round)
-CREATE TABLE order_items (
+CREATE TABLE IF NOT EXISTS order_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
     menu_item_id UUID NOT NULL REFERENCES menu_items(id) ON DELETE RESTRICT,
@@ -246,7 +268,7 @@ CREATE TABLE order_items (
 );
 
 -- 12. Payments (Settlement records)
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
@@ -261,7 +283,7 @@ CREATE TABLE payments (
 );
 
 -- 13. Offers (Venue marketing & promotional rules)
-CREATE TABLE offers (
+CREATE TABLE IF NOT EXISTS offers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
@@ -280,7 +302,7 @@ CREATE TABLE offers (
 );
 
 -- 14. Coupons (Promo codes applied at checkout)
-CREATE TABLE coupons (
+CREATE TABLE IF NOT EXISTS coupons (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
@@ -300,7 +322,7 @@ CREATE TABLE coupons (
 );
 
 -- 15. Notifications Log (SMS, WhatsApp, Web push logs)
-CREATE TABLE notifications_log (
+CREATE TABLE IF NOT EXISTS notifications_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
     recipient VARCHAR(100) NOT NULL,
@@ -312,7 +334,7 @@ CREATE TABLE notifications_log (
 );
 
 -- 16. Feedback (Post-meal reviews & ratings)
-CREATE TABLE feedback (
+CREATE TABLE IF NOT EXISTS feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
     table_session_id UUID REFERENCES table_sessions(id) ON DELETE SET NULL,
@@ -327,7 +349,7 @@ CREATE TABLE feedback (
 );
 
 -- 17. Invoices (Sequential tax invoice generation)
-CREATE TABLE invoices (
+CREATE TABLE IF NOT EXISTS invoices (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE,
@@ -343,7 +365,7 @@ CREATE TABLE invoices (
 );
 
 -- 18. System / Venue Settings
-CREATE TABLE venue_settings (
+CREATE TABLE IF NOT EXISTS venue_settings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     venue_id UUID NOT NULL REFERENCES venues(id) ON DELETE CASCADE UNIQUE,
     allow_guest_ordering BOOLEAN NOT NULL DEFAULT true,
@@ -363,43 +385,56 @@ CREATE TABLE venue_settings (
 -- 4. ATTACH UPDATE TRIGGERS
 -- ============================================================================
 
+DROP TRIGGER IF EXISTS update_organizations_updated_at ON organizations;
 CREATE TRIGGER update_organizations_updated_at BEFORE UPDATE ON organizations FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_venues_updated_at ON venues;
 CREATE TRIGGER update_venues_updated_at BEFORE UPDATE ON venues FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_staff_users_updated_at ON staff_users;
 CREATE TRIGGER update_staff_users_updated_at BEFORE UPDATE ON staff_users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_tables_updated_at ON tables;
 CREATE TRIGGER update_tables_updated_at BEFORE UPDATE ON tables FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_menu_categories_updated_at ON menu_categories;
 CREATE TRIGGER update_menu_categories_updated_at BEFORE UPDATE ON menu_categories FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_menu_items_updated_at ON menu_items;
 CREATE TRIGGER update_menu_items_updated_at BEFORE UPDATE ON menu_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_guests_updated_at ON guests;
 CREATE TRIGGER update_guests_updated_at BEFORE UPDATE ON guests FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_table_sessions_updated_at ON table_sessions;
 CREATE TRIGGER update_table_sessions_updated_at BEFORE UPDATE ON table_sessions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_orders_updated_at ON orders;
 CREATE TRIGGER update_orders_updated_at BEFORE UPDATE ON orders FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_order_items_updated_at ON order_items;
 CREATE TRIGGER update_order_items_updated_at BEFORE UPDATE ON order_items FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_offers_updated_at ON offers;
 CREATE TRIGGER update_offers_updated_at BEFORE UPDATE ON offers FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_coupons_updated_at ON coupons;
 CREATE TRIGGER update_coupons_updated_at BEFORE UPDATE ON coupons FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DROP TRIGGER IF EXISTS update_venue_settings_updated_at ON venue_settings;
 CREATE TRIGGER update_venue_settings_updated_at BEFORE UPDATE ON venue_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
 -- 5. PERFORMANCE INDEXES
 -- ============================================================================
 
-CREATE INDEX idx_venues_slug ON venues(slug);
-CREATE INDEX idx_venues_org_id ON venues(org_id);
-CREATE INDEX idx_staff_users_auth_id ON staff_users(auth_user_id);
-CREATE INDEX idx_staff_users_venue_id ON staff_users(venue_id);
-CREATE INDEX idx_tables_short_code ON tables(short_code);
-CREATE INDEX idx_tables_venue_status ON tables(venue_id, status);
-CREATE INDEX idx_menu_categories_venue_order ON menu_categories(venue_id, sort_order);
-CREATE INDEX idx_menu_items_venue_category ON menu_items(venue_id, category_id);
-CREATE INDEX idx_menu_items_available ON menu_items(venue_id, is_available) WHERE is_deleted = false;
-CREATE INDEX idx_guests_org_phone ON guests(org_id, phone);
-CREATE INDEX idx_table_sessions_venue_status ON table_sessions(venue_id, status);
-CREATE INDEX idx_table_sessions_table ON table_sessions(table_id);
-CREATE INDEX idx_orders_venue_status ON orders(venue_id, status);
-CREATE INDEX idx_orders_session_round ON orders(table_session_id, round_number);
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
-CREATE INDEX idx_order_items_station_status ON order_items(station, status);
-CREATE INDEX idx_payments_session ON payments(table_session_id);
-CREATE INDEX idx_coupons_venue_code ON coupons(venue_id, code);
-CREATE INDEX idx_feedback_venue ON feedback(venue_id);
+CREATE INDEX IF NOT EXISTS idx_venues_slug ON venues(slug);
+CREATE INDEX IF NOT EXISTS idx_venues_org_id ON venues(org_id);
+CREATE INDEX IF NOT EXISTS idx_staff_users_auth_id ON staff_users(auth_user_id);
+CREATE INDEX IF NOT EXISTS idx_staff_users_venue_id ON staff_users(venue_id);
+CREATE INDEX IF NOT EXISTS idx_tables_short_code ON tables(short_code);
+CREATE INDEX IF NOT EXISTS idx_tables_venue_status ON tables(venue_id, status);
+CREATE INDEX IF NOT EXISTS idx_menu_categories_venue_order ON menu_categories(venue_id, sort_order);
+CREATE INDEX IF NOT EXISTS idx_menu_items_venue_category ON menu_items(venue_id, category_id);
+CREATE INDEX IF NOT EXISTS idx_menu_items_available ON menu_items(venue_id, is_available) WHERE is_deleted = false;
+CREATE INDEX IF NOT EXISTS idx_guests_org_phone ON guests(org_id, phone);
+CREATE INDEX IF NOT EXISTS idx_table_sessions_venue_status ON table_sessions(venue_id, status);
+CREATE INDEX IF NOT EXISTS idx_table_sessions_table ON table_sessions(table_id);
+CREATE INDEX IF NOT EXISTS idx_orders_venue_status ON orders(venue_id, status);
+CREATE INDEX IF NOT EXISTS idx_orders_session_round ON orders(table_session_id, round_number);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_station_status ON order_items(station, status);
+CREATE INDEX IF NOT EXISTS idx_payments_session ON payments(table_session_id);
+CREATE INDEX IF NOT EXISTS idx_coupons_venue_code ON coupons(venue_id, code);
+CREATE INDEX IF NOT EXISTS idx_feedback_venue ON feedback(venue_id);
 
 -- ============================================================================
 -- 6. ROW LEVEL SECURITY (RLS) POLICIES
@@ -428,14 +463,17 @@ ALTER TABLE venue_settings ENABLE ROW LEVEL SECURITY;
 -- ----------------------------------------------------------------------------
 -- Organizations Policies
 -- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Staff can read their organization" ON organizations;
 CREATE POLICY "Staff can read their organization"
     ON organizations FOR SELECT
     USING (id IN (SELECT unnest(get_my_org_ids())));
 
+DROP POLICY IF EXISTS "Owner can update their organization" ON organizations;
 CREATE POLICY "Owner can update their organization"
     ON organizations FOR UPDATE
     USING (owner_auth_id = (SELECT auth.uid()));
 
+DROP POLICY IF EXISTS "Authenticated users can create an organization" ON organizations;
 CREATE POLICY "Authenticated users can create an organization"
     ON organizations FOR INSERT
     TO authenticated
@@ -445,15 +483,18 @@ CREATE POLICY "Authenticated users can create an organization"
 -- Venues Policies
 -- ----------------------------------------------------------------------------
 -- Public anonymous access to active venues by slug
+DROP POLICY IF EXISTS "Public can read active venues" ON venues;
 CREATE POLICY "Public can read active venues"
     ON venues FOR SELECT
     USING (is_active = true);
 
 -- Staff can manage their own venue
+DROP POLICY IF EXISTS "Staff can read own venues" ON venues;
 CREATE POLICY "Staff can read own venues"
     ON venues FOR SELECT
     USING (id IN (SELECT unnest(get_my_venue_ids())));
 
+DROP POLICY IF EXISTS "Managers and owners can update own venue" ON venues;
 CREATE POLICY "Managers and owners can update own venue"
     ON venues FOR UPDATE
     USING (
@@ -461,6 +502,7 @@ CREATE POLICY "Managers and owners can update own venue"
         get_my_staff_role(id) IN ('owner', 'manager')
     );
 
+DROP POLICY IF EXISTS "Org owner can create venues" ON venues;
 CREATE POLICY "Org owner can create venues"
     ON venues FOR INSERT
     TO authenticated
@@ -473,10 +515,12 @@ CREATE POLICY "Org owner can create venues"
 -- ----------------------------------------------------------------------------
 -- Staff Users Policies
 -- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Staff can view peers in same venue" ON staff_users;
 CREATE POLICY "Staff can view peers in same venue"
     ON staff_users FOR SELECT
     USING (venue_id IN (SELECT unnest(get_my_venue_ids())));
 
+DROP POLICY IF EXISTS "Managers and owners can manage staff" ON staff_users;
 CREATE POLICY "Managers and owners can manage staff"
     ON staff_users FOR ALL
     USING (
@@ -484,6 +528,7 @@ CREATE POLICY "Managers and owners can manage staff"
         get_my_staff_role(venue_id) IN ('owner', 'manager')
     );
 
+DROP POLICY IF EXISTS "Initial owner or manager can insert staff" ON staff_users;
 CREATE POLICY "Initial owner or manager can insert staff"
     ON staff_users FOR INSERT
     TO authenticated
@@ -497,10 +542,12 @@ CREATE POLICY "Initial owner or manager can insert staff"
 -- Tables Policies
 -- ----------------------------------------------------------------------------
 -- Public can read tables by short_code (for guest QR scan)
+DROP POLICY IF EXISTS "Public can view tables" ON tables;
 CREATE POLICY "Public can view tables"
     ON tables FOR SELECT
     USING (is_active = true);
 
+DROP POLICY IF EXISTS "Staff can manage tables in their venue" ON tables;
 CREATE POLICY "Staff can manage tables in their venue"
     ON tables FOR ALL
     USING (venue_id IN (SELECT unnest(get_my_venue_ids())));
@@ -508,10 +555,12 @@ CREATE POLICY "Staff can manage tables in their venue"
 -- ----------------------------------------------------------------------------
 -- Menu Categories Policies
 -- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Public can view active menu categories" ON menu_categories;
 CREATE POLICY "Public can view active menu categories"
     ON menu_categories FOR SELECT
     USING (is_active = true);
 
+DROP POLICY IF EXISTS "Staff can manage menu categories" ON menu_categories;
 CREATE POLICY "Staff can manage menu categories"
     ON menu_categories FOR ALL
     USING (venue_id IN (SELECT unnest(get_my_venue_ids())));
@@ -519,14 +568,17 @@ CREATE POLICY "Staff can manage menu categories"
 -- ----------------------------------------------------------------------------
 -- Menu Items Policies
 -- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Public can view available menu items" ON menu_items;
 CREATE POLICY "Public can view available menu items"
     ON menu_items FOR SELECT
     USING (is_available = true AND is_deleted = false);
 
+DROP POLICY IF EXISTS "Staff can view all menu items including deleted" ON menu_items;
 CREATE POLICY "Staff can view all menu items including deleted"
     ON menu_items FOR SELECT
     USING (venue_id IN (SELECT unnest(get_my_venue_ids())));
 
+DROP POLICY IF EXISTS "Staff can modify menu items" ON menu_items;
 CREATE POLICY "Staff can modify menu items"
     ON menu_items FOR ALL
     USING (
@@ -537,10 +589,12 @@ CREATE POLICY "Staff can modify menu items"
 -- ----------------------------------------------------------------------------
 -- Item Pairings Policies
 -- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Public can view item pairings" ON item_pairings;
 CREATE POLICY "Public can view item pairings"
     ON item_pairings FOR SELECT
     USING (true);
 
+DROP POLICY IF EXISTS "Staff can manage item pairings" ON item_pairings;
 CREATE POLICY "Staff can manage item pairings"
     ON item_pairings FOR ALL
     USING (
@@ -554,10 +608,12 @@ CREATE POLICY "Staff can manage item pairings"
 -- ----------------------------------------------------------------------------
 -- Guests Policies
 -- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Staff can view guests in their org" ON guests;
 CREATE POLICY "Staff can view guests in their org"
     ON guests FOR SELECT
     USING (org_id IN (SELECT unnest(get_my_org_ids())));
 
+DROP POLICY IF EXISTS "Guests can create/view own record" ON guests;
 CREATE POLICY "Guests can create/view own record"
     ON guests FOR ALL
     USING (true)
@@ -566,11 +622,13 @@ CREATE POLICY "Guests can create/view own record"
 -- ----------------------------------------------------------------------------
 -- Table Sessions Policies
 -- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Public guests can view/create active session" ON table_sessions;
 CREATE POLICY "Public guests can view/create active session"
     ON table_sessions FOR ALL
     USING (true)
     WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Staff can manage sessions for their venue" ON table_sessions;
 CREATE POLICY "Staff can manage sessions for their venue"
     ON table_sessions FOR ALL
     USING (venue_id IN (SELECT unnest(get_my_venue_ids())));
@@ -578,11 +636,13 @@ CREATE POLICY "Staff can manage sessions for their venue"
 -- ----------------------------------------------------------------------------
 -- Orders Policies
 -- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Public guests can create/view orders" ON orders;
 CREATE POLICY "Public guests can create/view orders"
     ON orders FOR ALL
     USING (true)
     WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Staff can view and update orders in their venue" ON orders;
 CREATE POLICY "Staff can view and update orders in their venue"
     ON orders FOR ALL
     USING (venue_id IN (SELECT unnest(get_my_venue_ids())));
@@ -590,11 +650,13 @@ CREATE POLICY "Staff can view and update orders in their venue"
 -- ----------------------------------------------------------------------------
 -- Order Items Policies
 -- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Public guests can view and create order items" ON order_items;
 CREATE POLICY "Public guests can view and create order items"
     ON order_items FOR ALL
     USING (true)
     WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Staff can manage order items in their venue" ON order_items;
 CREATE POLICY "Staff can manage order items in their venue"
     ON order_items FOR ALL
     USING (
@@ -608,10 +670,12 @@ CREATE POLICY "Staff can manage order items in their venue"
 -- ----------------------------------------------------------------------------
 -- Payments Policies
 -- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Staff can view and insert payments" ON payments;
 CREATE POLICY "Staff can view and insert payments"
     ON payments FOR ALL
     USING (venue_id IN (SELECT unnest(get_my_venue_ids())));
 
+DROP POLICY IF EXISTS "Public can insert online payment records" ON payments;
 CREATE POLICY "Public can insert online payment records"
     ON payments FOR INSERT
     WITH CHECK (true);
@@ -619,18 +683,22 @@ CREATE POLICY "Public can insert online payment records"
 -- ----------------------------------------------------------------------------
 -- Offers & Coupons Policies
 -- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Public can view active offers" ON offers;
 CREATE POLICY "Public can view active offers"
     ON offers FOR SELECT
     USING (is_active = true);
 
+DROP POLICY IF EXISTS "Staff can manage offers" ON offers;
 CREATE POLICY "Staff can manage offers"
     ON offers FOR ALL
     USING (venue_id IN (SELECT unnest(get_my_venue_ids())));
 
+DROP POLICY IF EXISTS "Public can validate active coupons" ON coupons;
 CREATE POLICY "Public can validate active coupons"
     ON coupons FOR SELECT
     USING (is_active = true);
 
+DROP POLICY IF EXISTS "Staff can manage coupons" ON coupons;
 CREATE POLICY "Staff can manage coupons"
     ON coupons FOR ALL
     USING (venue_id IN (SELECT unnest(get_my_venue_ids())));
@@ -638,10 +706,12 @@ CREATE POLICY "Staff can manage coupons"
 -- ----------------------------------------------------------------------------
 -- Feedback Policies
 -- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Public can submit feedback" ON feedback;
 CREATE POLICY "Public can submit feedback"
     ON feedback FOR INSERT
     WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Staff can view feedback for their venue" ON feedback;
 CREATE POLICY "Staff can view feedback for their venue"
     ON feedback FOR SELECT
     USING (venue_id IN (SELECT unnest(get_my_venue_ids())));
@@ -649,18 +719,22 @@ CREATE POLICY "Staff can view feedback for their venue"
 -- ----------------------------------------------------------------------------
 -- Invoices & Venue Settings Policies
 -- ----------------------------------------------------------------------------
+DROP POLICY IF EXISTS "Staff can view and create invoices" ON invoices;
 CREATE POLICY "Staff can view and create invoices"
     ON invoices FOR ALL
     USING (venue_id IN (SELECT unnest(get_my_venue_ids())));
 
+DROP POLICY IF EXISTS "Public can view venue settings" ON venue_settings;
 CREATE POLICY "Public can view venue settings"
     ON venue_settings FOR SELECT
     USING (true);
 
+DROP POLICY IF EXISTS "Staff can manage venue settings" ON venue_settings;
 CREATE POLICY "Staff can manage venue settings"
     ON venue_settings FOR ALL
     USING (venue_id IN (SELECT unnest(get_my_venue_ids())));
 
+DROP POLICY IF EXISTS "Staff or venue owner can insert venue settings" ON venue_settings;
 CREATE POLICY "Staff or venue owner can insert venue settings"
     ON venue_settings FOR INSERT
     TO authenticated
@@ -737,16 +811,22 @@ $$;
 
 -- Add live tables to supabase_realtime publication
 DO $$
+DECLARE
+    tbl text;
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
         CREATE PUBLICATION supabase_realtime;
     END IF;
-END $$;
 
-ALTER PUBLICATION supabase_realtime ADD TABLE orders;
-ALTER PUBLICATION supabase_realtime ADD TABLE order_items;
-ALTER PUBLICATION supabase_realtime ADD TABLE table_sessions;
-ALTER PUBLICATION supabase_realtime ADD TABLE tables;
+    FOR tbl IN SELECT unnest(ARRAY['orders', 'order_items', 'table_sessions', 'tables']) LOOP
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_publication_tables 
+            WHERE pubname = 'supabase_realtime' AND tablename = tbl
+        ) THEN
+            EXECUTE format('ALTER PUBLICATION supabase_realtime ADD TABLE %I', tbl);
+        END IF;
+    END LOOP;
+END $$;
 
 -- ============================================================================
 -- 8. SAMPLE SEED DATA (Optional demo data for testing)
