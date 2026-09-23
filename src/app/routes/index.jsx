@@ -6,110 +6,135 @@ import { StaffLayout } from '@/app/layouts/StaffLayout';
 import { ProtectedRoute } from '@/app/routes/ProtectedRoute';
 import { RouteErrorBoundary } from '@/components/ui/RouteErrorBoundary';
 
+// Helper for resilient lazy imports when deployments update chunk hashes
+function lazyRetry(componentImport) {
+  return lazy(async () => {
+    try {
+      return await componentImport();
+    } catch (error) {
+      const isChunkError =
+        error?.name === 'ChunkLoadError' ||
+        error?.message?.includes('Failed to fetch dynamically imported module') ||
+        error?.message?.includes('Importing a module script failed') ||
+        error?.message?.includes('error loading dynamically imported module');
+
+      const reloadKey = 'vite_chunk_reload_' + window.location.pathname;
+      const alreadyReloaded = sessionStorage.getItem(reloadKey);
+
+      if (isChunkError && !alreadyReloaded) {
+        sessionStorage.setItem(reloadKey, 'true');
+        window.location.reload();
+        return new Promise(() => {});
+      }
+      throw error;
+    }
+  });
+}
+
 // Lazy-loaded views
-const HomeScreen = lazy(() =>
+const HomeScreen = lazyRetry(() =>
   import('@/features/guest/home/components/HomeScreen').then((m) => ({
     default: m.HomeScreen,
   }))
 );
 
-const GuestMenuScreen = lazy(() =>
+const GuestMenuScreen = lazyRetry(() =>
   import('@/features/guest/menu/components/GuestMenuScreen').then((m) => ({
     default: m.GuestMenuScreen,
   }))
 );
 
-const GuestCartScreen = lazy(() =>
+const GuestCartScreen = lazyRetry(() =>
   import('@/features/guest/cart/components/GuestCartScreen').then((m) => ({
     default: m.GuestCartScreen,
   }))
 );
 
-const GuestOrderStatusScreen = lazy(() =>
+const GuestOrderStatusScreen = lazyRetry(() =>
   import('@/features/guest/orders/components/GuestOrderStatusScreen').then((m) => ({
     default: m.GuestOrderStatusScreen,
   }))
 );
 
-const StaffLoginScreen = lazy(() =>
+const StaffLoginScreen = lazyRetry(() =>
   import('@/features/shared/auth/components/StaffLoginScreen').then((m) => ({
     default: m.StaffLoginScreen,
   }))
 );
 
-const StaffDashboardScreen = lazy(() =>
+const StaffDashboardScreen = lazyRetry(() =>
   import('@/features/staff/dashboard/components/StaffDashboardScreen').then((m) => ({
     default: m.StaffDashboardScreen,
   }))
 );
 
-const StaffLiveOrdersScreen = lazy(() =>
+const StaffLiveOrdersScreen = lazyRetry(() =>
   import('@/features/staff/live-orders/components/StaffLiveOrdersScreen').then((m) => ({
     default: m.StaffLiveOrdersScreen,
   }))
 );
 
-const StaffKitchenScreen = lazy(() =>
+const StaffKitchenScreen = lazyRetry(() =>
   import('@/features/staff/kitchen/components/StaffKitchenScreen').then((m) => ({
     default: m.StaffKitchenScreen,
   }))
 );
 
-const StaffTablesScreen = lazy(() =>
+const StaffTablesScreen = lazyRetry(() =>
   import('@/features/staff/tables/components/StaffTablesScreen').then((m) => ({
     default: m.StaffTablesScreen,
   }))
 );
 
-const StaffMenuScreen = lazy(() =>
+const StaffMenuScreen = lazyRetry(() =>
   import('@/features/staff/menu-management/components/StaffMenuScreen').then((m) => ({
     default: m.StaffMenuScreen,
   }))
 );
 
-const StaffBillingScreen = lazy(() =>
+const StaffBillingScreen = lazyRetry(() =>
   import('@/features/staff/billing/components/StaffBillingScreen').then((m) => ({
     default: m.StaffBillingScreen,
   }))
 );
 
-const StaffQrScreen = lazy(() =>
+const StaffQrScreen = lazyRetry(() =>
   import('@/features/staff/qr-codes/components/StaffQrScreen').then((m) => ({
     default: m.StaffQrScreen,
   }))
 );
 
-const StaffOffersScreen = lazy(() =>
+const StaffOffersScreen = lazyRetry(() =>
   import('@/features/staff/offers/components/StaffOffersScreen').then((m) => ({
     default: m.StaffOffersScreen,
   }))
 );
 
-const StaffGuestsScreen = lazy(() =>
+const StaffGuestsScreen = lazyRetry(() =>
   import('@/features/staff/guests/components/StaffGuestsScreen').then((m) => ({
     default: m.StaffGuestsScreen,
   }))
 );
 
-const StaffSettingsScreen = lazy(() =>
+const StaffSettingsScreen = lazyRetry(() =>
   import('@/features/staff/settings/components/StaffSettingsScreen').then((m) => ({
     default: m.StaffSettingsScreen,
   }))
 );
 
-const StaffTeamScreen = lazy(() =>
+const StaffTeamScreen = lazyRetry(() =>
   import('@/features/staff/team/components/StaffTeamScreen').then((m) => ({
     default: m.StaffTeamScreen,
   }))
 );
 
-const StaffInvoicesScreen = lazy(() =>
+const StaffInvoicesScreen = lazyRetry(() =>
   import('@/features/staff/invoices/components/StaffInvoicesScreen').then((m) => ({
     default: m.StaffInvoicesScreen,
   }))
 );
 
-const StaffFeedbackScreen = lazy(() =>
+const StaffFeedbackScreen = lazyRetry(() =>
   import('@/features/staff/feedback/components/StaffFeedbackScreen').then((m) => ({
     default: m.StaffFeedbackScreen,
   }))
