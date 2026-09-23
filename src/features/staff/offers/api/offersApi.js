@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseUrl } from '@/lib/supabase';
 
 // ============================================================================
 // OFFERS CRUD
@@ -359,12 +359,11 @@ export async function getSubscriptionCount(venueId) {
  * Calls the Supabase Edge Function
  */
 export async function sendOfferNotification({ offerId, venueId, title, message }) {
-  // Get the current session for auth
-  const { data: { session } } = await supabase.auth.getSession();
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
   try {
-    const response = await fetch(`${supabaseUrl}/functions/v1/send-push`, {
+    const { data: { session } } = await supabase.auth.getSession();
+    const endpoint = `${supabaseUrl}/functions/v1/send-push`;
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
