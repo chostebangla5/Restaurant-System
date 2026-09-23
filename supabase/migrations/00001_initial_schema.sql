@@ -834,14 +834,27 @@ END $$;
 
 DO $$
 DECLARE
-    v_org_id UUID := gen_random_uuid();
-    v_venue_id UUID := gen_random_uuid();
-    v_cat_starters UUID := gen_random_uuid();
-    v_cat_mains UUID := gen_random_uuid();
-    v_cat_drinks UUID := gen_random_uuid();
-    v_table_1 UUID := gen_random_uuid();
-    v_table_2 UUID := gen_random_uuid();
+    v_org_id UUID;
+    v_venue_id UUID;
+    v_cat_starters UUID;
+    v_cat_mains UUID;
+    v_cat_drinks UUID;
+    v_table_1 UUID;
+    v_table_2 UUID;
 BEGIN
+    -- If demo data already exists, skip seed
+    IF EXISTS (SELECT 1 FROM venues WHERE slug = 'spice-garden-downtown') THEN
+        RETURN;
+    END IF;
+
+    v_org_id := gen_random_uuid();
+    v_venue_id := gen_random_uuid();
+    v_cat_starters := gen_random_uuid();
+    v_cat_mains := gen_random_uuid();
+    v_cat_drinks := gen_random_uuid();
+    v_table_1 := gen_random_uuid();
+    v_table_2 := gen_random_uuid();
+
     -- Demo Org
     INSERT INTO organizations (id, name, plan)
     VALUES (v_org_id, 'Spice Garden Hospitality', 'pro')
