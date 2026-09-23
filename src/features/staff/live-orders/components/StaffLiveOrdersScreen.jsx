@@ -230,7 +230,7 @@ export function StaffLiveOrdersScreen() {
                         )}
                       </div>
                       <span className="font-bold text-stone-500 shrink-0">
-                        {formatCurrency(item.price * item.qty)}
+                        {formatCurrency((item?.price || 0) * (item?.qty || 1))}
                       </span>
                     </div>
                   ))}
@@ -259,7 +259,7 @@ export function StaffLiveOrdersScreen() {
                     )}
                   </div>
                   <span className="text-sm font-black text-stone-900 dark:text-white">
-                    {formatCurrency(order.total)}
+                    {formatCurrency(order?.total || 0)}
                   </span>
                 </div>
 
