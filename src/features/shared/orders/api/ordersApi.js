@@ -100,6 +100,10 @@ export async function fetchOrders(venueId) {
         payment_status: isSettled ? 'paid' : 'pending',
         payment_method: 'counter',
         guest_notes: o.notes || '',
+        placed_at: o.placed_at,
+        cooking_at: o.cooking_at,
+        ready_at: o.ready_at,
+        served_at: o.served_at,
         created_at: o.created_at,
       };
     });
@@ -519,6 +523,8 @@ export async function getDashboardStats(venueId) {
       occupiedTablesCount: 0,
       totalTablesCount: 0,
       recentOrders: [],
+      avgKitchenTurnaround: '--',
+      turnaroundTrend: 'No turnaround data yet',
     };
   }
 
@@ -526,16 +532,19 @@ export async function getDashboardStats(venueId) {
     fetchOrders(venueId),
     supabase
       .from('tables')
-      .select('id, status')
+      .select('id, table_number, status')
       .eq('venue_id', venueId)
       .eq('is_active', true),
   ]);
 
   const allTables = tables || [];
+
+  // 1. Gross sales from all non-cancelled orders today
   const todayGrossSales = orders
     .filter((o) => o.status !== 'cancelled')
-    .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    .reduce((sum, o) => sum + (Number(o.subtotal) || 0), 0);
 
+  // 2. Active orders count in kitchen queue
   const activeOrders = orders.filter(
     (o) =>
       o.status === 'placed' ||
@@ -544,13 +553,59 @@ export async function getDashboardStats(venueId) {
       o.status === 'ready'
   );
 
-  const occupiedTables = allTables.filter((t) => t.status === 'in_service' || t.status === 'occupied').length;
+  // 3. Occupied tables count (active dining sessions)
+  const activeTableNumbers = new Set(
+    orders
+      .filter((o) => o.status !== 'cancelled' && o.status !== 'completed')
+      .map((o) => String(o.table_number))
+  );
+
+  const occupiedTables = allTables.filter(
+    (t) =>
+      t.status === 'in_service' ||
+      t.status === 'occupied' ||
+      activeTableNumbers.has(String(t.table_number))
+  ).length;
+
+  // 4. Compute real-time average kitchen turnaround duration
+  const turnaroundTimesSec = [];
+  for (const o of orders) {
+    if (['ready', 'served', 'completed'].includes(o.status)) {
+      const startTime = o.cooking_at || o.placed_at || o.created_at;
+      const endTime = o.ready_at || o.served_at;
+      if (startTime && endTime) {
+        const diffMs = new Date(endTime).getTime() - new Date(startTime).getTime();
+        const diffSec = Math.round(diffMs / 1000);
+        if (diffSec > 0 && diffSec < 86400) {
+          turnaroundTimesSec.push(diffSec);
+        }
+      }
+    }
+  }
+
+  let avgKitchenTurnaround = '--';
+  let turnaroundTrend = 'No completed tickets yet';
+  if (turnaroundTimesSec.length > 0) {
+    const avgSec = Math.round(
+      turnaroundTimesSec.reduce((a, b) => a + b, 0) / turnaroundTimesSec.length
+    );
+    if (avgSec < 60) {
+      avgKitchenTurnaround = `${avgSec}s`;
+    } else {
+      const mins = Math.floor(avgSec / 60);
+      const secs = avgSec % 60;
+      avgKitchenTurnaround = secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+    }
+    turnaroundTrend = `Live speed based on ${turnaroundTimesSec.length} ticket${turnaroundTimesSec.length > 1 ? 's' : ''}`;
+  }
 
   return {
     todayGrossSales,
     activeOrdersCount: activeOrders.length,
     occupiedTablesCount: occupiedTables,
-    totalTablesCount: allTables.length,
+    totalTablesCount: allTables.length || 6,
+    avgKitchenTurnaround,
+    turnaroundTrend,
     recentOrders: orders.slice(0, 6),
   };
 }

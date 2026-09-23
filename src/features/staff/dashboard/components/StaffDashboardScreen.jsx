@@ -65,6 +65,8 @@ export function StaffDashboardScreen() {
     activeOrdersCount: 0,
     occupiedTablesCount: 0,
     totalTablesCount: 6,
+    avgKitchenTurnaround: '--',
+    turnaroundTrend: 'Live speed metric',
     recentOrders: [],
   });
   const [isLoading, setIsLoading] = useState(true);
@@ -153,8 +155,8 @@ export function StaffDashboardScreen() {
     },
     {
       title: 'Avg. Kitchen Turnaround',
-      value: '11m 40s',
-      trend: 'Live speed metric',
+      value: stats.avgKitchenTurnaround || '--',
+      trend: stats.turnaroundTrend || 'Live speed metric',
       icon: ShoppingBagIcon,
       color: 'text-purple-500 bg-purple-500/10',
     },
