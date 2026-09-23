@@ -3,12 +3,14 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/features/shared/auth';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
+import { PendingApprovalScreen } from '@/features/shared/auth/components/PendingApprovalScreen';
+
 /**
  * Route guard that requires staff authentication and optional role checking
  * In dev / unconfigured mode, it permits bypass with a warning banner.
  */
 export function ProtectedRoute({ children, allowedRoles = [] }) {
-  const { session, role, isLoading } = useAuth();
+  const { session, role, isPendingApproval, isLoading } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -24,6 +26,10 @@ export function ProtectedRoute({ children, allowedRoles = [] }) {
 
   if (!session) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (isPendingApproval) {
+    return <PendingApprovalScreen />;
   }
 
   if (allowedRoles.length > 0 && role && !allowedRoles.includes(role)) {

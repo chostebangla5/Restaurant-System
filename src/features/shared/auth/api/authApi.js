@@ -11,7 +11,6 @@ export async function fetchStaffProfiles(authUserId) {
     .from('staff_users')
     .select('*, venues(*), organizations(*)')
     .eq('auth_user_id', authUserId)
-    .eq('is_active', true)
     .order('created_at', { ascending: true });
 
   if (error) throw error;
@@ -232,4 +231,65 @@ export function generateSlug(name) {
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .substring(0, 80);
+}
+
+/**
+ * Register as a staff member for an existing venue.
+ * The account is created in a pending state (is_active: false) until an admin/owner accepts it.
+ */
+export async function signUpStaff({
+  email,
+  password,
+  fullName,
+  venueId,
+  role = 'waiter',
+}) {
+  // 1. Create auth user
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { full_name: fullName },
+    },
+  });
+
+  if (authError) throw authError;
+
+  const authUser = authData.user;
+  if (!authUser) throw new Error('Sign up succeeded but user object is null.');
+
+  // 2. Fetch venue info to get org_id
+  const { data: venue, error: venueError } = await supabase
+    .from('venues')
+    .select('id, org_id, name')
+    .eq('id', venueId)
+    .single();
+
+  if (venueError || !venue) {
+    throw new Error('Selected dining venue was not found.');
+  }
+
+  // 3. Insert staff_users row with is_active = false (Pending Admin Approval)
+  const { data: staffRow, error: staffError } = await supabase
+    .from('staff_users')
+    .insert({
+      org_id: venue.org_id,
+      venue_id: venue.id,
+      auth_user_id: authUser.id,
+      full_name: fullName,
+      email,
+      role,
+      is_active: false, // PENDING APPROVAL
+    })
+    .select()
+    .single();
+
+  if (staffError) throw staffError;
+
+  return {
+    user: authUser,
+    staff: staffRow,
+    isPending: true,
+    message: 'Account created! Your registration is pending approval by the restaurant admin.',
+  };
 }

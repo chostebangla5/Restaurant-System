@@ -12,6 +12,7 @@ const AuthContext = createContext({
   orgId: null,
   venue: null,
   organization: null,
+  isPendingApproval: false,
   isLoading: true,
   signInWithPassword: async () => {},
   signOut: async () => {},
@@ -27,6 +28,7 @@ export function AuthProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
 
   const staffProfile = staffProfiles[activeProfileIndex] || null;
+  const isPendingApproval = Boolean(staffProfile && staffProfile.is_active === false);
   const role = staffProfile?.role ?? null;
   const venueId = staffProfile?.venue_id ?? null;
   const orgId = staffProfile?.org_id ?? null;
@@ -37,36 +39,43 @@ export function AuthProvider({ children }) {
     try {
       let profiles = await fetchStaffProfiles(authUserId);
       
-      // Fallback: If no staff profile row exists yet, auto-link to first active venue
+      // If user has no staff_users row, check if they own an organization
       if (!profiles || profiles.length === 0) {
-        const { data: venues } = await supabase
-          .from('venues')
-          .select('*')
-          .eq('is_active', true)
-          .limit(1);
+        const { data: ownedOrg } = await supabase
+          .from('organizations')
+          .select('*, venues(*)')
+          .eq('owner_auth_id', authUserId)
+          .maybeSingle();
 
-        if (venues && venues.length > 0) {
-          const v = venues[0];
+        if (ownedOrg && ownedOrg.venues && ownedOrg.venues.length > 0) {
+          const v = ownedOrg.venues[0];
           profiles = [{
             id: 'owner-' + v.id,
-            org_id: v.org_id,
+            org_id: ownedOrg.id,
             venue_id: v.id,
             role: 'owner',
+            is_active: true,
             full_name: 'Restaurant Owner',
             venues: v,
+            organizations: ownedOrg,
           }];
         }
       }
 
-      setStaffProfiles(profiles);
+      setStaffProfiles(profiles || []);
 
-      // Restore last-active venue from localStorage if available
-      const savedVenueId = localStorage.getItem('ts_active_venue');
-      if (savedVenueId) {
-        const idx = profiles.findIndex((p) => p.venue_id === savedVenueId);
-        if (idx >= 0) {
-          setActiveProfileIndex(idx);
+      // If active profiles exist, prioritize an active one over a pending one
+      if (profiles && profiles.length > 0) {
+        const savedVenueId = localStorage.getItem('ts_active_venue');
+        let idx = -1;
+        if (savedVenueId) {
+          idx = profiles.findIndex((p) => p.venue_id === savedVenueId);
         }
+        if (idx < 0) {
+          idx = profiles.findIndex((p) => p.is_active !== false);
+          if (idx < 0) idx = 0;
+        }
+        setActiveProfileIndex(idx);
       }
     } catch (err) {
       console.warn('Failed to load staff profiles:', err);
@@ -163,6 +172,7 @@ export function AuthProvider({ children }) {
         orgId,
         venue,
         organization,
+        isPendingApproval,
         isLoading,
         signInWithPassword,
         signOut,

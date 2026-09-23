@@ -92,6 +92,13 @@ export async function updateStaffMember(staffId, updates) {
 }
 
 /**
+ * Approve a pending staff member and assign their role
+ */
+export async function approveStaffMember(staffId, role = 'waiter') {
+  return updateStaffMember(staffId, { role, isActive: true });
+}
+
+/**
  * Toggle staff active status (on duty / off duty)
  */
 export async function toggleStaffActive(staffId, isActive) {
@@ -99,18 +106,57 @@ export async function toggleStaffActive(staffId, isActive) {
 }
 
 /**
- * Delete / remove a staff member
+ * Delete / remove a staff member (with soft-deactivation fallback)
  */
 export async function removeStaffMember(staffId) {
   if (!isSupabaseConfigured()) {
     throw new Error('Supabase is not configured.');
   }
 
-  const { error } = await supabase
+  // 1. Attempt hard delete via Supabase
+  const { data: deletedRows, error: delError } = await supabase
     .from('staff_users')
     .delete()
+    .eq('id', staffId)
+    .select();
+
+  // If hard-delete succeeded, return true
+  if (!delError && deletedRows && deletedRows.length > 0) {
+    return true;
+  }
+
+  // 2. If RLS prevented hard-delete (0 rows returned or error), fallback to deactivating
+  console.warn('Direct delete did not delete rows; applying deactivation fallback');
+  const { error: updateError } = await supabase
+    .from('staff_users')
+    .update({ is_active: false })
     .eq('id', staffId);
 
-  if (error) throw error;
+  if (updateError && delError) {
+    throw delError || updateError;
+  }
+
   return true;
+}
+
+/**
+ * Subscribe to realtime staff updates
+ */
+export function subscribeToStaff(callback) {
+  if (!isSupabaseConfigured()) return () => {};
+
+  const channel = supabase
+    .channel('staff_realtime_channel')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'staff_users' },
+      () => {
+        callback();
+      }
+    )
+    .subscribe();
+
+  return () => {
+    supabase.removeChannel(channel);
+  };
 }

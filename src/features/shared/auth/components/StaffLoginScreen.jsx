@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '../context/AuthContext';
-import { signUpOwner, generateSlug } from '../api/authApi';
-import { isSupabaseConfigured } from '@/lib/supabase';
+import { signUpOwner, signUpStaff, generateSlug } from '../api/authApi';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
 export function StaffLoginScreen() {
@@ -25,7 +25,7 @@ export function StaffLoginScreen() {
           <p className="text-xs text-stone-400 mt-1">
             {mode === 'login'
               ? 'Sign in to manage your restaurant'
-              : 'Create your restaurant account'}
+              : 'Create your restaurant or staff account'}
           </p>
         </div>
 
@@ -125,6 +125,10 @@ function LoginForm({ navigate }) {
 }
 
 function SignUpForm({ navigate, setMode }) {
+  const [signupType, setSignupType] = useState('staff'); // 'staff' | 'owner'
+  const [venues, setVenues] = useState([]);
+  const [selectedVenueId, setSelectedVenueId] = useState('');
+  const [selectedRole, setSelectedRole] = useState('waiter');
   const [formData, setFormData] = useState({
     fullName: '',
     orgName: '',
@@ -133,6 +137,21 @@ function SignUpForm({ navigate, setMode }) {
     password: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    async function loadVenues() {
+      try {
+        const { data } = await supabase.from('venues').select('id, name').eq('is_active', true);
+        if (data && data.length > 0) {
+          setVenues(data);
+          setSelectedVenueId(data[0].id);
+        }
+      } catch (err) {
+        console.warn('Could not load venues for signup:', err);
+      }
+    }
+    loadVenues();
+  }, []);
 
   const slug = generateSlug(formData.venueName);
 
@@ -151,33 +170,61 @@ function SignUpForm({ navigate, setMode }) {
       return;
     }
 
-    if (!formData.fullName || !formData.orgName || !formData.venueName) {
-      toast.error('Please fill in all fields');
+    if (!formData.fullName || !formData.email || !formData.password) {
+      toast.error('Please fill in all required fields');
       return;
     }
 
     setIsLoading(true);
     try {
-      const result = await signUpOwner({
-        email: formData.email,
-        password: formData.password,
-        fullName: formData.fullName,
-        orgName: formData.orgName,
-        venueName: formData.venueName,
-        venueSlug: slug,
-      });
+      if (signupType === 'staff') {
+        if (!selectedVenueId) {
+          toast.error('Please select a restaurant venue');
+          setIsLoading(false);
+          return;
+        }
 
-      if (result?.requiresEmailVerification) {
+        await signUpStaff({
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName,
+          venueId: selectedVenueId,
+          role: selectedRole,
+        });
+
         toast.success(
-          'Account created! If email confirmation is enabled, check your inbox or disable "Confirm email" in Supabase to login immediately.',
+          'Registration submitted! Your account is pending confirmation by the restaurant admin. Sign in to view status.',
           { duration: 8000 }
         );
         setMode('login');
-        return;
-      }
+      } else {
+        if (!formData.orgName || !formData.venueName) {
+          toast.error('Please enter Organization and Venue name');
+          setIsLoading(false);
+          return;
+        }
 
-      toast.success('Account created! Welcome to TableSuite.');
-      navigate('/staff/settings');
+        const result = await signUpOwner({
+          email: formData.email,
+          password: formData.password,
+          fullName: formData.fullName,
+          orgName: formData.orgName,
+          venueName: formData.venueName,
+          venueSlug: slug,
+        });
+
+        if (result?.requiresEmailVerification) {
+          toast.success(
+            'Account created! If email confirmation is enabled, check your inbox or disable "Confirm email" in Supabase to login immediately.',
+            { duration: 8000 }
+          );
+          setMode('login');
+          return;
+        }
+
+        toast.success('Restaurant owner account created! Welcome to TableSuite.');
+        navigate('/staff/settings');
+      }
     } catch (err) {
       const msg = err?.message || 'Registration failed';
       if (msg.includes('security purposes') || msg.includes('over_email_send_rate_limit')) {
@@ -188,8 +235,6 @@ function SignUpForm({ navigate, setMode }) {
       } else if (msg.toLowerCase().includes('already registered') || msg.toLowerCase().includes('user already exists')) {
         toast.error('This email is already registered. Please sign in on the Staff Sign In tab.', { duration: 6000 });
         setMode('login');
-      } else if (msg.includes('organizations') || msg.includes('schema cache')) {
-        toast.error('Database tables not found! Please run the SQL migration in Supabase SQL Editor first.', { duration: 8000 });
       } else {
         toast.error(msg);
       }
@@ -200,36 +245,107 @@ function SignUpForm({ navigate, setMode }) {
 
   return (
     <form onSubmit={handleSignUp} className="space-y-4">
+      {/* Sub-type switcher */}
+      <div className="flex gap-2 p-1 bg-stone-800/40 rounded-xl border border-stone-800">
+        <button
+          type="button"
+          onClick={() => setSignupType('staff')}
+          className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-colors ${
+            signupType === 'staff'
+              ? 'bg-brand-primary text-white'
+              : 'text-stone-400 hover:text-stone-200'
+          }`}
+        >
+          Join Restaurant Staff
+        </button>
+        <button
+          type="button"
+          onClick={() => setSignupType('owner')}
+          className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-colors ${
+            signupType === 'owner'
+              ? 'bg-brand-primary text-white'
+              : 'text-stone-400 hover:text-stone-200'
+          }`}
+        >
+          New Restaurant Owner
+        </button>
+      </div>
+
       <Input
         label="Your Full Name"
         value={formData.fullName}
         onChange={handleChange('fullName')}
         required
-        placeholder="Priya Sharma"
+        placeholder="e.g. Rahul Sharma"
       />
-      <Input
-        label="Organization / Brand Name"
-        value={formData.orgName}
-        onChange={handleChange('orgName')}
-        required
-        placeholder="Spice Garden Hospitality"
-        helperText="The parent company that owns your venues"
-      />
-      <Input
-        label="First Venue Name"
-        value={formData.venueName}
-        onChange={handleChange('venueName')}
-        required
-        placeholder="Spice Garden Downtown"
-        helperText={slug ? `Guest URL: /t/... • Venue slug: ${slug}` : ''}
-      />
+
+      {signupType === 'staff' ? (
+        <>
+          {venues.length > 0 && (
+            <div>
+              <label className="block text-xs font-semibold text-stone-300 mb-1.5">
+                Select Restaurant Venue
+              </label>
+              <select
+                value={selectedVenueId}
+                onChange={(e) => setSelectedVenueId(e.target.value)}
+                className="w-full rounded-xl border border-stone-700 bg-stone-800 px-3 py-2.5 text-xs text-white focus:border-brand-primary focus:outline-none"
+              >
+                {venues.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-xs font-semibold text-stone-300 mb-1.5">
+              Role Applying For
+            </label>
+            <select
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value)}
+              className="w-full rounded-xl border border-stone-700 bg-stone-800 px-3 py-2.5 text-xs text-white focus:border-brand-primary focus:outline-none"
+            >
+              <option value="waiter">Waiter (Floor Staff)</option>
+              <option value="kitchen">Kitchen (KDS & Chef)</option>
+              <option value="manager">Manager</option>
+            </select>
+            <p className="text-[10px] text-amber-500/90 mt-1">
+              * Account will be pending approval by the restaurant admin before activation.
+            </p>
+          </div>
+        </>
+      ) : (
+        <>
+          <Input
+            label="Organization / Brand Name"
+            value={formData.orgName}
+            onChange={handleChange('orgName')}
+            required
+            placeholder="Spice Garden Hospitality"
+            helperText="The parent company that owns your venues"
+          />
+          <Input
+            label="First Venue Name"
+            value={formData.venueName}
+            onChange={handleChange('venueName')}
+            required
+            placeholder="Spice Garden Downtown"
+            helperText={slug ? `Guest URL: /t/... • Venue slug: ${slug}` : ''}
+          />
+        </>
+      )}
+
       <Input
         label="Email Address"
         type="email"
         value={formData.email}
         onChange={handleChange('email')}
         required
-        placeholder="owner@restaurant.com"
+        placeholder="staff@restaurant.com"
       />
       <Input
         label="Password"
@@ -239,8 +355,8 @@ function SignUpForm({ navigate, setMode }) {
         required
         placeholder="Minimum 6 characters"
       />
-      <Button type="submit" size="lg" className="w-full" isLoading={isLoading}>
-        Create Restaurant Account
+      <Button type="submit" size="lg" className="w-full font-bold" isLoading={isLoading}>
+        {signupType === 'staff' ? 'Submit Registration for Approval' : 'Create Restaurant Account'}
       </Button>
 
       <p className="text-center text-xs text-stone-500">
