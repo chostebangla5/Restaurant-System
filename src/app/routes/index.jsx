@@ -4,6 +4,7 @@ import { RootLayout } from '@/app/layouts/RootLayout';
 import { GuestLayout } from '@/app/layouts/GuestLayout';
 import { StaffLayout } from '@/app/layouts/StaffLayout';
 import { ProtectedRoute } from '@/app/routes/ProtectedRoute';
+import { RouteErrorBoundary } from '@/components/ui/RouteErrorBoundary';
 
 // Lazy-loaded views
 const HomeScreen = lazy(() =>
@@ -126,6 +127,7 @@ export const router = createBrowserRouter([
   {
     path: '/',
     element: <RootLayout />,
+    errorElement: <RouteErrorBoundary />,
     children: [
       {
         index: true,

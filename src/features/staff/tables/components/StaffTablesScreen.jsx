@@ -43,10 +43,12 @@ export function StaffTablesScreen() {
         fetchTables(venueId),
         fetchOrders(venueId),
       ]);
-      setTables(tList);
-      setOrders(oList);
+      setTables(Array.isArray(tList) ? tList : []);
+      setOrders(Array.isArray(oList) ? oList : []);
     } catch (err) {
       console.error('Failed to load table/order data:', err);
+      setTables([]);
+      setOrders([]);
     } finally {
       setIsLoading(false);
     }
@@ -61,10 +63,11 @@ export function StaffTablesScreen() {
   }, [loadData]);
 
   const getTableOrders = (table) => {
-    return orders.filter(
+    return (orders || []).filter(
       (o) =>
-        (o.short_code?.toUpperCase() === table.code?.toUpperCase() ||
-          o.table_number === table.number) &&
+        o &&
+        (o.short_code?.toUpperCase() === table?.code?.toUpperCase() ||
+          o.table_number === table?.number) &&
         o.status !== 'cancelled'
     );
   };
@@ -75,13 +78,18 @@ export function StaffTablesScreen() {
   };
 
   const handleSettleTable = async (table) => {
-    const activeOrders = getTableOrders(table).filter((o) => o.status !== 'completed');
-    for (const o of activeOrders) {
-      await settleOrder(o.id, 'counter');
+    try {
+      const activeOrders = getTableOrders(table).filter((o) => o.status !== 'completed');
+      for (const o of activeOrders) {
+        await settleOrder(o.id, 'counter');
+      }
+      toast.success(`Table ${table.number} settled and freed!`);
+      setSelectedTable(null);
+      loadData();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to settle table');
     }
-    toast.success(`Table ${table.number} settled and freed!`);
-    setSelectedTable(null);
-    loadData();
   };
 
   const handleAddTable = async (e) => {

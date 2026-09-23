@@ -29,12 +29,13 @@ export function StaffKitchenScreen() {
     try {
       const data = await fetchOrders(venueId);
       // Kitchen is interested in active cooking/placed tickets
-      const kitchenOrders = data.filter((o) =>
-        ['placed', 'acknowledged', 'cooking'].includes(o.status)
+      const kitchenOrders = (Array.isArray(data) ? data : []).filter((o) =>
+        o && ['placed', 'acknowledged', 'cooking'].includes(o.status)
       );
       setOrders(kitchenOrders);
     } catch (err) {
       console.warn('Failed to load kitchen orders:', err);
+      setOrders([]);
     }
   };
 
@@ -53,15 +54,21 @@ export function StaffKitchenScreen() {
   };
 
   const handleBumpTicket = async (orderId) => {
-    await updateOrderStatus(orderId, 'ready');
-    toast.success('Ticket bumped! Marked as READY FOR SERVICE 🚀');
-    load();
+    try {
+      await updateOrderStatus(orderId, 'ready');
+      toast.success('Ticket bumped! Marked as READY FOR SERVICE 🚀');
+      load();
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to update ticket');
+    }
   };
 
   const getStationOrders = () => {
-    if (selectedStation === 'all') return orders;
-    return orders.filter((o) =>
-      (o.items || []).some((item) => (item.station || 'hot') === selectedStation)
+    const list = orders || [];
+    if (selectedStation === 'all') return list;
+    return list.filter((o) =>
+      o && (o.items || []).some((item) => (item.station || 'hot') === selectedStation)
     );
   };
 

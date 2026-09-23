@@ -53,18 +53,29 @@ export function StaffLiveOrdersScreen() {
   }, [venueId, soundEnabled]);
 
   const handleStatusChange = async (orderId, nextStatus) => {
-    await updateOrderStatus(orderId, nextStatus);
-    toast.success(`Order updated to ${nextStatus.toUpperCase()}`);
-    load();
+    try {
+      await updateOrderStatus(orderId, nextStatus);
+      toast.success(`Order updated to ${nextStatus.toUpperCase()}`);
+      load();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update order');
+    }
   };
 
   const handleSettle = async (orderId) => {
-    await settleOrder(orderId, 'counter');
-    toast.success('Order marked as settled & completed!');
-    load();
+    try {
+      await settleOrder(orderId, 'counter');
+      toast.success('Order marked as settled & completed!');
+      load();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to settle order');
+    }
   };
 
   const filteredOrders = (orders || []).filter((o) => {
+    if (!o) return false;
     if (activeFilter === 'all') return true;
     if (activeFilter === 'active') {
       return ['placed', 'acknowledged', 'cooking', 'ready'].includes(o.status);
