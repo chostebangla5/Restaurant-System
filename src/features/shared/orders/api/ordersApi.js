@@ -87,17 +87,17 @@ export async function fetchOrders(venueId) {
       items: (o.order_items || []).map((it) => ({
         id: it.id,
         name: it.item_name || 'Item',
-        price: Number(it.unit_price) || 0,
+        price: Number(it.price_at_order ?? it.unit_price) || 0,
         qty: it.quantity || 1,
         station: it.station || 'hot',
-        notes: it.notes || '',
+        notes: it.customization_notes || it.notes || '',
       })),
-      subtotal: Number(o.subtotal) || 0,
-      tax: Number(o.tax_amount) || 0,
-      total: Number(o.total_amount) || 0,
-      payment_status: o.payment_status || 'pending',
-      payment_method: o.payment_method || 'counter',
-      guest_notes: o.guest_notes || '',
+      subtotal: Number(o.subtotal) || Number(o.table_sessions?.subtotal) || 0,
+      tax: Number(o.table_sessions?.tax_amount) || 0,
+      total: Number(o.table_sessions?.total_amount) || Number(o.subtotal) || 0,
+      payment_status: o.table_sessions?.status === 'settled' ? 'paid' : 'pending',
+      payment_method: 'counter',
+      guest_notes: o.notes || '',
       created_at: o.created_at,
     }));
   } catch (err) {
@@ -125,12 +125,12 @@ export async function fetchOrdersForTable(shortCode) {
 
     const { data: session } = await supabase
       .from('table_sessions')
-      .select('id')
+      .select('id, subtotal, tax_amount, discount_amount, total_amount, status')
       .eq('table_id', tableData.id)
-      .eq('status', 'active')
+      .eq('status', 'open')
       .order('created_at', { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     if (!session) return [];
 
@@ -154,17 +154,17 @@ export async function fetchOrdersForTable(shortCode) {
       items: (o.order_items || []).map((it) => ({
         id: it.id,
         name: it.item_name || 'Item',
-        price: Number(it.unit_price) || 0,
+        price: Number(it.price_at_order ?? it.unit_price) || 0,
         qty: it.quantity || 1,
         station: it.station || 'hot',
-        notes: it.notes || '',
+        notes: it.customization_notes || it.notes || '',
       })),
       subtotal: Number(o.subtotal) || 0,
-      tax: Number(o.tax_amount) || 0,
-      total: Number(o.total_amount) || 0,
-      payment_status: o.payment_status || 'pending',
-      payment_method: o.payment_method || 'counter',
-      guest_notes: o.guest_notes || '',
+      tax: Number(session.tax_amount) || 0,
+      total: Number(session.total_amount || o.subtotal) || 0,
+      payment_status: session.status === 'settled' ? 'paid' : 'pending',
+      payment_method: 'counter',
+      guest_notes: o.notes || '',
       created_at: o.created_at,
     }));
   } catch (err) {
@@ -197,17 +197,19 @@ export async function createOrder({
   // 1. Resolve table
   let targetVenueId = venueId;
   let targetTableId = null;
+  let targetOrgId = null;
 
   if (shortCode) {
     const { data: tbl } = await supabase
       .from('tables')
-      .select('id, venue_id, table_number')
+      .select('id, venue_id, org_id, table_number')
       .eq('short_code', shortCode)
       .single();
 
     if (tbl) {
       targetTableId = tbl.id;
       targetVenueId = tbl.venue_id;
+      targetOrgId = tbl.org_id;
       tableNumber = tbl.table_number;
     }
   }
@@ -216,31 +218,47 @@ export async function createOrder({
     throw new Error('Valid dining table not found for this QR code.');
   }
 
-  // 2. Get or create active table session
-  let { data: session } = await supabase
-    .from('table_sessions')
-    .select('id, org_id')
-    .eq('table_id', targetTableId)
-    .eq('status', 'active')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
-
-  if (!session) {
-    // Get org_id from table
+  // If org_id is missing, resolve from table or venue
+  if (!targetOrgId) {
     const { data: tblInfo } = await supabase
       .from('tables')
       .select('org_id')
       .eq('id', targetTableId)
       .single();
+    targetOrgId = tblInfo?.org_id;
 
+    if (!targetOrgId) {
+      const { data: venInfo } = await supabase
+        .from('venues')
+        .select('org_id')
+        .eq('id', targetVenueId)
+        .single();
+      targetOrgId = venInfo?.org_id;
+    }
+  }
+
+  // 2. Get or create open table session
+  let { data: session } = await supabase
+    .from('table_sessions')
+    .select('id, org_id, venue_id')
+    .eq('table_id', targetTableId)
+    .eq('status', 'open')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!session) {
     const { data: newSession, error: sessErr } = await supabase
       .from('table_sessions')
       .insert({
-        org_id: tblInfo?.org_id,
+        org_id: targetOrgId,
         table_id: targetTableId,
         venue_id: targetVenueId,
-        status: 'active',
+        status: 'open',
+        subtotal: Number(subtotal) || 0,
+        tax_amount: Number(tax) || 0,
+        discount_amount: Number(discountAmount) || 0,
+        total_amount: Number(total) || 0,
       })
       .select()
       .single();
@@ -253,6 +271,21 @@ export async function createOrder({
       .from('tables')
       .update({ status: 'in_service' })
       .eq('id', targetTableId);
+  } else {
+    // Update session financial totals
+    try {
+      await supabase
+        .from('table_sessions')
+        .update({
+          subtotal: Number(subtotal) || 0,
+          tax_amount: Number(tax) || 0,
+          discount_amount: Number(discountAmount) || 0,
+          total_amount: Number(total) || 0,
+        })
+        .eq('id', session.id);
+    } catch (sessUpdateErr) {
+      console.warn('Could not update table session totals:', sessUpdateErr);
+    }
   }
 
   // 3. Determine round number
@@ -272,38 +305,20 @@ export async function createOrder({
   const { data: createdOrder, error: orderErr } = await supabase
     .from('orders')
     .insert({
+      org_id: session.org_id || targetOrgId,
       venue_id: targetVenueId,
       table_session_id: session.id,
       round_number: nextRoundNumber,
       status: 'placed',
+      notes: finalGuestNotes,
       subtotal: Number(subtotal) || 0,
-      tax_amount: Number(tax) || 0,
-      total_amount: Number(total) || 0,
-      payment_method: paymentMethod,
-      payment_status: paymentStatus,
-      guest_notes: finalGuestNotes,
     })
     .select()
     .single();
 
   if (orderErr) throw orderErr;
 
-  // 4b. Update table session financial totals
-  try {
-    await supabase
-      .from('table_sessions')
-      .update({
-        subtotal: Number(subtotal) || 0,
-        tax_amount: Number(tax) || 0,
-        discount_amount: Number(discountAmount) || 0,
-        total_amount: Number(total) || 0,
-      })
-      .eq('id', session.id);
-  } catch (sessUpdateErr) {
-    console.warn('Could not update table session totals:', sessUpdateErr);
-  }
-
-  // 4c. If coupon applied, increment times_used in coupons table
+  // 4b. If coupon applied, increment times_used in coupons table
   if (couponCode && targetVenueId) {
     try {
       const { data: cpn } = await supabase
@@ -329,16 +344,18 @@ export async function createOrder({
     const itemInserts = items.map((i) => ({
       order_id: createdOrder.id,
       menu_item_id: i.id && i.id.length > 20 ? i.id : null,
-      item_name: i.name,
-      unit_price: Number(i.price) || 0,
+      item_name: i.name || 'Item',
+      price_at_order: Number(i.price) || 0,
       quantity: Number(i.qty) || 1,
-      station: i.station || 'hot',
-      notes: i.notes || '',
+      station: (i.station && ['hot', 'cold', 'bar'].includes(i.station)) ? i.station : 'hot',
+      customization_notes: i.notes || '',
       status: 'pending',
     }));
 
     const { error: itemsErr } = await supabase.from('order_items').insert(itemInserts);
-    if (itemsErr) console.warn('Error inserting order items:', itemsErr);
+    if (itemsErr) {
+      console.warn('Error inserting order items:', itemsErr);
+    }
   }
 
   // Play audio alert and notify cross-tab listeners
@@ -365,14 +382,27 @@ export async function createOrder({
 }
 
 /**
- * Update order status (placed -> acknowledged -> cooking -> ready -> served -> completed)
+ * Update order status (placed -> acknowledged -> cooking -> ready -> served -> cancelled)
  */
 export async function updateOrderStatus(orderId, newStatus) {
   if (!isSupabaseConfigured()) return;
 
+  const validStatuses = ['placed', 'acknowledged', 'cooking', 'ready', 'served', 'cancelled'];
+  const statusToSave = validStatuses.includes(newStatus) ? newStatus : (newStatus === 'completed' ? 'served' : 'placed');
+
+  const updateFields = {
+    status: statusToSave,
+    updated_at: new Date().toISOString(),
+  };
+
+  if (statusToSave === 'acknowledged') updateFields.acknowledged_at = new Date().toISOString();
+  if (statusToSave === 'cooking') updateFields.cooking_at = new Date().toISOString();
+  if (statusToSave === 'ready') updateFields.ready_at = new Date().toISOString();
+  if (statusToSave === 'served') updateFields.served_at = new Date().toISOString();
+
   const { error } = await supabase
     .from('orders')
-    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .update(updateFields)
     .eq('id', orderId);
 
   if (error) {
@@ -380,7 +410,7 @@ export async function updateOrderStatus(orderId, newStatus) {
     throw error;
   }
 
-  notifySync('order_status_updated', { id: orderId, status: newStatus });
+  notifySync('order_status_updated', { id: orderId, status: statusToSave });
   return true;
 }
 
@@ -390,16 +420,18 @@ export async function updateOrderStatus(orderId, newStatus) {
 export async function settleOrder(orderId, paymentMethod = 'counter') {
   if (!isSupabaseConfigured()) return;
 
+  const validMethod = ['cash', 'card', 'upi', 'online'].includes(paymentMethod)
+    ? paymentMethod
+    : 'cash';
+
   const { data: order, error } = await supabase
     .from('orders')
     .update({
-      status: 'completed',
-      payment_status: 'paid',
-      payment_method: paymentMethod,
+      status: 'served',
       updated_at: new Date().toISOString(),
     })
     .eq('id', orderId)
-    .select('table_session_id')
+    .select('table_session_id, venue_id, org_id, subtotal')
     .single();
 
   if (error) {
@@ -413,16 +445,16 @@ export async function settleOrder(orderId, paymentMethod = 'counter') {
       .from('orders')
       .select('*', { count: 'exact', head: true })
       .eq('table_session_id', order.table_session_id)
-      .neq('status', 'completed')
+      .neq('status', 'served')
       .neq('status', 'cancelled');
 
     if (count === 0) {
       // Settle session and free table
       const { data: sess } = await supabase
         .from('table_sessions')
-        .update({ status: 'settled', settled_at: new Date().toISOString() })
+        .update({ status: 'settled', closed_at: new Date().toISOString() })
         .eq('id', order.table_session_id)
-        .select('table_id')
+        .select('table_id, org_id, venue_id, total_amount, subtotal')
         .single();
 
       if (sess?.table_id) {
@@ -430,6 +462,20 @@ export async function settleOrder(orderId, paymentMethod = 'counter') {
           .from('tables')
           .update({ status: 'free' })
           .eq('id', sess.table_id);
+      }
+
+      // Record payment in payments table
+      try {
+        await supabase.from('payments').insert({
+          org_id: sess?.org_id || order.org_id,
+          venue_id: sess?.venue_id || order.venue_id,
+          table_session_id: order.table_session_id,
+          amount: Number(sess?.total_amount || sess?.subtotal || order.subtotal) || 0,
+          payment_method: validMethod,
+          status: 'completed',
+        });
+      } catch (payErr) {
+        console.warn('Could not insert payment record:', payErr);
       }
     }
   }
