@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '../context/AuthContext';
-import { signUpOwner, signUpStaff, generateSlug } from '../api/authApi';
+import { signUpOwner, signUpStaff, generateSlug, resendConfirmationEmail } from '../api/authApi';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
@@ -77,6 +77,8 @@ function LoginForm({ navigate }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState(null);
+  const [isResending, setIsResending] = useState(false);
   const { signInWithPassword } = useAuth();
 
   const handleLogin = async (e) => {
@@ -88,14 +90,34 @@ function LoginForm({ navigate }) {
     }
 
     setIsLoading(true);
+    setUnconfirmedEmail(null);
     try {
       await signInWithPassword(email, password);
       toast.success('Signed in successfully!');
       navigate('/staff');
     } catch (err) {
-      toast.error(err.message || 'Invalid email or password');
+      const msg = err.message || '';
+      if (msg.toLowerCase().includes('email not confirmed')) {
+        setUnconfirmedEmail(email);
+        toast.error('Email not confirmed yet. Check your inbox or resend the verification link.');
+      } else {
+        toast.error(msg || 'Invalid email or password');
+      }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (!unconfirmedEmail) return;
+    try {
+      setIsResending(true);
+      await resendConfirmationEmail(unconfirmedEmail);
+      toast.success(`Verification email resent to ${unconfirmedEmail}! Please check your inbox and spam folder.`);
+    } catch (err) {
+      toast.error(err.message || 'Failed to resend confirmation email');
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -117,6 +139,34 @@ function LoginForm({ navigate }) {
         required
         placeholder="••••••••"
       />
+
+      {unconfirmedEmail && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2.5">
+          <div className="flex items-start gap-2.5">
+            <span className="text-lg">✉️</span>
+            <div>
+              <p className="font-bold text-white text-sm">Email Not Confirmed Yet</p>
+              <p className="text-[11px] text-stone-300 mt-1">
+                Supabase sent a verification link to <strong className="text-white">{unconfirmedEmail}</strong>. Please check your inbox or spam folder.
+              </p>
+            </div>
+          </div>
+          <div className="pt-1">
+            <button
+              type="button"
+              disabled={isResending}
+              onClick={handleResend}
+              className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs transition-colors border border-amber-500/40"
+            >
+              {isResending ? 'Resending Link...' : 'Resend Verification Email'}
+            </button>
+          </div>
+          <p className="text-[10px] text-stone-400 pt-1 border-t border-amber-500/20">
+            Tip: In Supabase Dashboard &rarr; Authentication &rarr; Providers &rarr; Email, disable &quot;Confirm email&quot; for instant login without verification.
+          </p>
+        </div>
+      )}
+
       <Button type="submit" size="lg" className="w-full font-bold" isLoading={isLoading}>
         Sign In to Portal
       </Button>

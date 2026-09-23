@@ -293,3 +293,16 @@ export async function signUpStaff({
     message: 'Account created! Your registration is pending approval by the restaurant admin.',
   };
 }
+
+/**
+ * Resend email confirmation link for an unverified account.
+ * @param {string} email
+ */
+export async function resendConfirmationEmail(email) {
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+  });
+  if (error) throw error;
+}
+
