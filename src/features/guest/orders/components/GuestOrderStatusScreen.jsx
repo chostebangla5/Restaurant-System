@@ -110,24 +110,26 @@ export function GuestOrderStatusScreen() {
     let isMounted = true;
 
     async function load() {
-      const data = await fetchOrdersForTable(shortCode);
-      if (isMounted) {
-        setOrders(data);
-        setIsLoading(false);
+      try {
+        const data = await fetchOrdersForTable(shortCode);
+        if (isMounted) {
+          setOrders(Array.isArray(data) ? data : []);
+          setIsLoading(false);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setOrders([]);
+          setIsLoading(false);
+        }
       }
     }
 
     load();
 
     // Subscribe to live status updates from the staff panel
-    const unsubscribe = subscribeToOrders((allOrders) => {
+    const unsubscribe = subscribeToOrders(() => {
       if (isMounted) {
-        const filtered = allOrders.filter(
-          (o) =>
-            o.short_code?.toUpperCase() === shortCode?.toUpperCase() ||
-            o.table_number === shortCode?.replace(/[^0-9]/g, '')
-        );
-        setOrders(filtered);
+        load();
       }
     });
 
@@ -138,14 +140,15 @@ export function GuestOrderStatusScreen() {
   }, [shortCode]);
 
   // Latest active order
-  const latestOrder = orders[0] || null;
+  const ordersList = orders || [];
+  const latestOrder = ordersList[0] || null;
 
   // Aggregate bill across all rounds
-  const grandTotalAllRounds = orders
+  const grandTotalAllRounds = ordersList
     .filter((o) => o.status !== 'cancelled')
     .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
-  const hasUnpaid = orders.some(
+  const hasUnpaid = ordersList.some(
     (o) => o.payment_status === 'pending' && o.status !== 'cancelled' && o.status !== 'completed'
   );
 

@@ -32,9 +32,10 @@ export function StaffLiveOrdersScreen() {
   const load = async () => {
     try {
       const data = await fetchOrders(venueId);
-      setOrders(data);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (err) {
       console.warn('Failed to load orders:', err);
+      setOrders([]);
     } finally {
       setIsLoading(false);
     }
@@ -42,8 +43,8 @@ export function StaffLiveOrdersScreen() {
 
   useEffect(() => {
     load();
-    const unsubscribe = subscribeToOrders((updated) => {
-      setOrders(updated);
+    const unsubscribe = subscribeToOrders(() => {
+      load();
       if (soundEnabled) {
         playOrderAlertSound();
       }
@@ -63,7 +64,7 @@ export function StaffLiveOrdersScreen() {
     load();
   };
 
-  const filteredOrders = orders.filter((o) => {
+  const filteredOrders = (orders || []).filter((o) => {
     if (activeFilter === 'all') return true;
     if (activeFilter === 'active') {
       return ['placed', 'acknowledged', 'cooking', 'ready'].includes(o.status);

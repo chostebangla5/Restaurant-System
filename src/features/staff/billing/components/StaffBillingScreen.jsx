@@ -26,8 +26,12 @@ export function StaffBillingScreen() {
   const [selectedReceiptOrder, setSelectedReceiptOrder] = useState(null);
 
   const loadData = async () => {
-    const o = await fetchOrders();
-    setOrders(o);
+    try {
+      const o = await fetchOrders(venue?.id);
+      setOrders(Array.isArray(o) ? o : []);
+    } catch {
+      setOrders([]);
+    }
   };
 
   useEffect(() => {
@@ -36,7 +40,7 @@ export function StaffBillingScreen() {
       loadData();
     });
     return () => unsubscribe();
-  }, []);
+  }, [venue?.id]);
 
   const handleSettle = async (orderId, method) => {
     await settleOrder(orderId, method);
@@ -52,17 +56,19 @@ export function StaffBillingScreen() {
     }
   };
 
-  const filteredOrders = orders.filter((o) => {
+  const ordersList = orders || [];
+
+  const filteredOrders = ordersList.filter((o) => {
     if (filter === 'pending') return o.payment_status === 'pending';
     if (filter === 'paid') return o.payment_status === 'paid' || o.status === 'completed';
     return true;
   });
 
-  const totalPendingDue = orders
+  const totalPendingDue = ordersList
     .filter((o) => o.payment_status === 'pending')
     .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
-  const totalSettledToday = orders
+  const totalSettledToday = ordersList
     .filter((o) => o.payment_status === 'paid' || o.status === 'completed')
     .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
