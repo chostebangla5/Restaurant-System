@@ -91,6 +91,19 @@ export function StaffTeamScreen() {
 
   // Action menu tracking
   const [openMenuId, setOpenMenuId] = useState(null);
+  const [menuDirection, setMenuDirection] = useState('down');
+
+  const handleToggleMenu = (e, memberId) => {
+    if (openMenuId === memberId) {
+      setOpenMenuId(null);
+      return;
+    }
+    const buttonRect = e.currentTarget.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - buttonRect.bottom;
+    // If space below is less than 280px, open upwards so it never clips!
+    setMenuDirection(spaceBelow < 280 ? 'up' : 'down');
+    setOpenMenuId(memberId);
+  };
 
   const loadStaff = useCallback(async () => {
     try {
@@ -248,7 +261,7 @@ export function StaffTeamScreen() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-48">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -502,41 +515,47 @@ export function StaffTeamScreen() {
                       <div className="relative">
                         <button
                           type="button"
-                          onClick={() => setOpenMenuId(openMenuId === member.id ? null : member.id)}
+                          onClick={(e) => handleToggleMenu(e, member.id)}
                           className="p-2 rounded-xl text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-stone-800 dark:hover:text-stone-300 transition-colors"
                           title="Staff Options"
                         >
                           <MoreVertical className="h-4 w-4" />
                         </button>
 
-                        {/* Dropdown Menu */}
+                        {/* Dropdown Menu (smart flip up/down so it never clips) */}
                         {openMenuId === member.id && (
                           <>
-                            <div className="fixed inset-0 z-30" onClick={() => setOpenMenuId(null)} />
-                            <div className="absolute right-0 top-full mt-1 z-40 w-48 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl shadow-2xl py-1">
-                              <div className="px-3 py-1.5 border-b border-stone-100 dark:border-stone-700">
+                            <div className="fixed inset-0 z-40" onClick={() => setOpenMenuId(null)} />
+                            <div
+                              className={`absolute right-0 ${
+                                menuDirection === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'
+                              } z-50 w-52 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl shadow-2xl py-1.5`}
+                            >
+                              <div className="px-3.5 py-1.5 border-b border-stone-100 dark:border-stone-700">
                                 <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">
                                   Change Role
                                 </p>
                               </div>
-                              {Object.entries(ROLE_CONFIG).map(([roleKey, roleConf]) => (
-                                <button
-                                  key={roleKey}
-                                  type="button"
-                                  onClick={() => handleRoleChange(member, roleKey)}
-                                  className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center gap-2 transition-colors ${
-                                    member.role === roleKey
-                                      ? `${roleConf.bgLight} ${roleConf.textColor}`
-                                      : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700/50'
-                                  }`}
-                                >
-                                  <roleConf.icon className="h-3.5 w-3.5" />
-                                  {roleConf.label}
-                                  {member.role === roleKey && <span className="ml-auto text-[10px] font-bold">✓</span>}
-                                </button>
-                              ))}
+                              <div className="py-1">
+                                {Object.entries(ROLE_CONFIG).map(([roleKey, roleConf]) => (
+                                  <button
+                                    key={roleKey}
+                                    type="button"
+                                    onClick={() => handleRoleChange(member, roleKey)}
+                                    className={`w-full text-left px-3.5 py-2 text-xs font-semibold flex items-center gap-2.5 transition-colors ${
+                                      member.role === roleKey
+                                        ? `${roleConf.bgLight} ${roleConf.textColor}`
+                                        : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700/50'
+                                    }`}
+                                  >
+                                    <roleConf.icon className="h-4 w-4" />
+                                    <span>{roleConf.label}</span>
+                                    {member.role === roleKey && <span className="ml-auto text-[11px] font-bold">✓</span>}
+                                  </button>
+                                ))}
+                              </div>
 
-                              <div className="border-t border-stone-100 dark:border-stone-700 pt-1">
+                              <div className="border-t border-stone-100 dark:border-stone-700 pt-1 px-1">
                                 <button
                                   type="button"
                                   disabled={isCurrentUser}
@@ -544,7 +563,7 @@ export function StaffTeamScreen() {
                                     setOpenMenuId(null);
                                     handleDelete(member);
                                   }}
-                                  className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center gap-2 ${
+                                  className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-colors ${
                                     isCurrentUser
                                       ? 'text-stone-300 dark:text-stone-600 cursor-not-allowed'
                                       : 'text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30'
