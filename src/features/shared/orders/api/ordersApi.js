@@ -78,28 +78,31 @@ export async function fetchOrders(venueId) {
       return [];
     }
 
-    return (data || []).map((o) => ({
-      id: o.id,
-      table_number: o.table_sessions?.tables?.table_number || '01',
-      short_code: o.table_sessions?.tables?.short_code || '',
-      round_number: o.round_number || 1,
-      status: o.status,
-      items: (o.order_items || []).map((it) => ({
-        id: it.id,
-        name: it.item_name || 'Item',
-        price: Number(it.price_at_order ?? it.unit_price) || 0,
-        qty: it.quantity || 1,
-        station: it.station || 'hot',
-        notes: it.customization_notes || it.notes || '',
-      })),
-      subtotal: Number(o.subtotal) || Number(o.table_sessions?.subtotal) || 0,
-      tax: Number(o.table_sessions?.tax_amount) || 0,
-      total: Number(o.table_sessions?.total_amount) || Number(o.subtotal) || 0,
-      payment_status: o.table_sessions?.status === 'settled' ? 'paid' : 'pending',
-      payment_method: 'counter',
-      guest_notes: o.notes || '',
-      created_at: o.created_at,
-    }));
+    return (data || []).map((o) => {
+      const isSettled = o.status === 'completed' || o.table_sessions?.status === 'settled';
+      return {
+        id: o.id,
+        table_number: o.table_sessions?.tables?.table_number || '01',
+        short_code: o.table_sessions?.tables?.short_code || '',
+        round_number: o.round_number || 1,
+        status: isSettled ? 'completed' : o.status,
+        items: (o.order_items || []).map((it) => ({
+          id: it.id,
+          name: it.item_name || 'Item',
+          price: Number(it.price_at_order ?? it.unit_price) || 0,
+          qty: it.quantity || 1,
+          station: it.station || 'hot',
+          notes: it.customization_notes || it.notes || '',
+        })),
+        subtotal: Number(o.subtotal) || Number(o.table_sessions?.subtotal) || 0,
+        tax: Number(o.table_sessions?.tax_amount) || 0,
+        total: Number(o.table_sessions?.total_amount) || Number(o.subtotal) || 0,
+        payment_status: isSettled ? 'paid' : 'pending',
+        payment_method: 'counter',
+        guest_notes: o.notes || '',
+        created_at: o.created_at,
+      };
+    });
   } catch (err) {
     console.error('Failed to query Supabase orders:', err);
     return [];
@@ -125,14 +128,19 @@ export async function fetchOrdersForTable(shortCode) {
 
     const { data: session } = await supabase
       .from('table_sessions')
-      .select('id, subtotal, tax_amount, discount_amount, total_amount, status')
+      .select('id, subtotal, tax_amount, discount_amount, total_amount, status, created_at')
       .eq('table_id', tableData.id)
-      .eq('status', 'open')
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (!session) return [];
+
+    // If session is settled and older than 6 hours, return empty for new session
+    if (session.status === 'settled') {
+      const ageHours = (Date.now() - new Date(session.created_at).getTime()) / (1000 * 60 * 60);
+      if (ageHours > 6) return [];
+    }
 
     const { data: orders, error } = await supabase
       .from('orders')
@@ -145,28 +153,33 @@ export async function fetchOrdersForTable(shortCode) {
 
     if (error || !orders) return [];
 
-    return orders.map((o) => ({
-      id: o.id,
-      table_number: tableData.table_number,
-      short_code: shortCode,
-      round_number: o.round_number || 1,
-      status: o.status,
-      items: (o.order_items || []).map((it) => ({
-        id: it.id,
-        name: it.item_name || 'Item',
-        price: Number(it.price_at_order ?? it.unit_price) || 0,
-        qty: it.quantity || 1,
-        station: it.station || 'hot',
-        notes: it.customization_notes || it.notes || '',
-      })),
-      subtotal: Number(o.subtotal) || 0,
-      tax: Number(session.tax_amount) || 0,
-      total: Number(session.total_amount || o.subtotal) || 0,
-      payment_status: session.status === 'settled' ? 'paid' : 'pending',
-      payment_method: 'counter',
-      guest_notes: o.notes || '',
-      created_at: o.created_at,
-    }));
+    const isSessionSettled = session.status === 'settled';
+
+    return orders.map((o) => {
+      const isSettled = isSessionSettled || o.status === 'completed';
+      return {
+        id: o.id,
+        table_number: tableData.table_number,
+        short_code: shortCode,
+        round_number: o.round_number || 1,
+        status: isSettled ? 'completed' : o.status,
+        items: (o.order_items || []).map((it) => ({
+          id: it.id,
+          name: it.item_name || 'Item',
+          price: Number(it.price_at_order ?? it.unit_price) || 0,
+          qty: it.quantity || 1,
+          station: it.station || 'hot',
+          notes: it.customization_notes || it.notes || '',
+        })),
+        subtotal: Number(o.subtotal) || 0,
+        tax: Number(session.tax_amount) || 0,
+        total: Number(session.total_amount || o.subtotal) || 0,
+        payment_status: isSettled ? 'paid' : 'pending',
+        payment_method: 'counter',
+        guest_notes: o.notes || '',
+        created_at: o.created_at,
+      };
+    });
   } catch (err) {
     console.error('Error fetching table orders:', err);
     return [];
@@ -424,59 +437,70 @@ export async function settleOrder(orderId, paymentMethod = 'counter') {
     ? paymentMethod
     : 'cash';
 
-  const { data: order, error } = await supabase
+  // 1. Fetch order details
+  const { data: order, error: fetchErr } = await supabase
     .from('orders')
-    .update({
-      status: 'served',
-      updated_at: new Date().toISOString(),
-    })
+    .select('id, table_session_id, venue_id, org_id, subtotal, status')
     .eq('id', orderId)
-    .select('table_session_id, venue_id, org_id, subtotal')
     .single();
 
-  if (error) {
-    console.error('Error settling order:', error);
-    throw error;
+  if (fetchErr || !order) {
+    console.error('Error fetching order for settle:', fetchErr);
+    throw fetchErr || new Error('Order not found');
   }
 
-  // Check if session has any other unsettled orders
-  if (order?.table_session_id) {
-    const { count } = await supabase
+  // 2. Mark this order (and any other uncancelled orders in this session) as 'served'
+  if (order.table_session_id) {
+    await supabase
       .from('orders')
-      .select('*', { count: 'exact', head: true })
+      .update({
+        status: 'served',
+        updated_at: new Date().toISOString(),
+      })
       .eq('table_session_id', order.table_session_id)
-      .neq('status', 'served')
       .neq('status', 'cancelled');
+  } else {
+    await supabase
+      .from('orders')
+      .update({
+        status: 'served',
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', orderId);
+  }
 
-    if (count === 0) {
-      // Settle session and free table
-      const { data: sess } = await supabase
-        .from('table_sessions')
-        .update({ status: 'settled', closed_at: new Date().toISOString() })
-        .eq('id', order.table_session_id)
-        .select('table_id, org_id, venue_id, total_amount, subtotal')
-        .single();
+  // 3. Settle session and free table
+  if (order.table_session_id) {
+    const { data: sess, error: sessErr } = await supabase
+      .from('table_sessions')
+      .update({ status: 'settled', closed_at: new Date().toISOString() })
+      .eq('id', order.table_session_id)
+      .select('table_id, org_id, venue_id, total_amount, subtotal')
+      .single();
 
-      if (sess?.table_id) {
-        await supabase
-          .from('tables')
-          .update({ status: 'free' })
-          .eq('id', sess.table_id);
-      }
+    if (sessErr) {
+      console.warn('Could not update table session to settled:', sessErr);
+    }
 
-      // Record payment in payments table
-      try {
-        await supabase.from('payments').insert({
-          org_id: sess?.org_id || order.org_id,
-          venue_id: sess?.venue_id || order.venue_id,
-          table_session_id: order.table_session_id,
-          amount: Number(sess?.total_amount || sess?.subtotal || order.subtotal) || 0,
-          payment_method: validMethod,
-          status: 'completed',
-        });
-      } catch (payErr) {
-        console.warn('Could not insert payment record:', payErr);
-      }
+    if (sess?.table_id) {
+      await supabase
+        .from('tables')
+        .update({ status: 'free' })
+        .eq('id', sess.table_id);
+    }
+
+    // Record payment in payments table
+    try {
+      await supabase.from('payments').insert({
+        org_id: sess?.org_id || order.org_id,
+        venue_id: sess?.venue_id || order.venue_id,
+        table_session_id: order.table_session_id,
+        amount: Number(sess?.total_amount || sess?.subtotal || order.subtotal) || 0,
+        payment_method: validMethod,
+        status: 'completed',
+      });
+    } catch (payErr) {
+      console.warn('Could not insert payment record:', payErr);
     }
   }
 
@@ -551,6 +575,11 @@ export function subscribeToOrders(callback) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders' },
+        handleEvent
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'table_sessions' },
         handleEvent
       )
       .subscribe();

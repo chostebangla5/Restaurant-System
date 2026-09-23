@@ -74,7 +74,7 @@ export function StaffTablesScreen() {
 
   const isTableOccupied = (table) => {
     const tableOrders = getTableOrders(table);
-    return tableOrders.some((o) => o.status !== 'completed' && o.status !== 'served');
+    return tableOrders.some((o) => o.status !== 'completed');
   };
 
   const handleSettleTable = async (table) => {

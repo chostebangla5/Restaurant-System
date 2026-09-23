@@ -64,6 +64,22 @@ export function StaffLiveOrdersScreen() {
   };
 
   const handleSettle = async (orderId) => {
+    // Find target order to determine table or session
+    const targetOrder = (orders || []).find((o) => o.id === orderId);
+
+    // Optimistically update orders of this table/session to completed
+    setOrders((prev) =>
+      (prev || []).map((o) => {
+        if (
+          o.id === orderId ||
+          (targetOrder && o.table_number === targetOrder.table_number && o.status === 'served')
+        ) {
+          return { ...o, status: 'completed', payment_status: 'paid' };
+        }
+        return o;
+      })
+    );
+
     try {
       await settleOrder(orderId, 'counter');
       toast.success('Order marked as settled & completed!');
@@ -71,6 +87,7 @@ export function StaffLiveOrdersScreen() {
     } catch (err) {
       console.error(err);
       toast.error('Failed to settle order');
+      load();
     }
   };
 
