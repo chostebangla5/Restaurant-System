@@ -17,6 +17,7 @@ import {
   CheckCircle2,
   FileText,
   Clock,
+  Check,
 } from 'lucide-react';
 
 export function StaffBillingScreen() {
@@ -105,14 +106,14 @@ export function StaffBillingScreen() {
       <div className="flex items-center gap-2">
         {[
           { id: 'all', label: 'All Transactions' },
-          { id: 'pending', label: '⏳ Pending Settlement' },
-          { id: 'paid', label: '✓ Settled & Paid' },
+          { id: 'pending', label: 'Pending Settlement' },
+          { id: 'paid', label: 'Settled & Paid' },
         ].map((tab) => (
           <button
             key={tab.id}
             type="button"
             onClick={() => setFilter(tab.id)}
-            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+            className={`px-4 py-2 min-h-[38px] rounded-full text-xs font-medium touch-manipulation transition-all flex items-center justify-center ${
               filter === tab.id
                 ? 'bg-[#C6FF3D] text-[#07080B] font-semibold shadow-sm'
                 : 'bg-[#0E1016] text-[#8A8F9C] hover:text-[#F4F5F7] border border-white/[0.08]'
@@ -183,8 +184,8 @@ export function StaffBillingScreen() {
                       </td>
                       <td className="px-5 py-4">
                         {isPaid ? (
-                          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                            ✓ Paid ({o.payment_method || 'counter'})
+                          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1">
+                            <Check className="h-3 w-3 shrink-0" strokeWidth={2} /> Paid ({o.payment_method || 'counter'})
                           </span>
                         ) : (
                           <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30">

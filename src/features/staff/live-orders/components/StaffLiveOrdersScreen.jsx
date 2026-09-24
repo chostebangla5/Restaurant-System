@@ -19,6 +19,7 @@ import {
   Banknote,
   Volume2,
   Utensils,
+  Check,
 } from 'lucide-react';
 
 export function StaffLiveOrdersScreen() {
@@ -163,7 +164,7 @@ export function StaffLiveOrdersScreen() {
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
         {[
           { id: 'all', label: 'All Orders' },
-          { id: 'active', label: '🔥 Active Kitchen Queue' },
+          { id: 'active', label: 'Active Kitchen Queue' },
           { id: 'placed', label: 'Placed' },
           { id: 'cooking', label: 'Cooking' },
           { id: 'ready', label: 'Ready' },
@@ -174,7 +175,7 @@ export function StaffLiveOrdersScreen() {
             key={tab.id}
             type="button"
             onClick={() => setActiveFilter(tab.id)}
-            className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 ${
+            className={`whitespace-nowrap px-4 py-2 min-h-[38px] rounded-full text-xs font-medium touch-manipulation transition-all shrink-0 flex items-center justify-center ${
               activeFilter === tab.id
                 ? 'bg-[#C6FF3D] text-[#07080B] font-semibold shadow-sm'
                 : 'bg-[#0E1016] text-[#8A8F9C] hover:text-[#F4F5F7] border border-white/[0.08]'
@@ -205,11 +206,11 @@ export function StaffLiveOrdersScreen() {
               key={order.id}
               className={`p-5 rounded-card bg-[#0E1016] border transition-all duration-300 flex flex-col justify-between ${
                 order.status === 'placed'
-                  ? 'border-rose-500/60 shadow-lg shadow-rose-950/20'
+                  ? 'border-rose-500/60 shadow-sm'
                   : order.status === 'cooking'
-                  ? 'border-amber-400/60 shadow-lg shadow-amber-950/20'
+                  ? 'border-amber-400/60 shadow-sm'
                   : order.status === 'ready'
-                  ? 'border-[#C6FF3D]/60 shadow-lg shadow-[#C6FF3D]/5'
+                  ? 'border-[#C6FF3D]/60 shadow-sm'
                   : 'border-white/[0.08] hover:border-white/[0.18]'
               }`}
             >
@@ -267,8 +268,8 @@ export function StaffLiveOrdersScreen() {
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5">
                     {order.payment_status === 'paid' ? (
-                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                        ✓ Paid ({order.payment_method})
+                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1">
+                        <Check className="h-3 w-3 shrink-0" strokeWidth={2} /> Paid ({order.payment_method})
                       </span>
                     ) : (
                       <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30">
@@ -345,8 +346,8 @@ export function StaffLiveOrdersScreen() {
                   )}
 
                   {order.status === 'completed' && (
-                    <div className="col-span-2 text-center text-xs font-mono text-[#8A8F9C] py-1">
-                      ✓ Order Fulfilled
+                    <div className="col-span-2 text-center text-xs font-mono text-[#8A8F9C] py-1 flex items-center justify-center gap-1.5">
+                      <Check className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} /> Order Fulfilled
                     </div>
                   )}
                 </div>

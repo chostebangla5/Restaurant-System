@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Toggle';
 import { Send, Pencil, Trash2, Tag, Copy, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { TRANSITION_EASE, DURATION_ITEM } from '@/lib/motion';
 import toast from 'react-hot-toast';
 
 export function OfferCard({
@@ -29,10 +30,10 @@ export function OfferCard({
 
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: DURATION_ITEM, ease: TRANSITION_EASE }}
       className="group rounded-card border border-white/[0.08] bg-[#0E1016] overflow-hidden transition-all duration-300 hover:border-white/[0.18]"
     >
       {/* Top hairline accent */}

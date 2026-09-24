@@ -2,29 +2,25 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowUpRight } from 'lucide-react';
 
-const ease = [0.22, 1, 0.36, 1];
-
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.12,
-      delayChildren: 0.08,
-    },
-  },
-};
+import {
+  TRANSITION_EASE,
+  DURATION_ITEM,
+  VIEWPORT_CONFIG,
+  containerVariants,
+} from '@/lib/motion';
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 14 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.75,
-      ease,
+      duration: DURATION_ITEM,
+      ease: TRANSITION_EASE,
     },
   },
 };
+
 
 export function AboutSection() {
   const stats = [
@@ -72,7 +68,7 @@ export function AboutSection() {
         variants={containerVariants}
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: '-80px' }}
+        viewport={VIEWPORT_CONFIG}
         className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 items-start"
       >
         {/* Left Column: Eyebrow and Large H2 */}
@@ -143,22 +139,23 @@ export function AboutSection() {
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
+          viewport={VIEWPORT_CONFIG}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
         >
           {team.map((member) => (
             <motion.div
               key={member.id}
               variants={itemVariants}
-              className="card-surface rounded-[20px] overflow-hidden border border-white/[0.08] hover:border-white/25 transition-all duration-300 hover:-translate-y-1.5 group flex flex-col justify-between shadow-sm"
+              className="card-surface rounded-card overflow-hidden border border-white/[0.08] hover:border-white/25 transition-all duration-200 ease-cinematic hover:-translate-y-1.5 group flex flex-col justify-between shadow-sm"
             >
               {/* Photo Container: Grayscale that gains color on hover */}
               <div className="w-full aspect-[4/5] relative overflow-hidden bg-surface-2">
                 <img
                   src={member.image}
                   alt={member.name}
-                  className="w-full h-full object-cover filter grayscale contrast-125 group-hover:grayscale-0 group-hover:contrast-100 transition-all duration-500 transform group-hover:scale-105"
+                  className="w-full h-full object-cover filter grayscale contrast-125 group-hover:grayscale-0 group-hover:contrast-100 transition-all duration-300 ease-cinematic transform group-hover:scale-105"
                   loading="lazy"
+                  decoding="async"
                 />
 
                 {/* Subtle bottom fade mask into card content */}

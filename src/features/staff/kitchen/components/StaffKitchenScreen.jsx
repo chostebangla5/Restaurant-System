@@ -57,7 +57,7 @@ export function StaffKitchenScreen() {
   const handleBumpTicket = async (orderId) => {
     try {
       await updateOrderStatus(orderId, 'ready');
-      toast.success('Ticket bumped! Marked as READY FOR SERVICE 🚀');
+      toast.success('Ticket bumped! Marked as READY FOR SERVICE');
       load();
     } catch (e) {
       console.error(e);
@@ -103,15 +103,15 @@ export function StaffKitchenScreen() {
         <div className="flex items-center gap-1.5 bg-[#141721] p-1 rounded-full border border-white/[0.08] overflow-x-auto">
           {[
             { id: 'all', label: 'All Stations' },
-            { id: 'hot', label: '🔥 Hot Kitchen' },
-            { id: 'cold', label: '🥗 Cold / Salad' },
-            { id: 'bar', label: '🍸 Drinks & Bar' },
+            { id: 'hot', label: 'Hot Kitchen' },
+            { id: 'cold', label: 'Cold / Salad' },
+            { id: 'bar', label: 'Drinks & Bar' },
           ].map((st) => (
             <button
               key={st.id}
               type="button"
               onClick={() => setSelectedStation(st.id)}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
+              className={`px-3.5 py-2 min-h-[38px] rounded-full text-xs font-medium touch-manipulation transition-all whitespace-nowrap flex items-center justify-center ${
                 selectedStation === st.id
                   ? 'bg-[#C6FF3D] text-[#07080B] font-semibold shadow-sm'
                   : 'text-[#8A8F9C] hover:text-[#F4F5F7]'
@@ -148,9 +148,9 @@ export function StaffKitchenScreen() {
                 key={ticket.id}
                 className={`p-5 rounded-card bg-[#0E1016] border transition-all duration-300 flex flex-col justify-between ${
                   isUrgent
-                    ? 'border-rose-500/80 shadow-lg shadow-rose-950/20'
+                    ? 'border-rose-500/80 shadow-sm'
                     : isWarning
-                    ? 'border-amber-400/80 shadow-lg shadow-amber-950/20'
+                    ? 'border-amber-400/80 shadow-sm'
                     : 'border-white/[0.08] hover:border-white/[0.18]'
                 }`}
               >
@@ -216,8 +216,9 @@ export function StaffKitchenScreen() {
                                 {item.name}
                               </span>
                               {item.notes && (
-                                <span className="block text-[11px] text-amber-300 font-mono mt-0.5">
-                                  ⚠️ {item.notes}
+                                <span className="flex items-center text-[11px] text-amber-300 font-mono mt-0.5">
+                                  <AlertTriangle className="h-3 w-3 mr-1 shrink-0 text-amber-400" strokeWidth={1.5} />
+                                  {item.notes}
                                 </span>
                               )}
                             </div>

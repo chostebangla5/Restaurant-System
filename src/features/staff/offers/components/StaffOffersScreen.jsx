@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/features/shared/auth';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -193,10 +193,10 @@ export function StaffOffersScreen() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7] flex items-center gap-2.5">
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7] flex items-center gap-2.5">
             <Megaphone className="h-5 w-5 text-[#C6FF3D]" strokeWidth={1.5} />
-            Offers & Coupons
-          </h2>
+            Offers &amp; Coupons
+          </h1>
           <p className="text-xs text-[#8A8F9C] mt-1">
             Create promotional offers, generate promo coupon codes, and send push notifications
           </p>
@@ -210,7 +210,7 @@ export function StaffOffersScreen() {
             </span>
           </div>
           <Button
-            size="sm"
+            size="md"
             onClick={() => {
               setEditingOffer(null);
               setShowCreateModal(true);

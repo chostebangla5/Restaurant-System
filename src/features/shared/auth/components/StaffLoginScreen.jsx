@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
+import { TRANSITION_EASE, DURATION_SECTION, DURATION_REDUCED } from '@/lib/motion';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '../context/AuthContext';
@@ -11,12 +13,21 @@ import toast from 'react-hot-toast';
 export function StaffLoginScreen() {
   const [mode, setMode] = useState('login'); // 'login' | 'signup'
   const navigate = useNavigate();
+  const shouldReduceMotion = useReducedMotion();
 
   return (
     <div className="min-h-screen bg-bg text-text flex items-center justify-center p-4 selection:bg-accent selection:text-bg relative overflow-hidden font-sans">
       <div className="absolute inset-0 hero-radial-glow faint-grid pointer-events-none opacity-80" />
 
-      <div className="relative z-10 w-full max-w-md rounded-card bg-surface border border-white/10 shadow-2xl p-8 sm:p-10 space-y-6">
+      <motion.div
+        initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{
+          duration: shouldReduceMotion ? DURATION_REDUCED : DURATION_SECTION,
+          ease: TRANSITION_EASE,
+        }}
+        className="relative z-10 w-full max-w-md rounded-card bg-surface border border-white/10 shadow-2xl p-8 sm:p-10 space-y-6"
+      >
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="mx-auto h-11 w-11 rounded-full bg-surface-2 border border-white/10 flex items-center justify-center text-accent font-heading font-extrabold text-base shadow-sm">
@@ -37,7 +48,7 @@ export function StaffLoginScreen() {
           <button
             type="button"
             onClick={() => setMode('login')}
-            className={`flex-1 py-2 text-xs font-medium rounded-full transition-all duration-200 cursor-pointer ${
+            className={`flex-1 py-2 min-h-[40px] text-xs font-medium rounded-full touch-manipulation transition-all duration-200 cursor-pointer flex items-center justify-center ${
               mode === 'login'
                 ? 'bg-surface text-text shadow-sm border border-white/15'
                 : 'text-muted hover:text-text'
@@ -48,7 +59,7 @@ export function StaffLoginScreen() {
           <button
             type="button"
             onClick={() => setMode('signup')}
-            className={`flex-1 py-2 text-xs font-medium rounded-full transition-all duration-200 cursor-pointer ${
+            className={`flex-1 py-2 min-h-[40px] text-xs font-medium rounded-full touch-manipulation transition-all duration-200 cursor-pointer flex items-center justify-center ${
               mode === 'signup'
                 ? 'bg-surface text-text shadow-sm border border-white/15'
                 : 'text-muted hover:text-text'
@@ -72,7 +83,7 @@ export function StaffLoginScreen() {
             <span>Protected by Supabase Row-Level Security &amp; Role Isolation</span>
           </p>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

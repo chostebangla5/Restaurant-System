@@ -13,8 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import toast from 'react-hot-toast';
-
-const ease = [0.22, 1, 0.36, 1];
+import { TRANSITION_EASE, DURATION_MODAL } from '@/lib/motion';
 
 export function ContactSection() {
   const [formData, setFormData] = useState({
@@ -125,9 +124,9 @@ export function ContactSection() {
           <Sparkles className="h-3 w-3 text-accent" strokeWidth={1.5} />
           <span>DIRECT HOSPITALITY INQUIRIES</span>
         </div>
-        <h3 className="h2-cinematic text-text">
+        <h2 className="h2-cinematic text-text">
           Speak With Our Deployment Engineers
-        </h3>
+        </h2>
         <p className="text-sm text-muted font-sans max-w-lg md:mx-auto leading-relaxed">
           Whether you operate a 20-seat boutique café or a 500-cover multi-floor venue, we tailor TableSuite to your floor plan.
         </p>
@@ -137,7 +136,7 @@ export function ContactSection() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-14 items-start">
         {/* Form Column (7 Cols) */}
         <div className="lg:col-span-7">
-          <div className="card-surface rounded-[24px] border border-white/[0.1] bg-surface p-8 sm:p-10 md:p-12 space-y-8 shadow-sm">
+          <div className="card-surface rounded-card border border-white/[0.1] bg-surface p-8 sm:p-10 md:p-12 space-y-8 shadow-sm">
             <div className="space-y-1.5 border-b border-white/[0.06] pb-6">
               <h4 className="font-heading font-bold text-xl sm:text-2xl text-text tracking-tight">
                 Request a Custom Floor Architecture
@@ -151,11 +150,11 @@ export function ContactSection() {
               {isSubmitted ? (
                 <motion.div
                   key="success-card"
-                  initial={{ opacity: 0, scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.4, ease }}
-                  className="rounded-[16px] border border-accent/40 bg-accent/[0.06] p-8 sm:p-10 text-center space-y-5"
+                  exit={{ opacity: 0, scale: 0.98 }}
+                  transition={{ duration: DURATION_MODAL, ease: TRANSITION_EASE }}
+                  className="rounded-card border border-accent/40 bg-accent/[0.06] p-8 sm:p-10 text-center space-y-5"
                 >
                   <div className="h-14 w-14 rounded-full bg-accent/20 border border-accent/40 text-accent flex items-center justify-center mx-auto shadow-[0_0_20px_rgba(198,255,61,0.2)]">
                     <CheckCircle2 className="h-7 w-7" strokeWidth={2} />
@@ -200,7 +199,7 @@ export function ContactSection() {
                         value={formData.name}
                         onChange={handleChange}
                         disabled={isSubmitting}
-                        className={`w-full h-[52px] px-4 rounded-[12px] bg-surface-2 border text-sm text-text placeholder:text-muted/50 transition-colors ${
+                        className={`w-full h-[52px] px-4 rounded-xl bg-surface-2 border text-base sm:text-sm text-text placeholder:text-muted/50 transition-colors ${
                           errors.name
                             ? 'border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/30'
                             : 'border-white/[0.1] hover:border-white/20 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40'
@@ -230,7 +229,7 @@ export function ContactSection() {
                         value={formData.email}
                         onChange={handleChange}
                         disabled={isSubmitting}
-                        className={`w-full h-[52px] px-4 rounded-[12px] bg-surface-2 border text-sm text-text placeholder:text-muted/50 transition-colors ${
+                        className={`w-full h-[52px] px-4 rounded-xl bg-surface-2 border text-base sm:text-sm text-text placeholder:text-muted/50 transition-colors ${
                           errors.email
                             ? 'border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/30'
                             : 'border-white/[0.1] hover:border-white/20 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40'
@@ -261,7 +260,7 @@ export function ContactSection() {
                       value={formData.restaurantName}
                       onChange={handleChange}
                       disabled={isSubmitting}
-                      className={`w-full h-[52px] px-4 rounded-[12px] bg-surface-2 border text-sm text-text placeholder:text-muted/50 transition-colors ${
+                      className={`w-full h-[52px] px-4 rounded-xl bg-surface-2 border text-base sm:text-sm text-text placeholder:text-muted/50 transition-colors ${
                         errors.restaurantName
                           ? 'border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/30'
                           : 'border-white/[0.1] hover:border-white/20 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40'
@@ -291,7 +290,7 @@ export function ContactSection() {
                       value={formData.message}
                       onChange={handleChange}
                       disabled={isSubmitting}
-                      className={`w-full p-4 rounded-[12px] bg-surface-2 border text-sm text-text placeholder:text-muted/50 transition-colors resize-none ${
+                      className={`w-full p-4 rounded-xl bg-surface-2 border text-base sm:text-sm text-text placeholder:text-muted/50 transition-colors resize-none ${
                         errors.message
                           ? 'border-rose-500/80 focus:border-rose-500 focus:ring-1 focus:ring-rose-500/30'
                           : 'border-white/[0.1] hover:border-white/20 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/40'
@@ -334,7 +333,7 @@ export function ContactSection() {
 
         {/* Contact Info Column (5 Cols) */}
         <div className="lg:col-span-5 space-y-6">
-          <div className="card-surface rounded-[24px] border border-white/[0.1] bg-surface p-8 sm:p-10 space-y-8">
+          <div className="card-surface rounded-card border border-white/[0.1] bg-surface p-8 sm:p-10 space-y-8">
             <div className="space-y-2 border-b border-white/[0.06] pb-6">
               <span className="font-mono text-xs uppercase tracking-widest text-accent">
                 COMMUNICATIONS &amp; DISPATCH

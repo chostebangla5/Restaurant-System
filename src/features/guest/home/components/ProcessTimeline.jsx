@@ -1,30 +1,26 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { motion, useScroll } from 'framer-motion';
-import { QrCode, Smartphone, Monitor, CheckCircle2 } from 'lucide-react';
+import { QrCode, Smartphone, Monitor, CheckCircle2, Sparkles } from 'lucide-react';
 
-const ease = [0.22, 1, 0.36, 1];
-
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.16,
-      delayChildren: 0.1,
-    },
-  },
-};
+import {
+  TRANSITION_EASE,
+  DURATION_ITEM,
+  VIEWPORT_CONFIG,
+  containerVariants,
+} from '@/lib/motion';
 
 const stepVariants = {
-  hidden: { opacity: 0, y: 28 },
+  hidden: { opacity: 0, y: 14 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.75,
-      ease,
+      duration: DURATION_ITEM,
+      ease: TRANSITION_EASE,
     },
   },
 };
+
 
 export function ProcessTimeline() {
   const containerRef = useRef(null);
@@ -88,11 +84,12 @@ export function ProcessTimeline() {
       {/* Section Header */}
       <div className="space-y-3 text-left md:text-center max-w-2xl md:mx-auto">
         <div className="font-mono text-xs uppercase tracking-widest text-accent inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-surface/80">
+          <Sparkles className="h-3 w-3 text-accent" strokeWidth={1.5} />
           <span>THE DINING &amp; DISPATCH PIPELINE</span>
         </div>
-        <h3 className="h2-cinematic text-text">
+        <h2 className="h2-cinematic text-text">
           How TableSuite Operates
-        </h3>
+        </h2>
         <p className="text-sm text-muted font-sans max-w-lg md:mx-auto leading-relaxed">
           From table QR scan to live kitchen routing and settlement in four autonomous steps.
         </p>
@@ -113,7 +110,7 @@ export function ProcessTimeline() {
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
+          viewport={VIEWPORT_CONFIG}
           className="grid grid-cols-4 gap-6 relative z-10"
         >
           {steps.map((step, idx) => {
@@ -130,7 +127,7 @@ export function ProcessTimeline() {
                 {/* Timeline Node on the Line (Centered above column) */}
                 <div className="flex items-center justify-center w-full">
                   <div
-                    className={`h-4 w-4 rounded-full border-2 transition-all duration-300 flex items-center justify-center ${
+                    className={`h-4 w-4 rounded-full border-2 transition-all duration-200 ease-cinematic flex items-center justify-center ${
                       isReached
                         ? 'bg-accent border-bg shadow-[0_0_10px_#C6FF3D] ring-4 ring-accent/20'
                         : 'bg-surface-2 border-white/25'
@@ -143,7 +140,7 @@ export function ProcessTimeline() {
                 </div>
 
                 {/* Step Card */}
-                <div className="w-full text-left card-surface rounded-card border border-white/[0.08] hover:border-white/20 p-6 space-y-5 transition-all duration-300 min-h-[270px] flex flex-col justify-between">
+                <div className="w-full text-left card-surface rounded-card border border-white/[0.08] hover:border-white/20 p-6 space-y-5 transition-all duration-200 ease-cinematic min-h-[270px] flex flex-col justify-between">
                   <div className="space-y-4">
                     {/* Large Mono Step Number & Icon */}
                     <div className="flex items-center justify-between">
@@ -208,7 +205,7 @@ export function ProcessTimeline() {
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: '-60px' }}
+          viewport={VIEWPORT_CONFIG}
           className="space-y-8 relative z-10"
         >
           {steps.map((step, idx) => {
@@ -224,7 +221,7 @@ export function ProcessTimeline() {
               >
                 {/* Node on Vertical Spine */}
                 <div
-                  className={`absolute -left-[19px] sm:-left-[23px] top-6 h-4 w-4 rounded-full border-2 transition-all duration-300 flex items-center justify-center ${
+                  className={`absolute -left-[19px] sm:-left-[23px] top-6 h-4 w-4 rounded-full border-2 transition-all duration-200 ease-cinematic flex items-center justify-center ${
                     isReached
                       ? 'bg-accent border-bg shadow-[0_0_10px_#C6FF3D] ring-4 ring-accent/20'
                       : 'bg-surface-2 border-white/25'

@@ -111,10 +111,10 @@ export function StaffInvoicesScreen() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Invoices</h2>
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Invoices</h1>
           <p className="text-xs text-[#8A8F9C] mt-1">Tax invoices & billing history</p>
         </div>
-        <Button size="sm" variant="ghost" onClick={loadData} className="rounded-full text-xs font-mono text-[#8A8F9C] hover:text-[#F4F5F7]">
+        <Button size="md" variant="ghost" onClick={loadData} className="rounded-full text-xs font-mono text-[#8A8F9C] hover:text-[#F4F5F7]">
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} /> Refresh
         </Button>
       </div>

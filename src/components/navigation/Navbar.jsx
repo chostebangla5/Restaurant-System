@@ -1,47 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-
-const ease = [0.22, 1, 0.36, 1];
+import { TRANSITION_EASE, DURATION_MODAL, DURATION_REDUCED } from '@/lib/motion';
 
 const mobileListVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.12,
+      staggerChildren: 0.05,
+      delayChildren: 0.06,
     },
   },
   exit: {
     opacity: 0,
     transition: {
-      staggerChildren: 0.04,
+      staggerChildren: 0.03,
       staggerDirection: -1,
     },
   },
 };
 
 const mobileItemVariants = {
-  hidden: { opacity: 0, x: -20, y: 12 },
+  hidden: { opacity: 0, y: 10 },
   visible: {
     opacity: 1,
-    x: 0,
     y: 0,
     transition: {
-      duration: 0.5,
-      ease,
+      duration: DURATION_MODAL,
+      ease: TRANSITION_EASE,
     },
   },
   exit: {
     opacity: 0,
-    x: -12,
-    y: 8,
+    y: 6,
     transition: {
-      duration: 0.25,
-      ease,
+      duration: 0.18,
+      ease: TRANSITION_EASE,
     },
   },
 };
@@ -52,6 +49,7 @@ export function Navbar() {
   const [activeSection, setActiveSection] = useState('home');
   const location = useLocation();
   const navigate = useNavigate();
+  const shouldReduceMotion = useReducedMotion();
 
   // Scroll listener for sticky blur & border transition after 20px of scroll
   useEffect(() => {
@@ -133,12 +131,13 @@ export function Navbar() {
       return;
     }
 
+    const behavior = shouldReduceMotion ? 'auto' : 'smooth';
     if (item.id === 'home') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0, behavior });
     } else {
       const el = document.querySelector(item.href);
       if (el) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        el.scrollIntoView({ behavior, block: 'start' });
       }
     }
   };
@@ -151,7 +150,7 @@ export function Navbar() {
   return (
     <>
       <header
-        className={`fixed top-0 left-0 right-0 z-40 w-full transition-all duration-300 ${
+        className={`fixed top-0 left-0 right-0 z-40 w-full transition-all duration-200 ease-cinematic ${
           scrolled
             ? 'bg-[#07080B]/85 backdrop-blur-md border-b border-white/[0.08] shadow-sm py-3.5'
             : 'bg-transparent border-b border-transparent py-5'
@@ -164,12 +163,12 @@ export function Navbar() {
             onClick={(e) => {
               if (location.pathname === '/') {
                 e.preventDefault();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                window.scrollTo({ top: 0, behavior: shouldReduceMotion ? 'auto' : 'smooth' });
               }
             }}
             className="flex items-center gap-3.5 group shrink-0"
           >
-            <div className="h-9 w-9 rounded-full bg-surface-2 border border-white/10 flex items-center justify-center text-accent font-heading font-extrabold text-sm tracking-tight shadow-sm transition-transform duration-300 group-hover:scale-105">
+            <div className="h-9 w-9 rounded-full bg-surface-2 border border-white/10 flex items-center justify-center text-accent font-heading font-extrabold text-sm tracking-tight shadow-sm transition-transform duration-200 ease-cinematic group-hover:scale-105">
               TS
             </div>
             <div>
@@ -252,7 +251,7 @@ export function Navbar() {
             <Link to="/login">
               <Button
                 size="sm"
-                className="bg-accent text-bg font-semibold hover:bg-accent-hover rounded-full px-5 h-9 text-xs transition-all duration-300 hover:-translate-y-0.5 shadow-sm"
+                className="bg-accent text-bg font-semibold hover:bg-accent-hover rounded-full px-5 h-9 text-xs transition-all duration-200 ease-cinematic hover:-translate-y-0.5 shadow-sm"
               >
                 Get Started
               </Button>
@@ -262,7 +261,7 @@ export function Navbar() {
           {/* Mobile Menu Trigger Button */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="md:hidden h-10 w-10 rounded-full border border-white/10 bg-surface-2 text-text flex items-center justify-center hover:border-white/20 transition-colors"
+            className="md:hidden h-11 w-11 min-h-[44px] min-w-[44px] rounded-full border border-white/10 bg-surface-2 text-text flex items-center justify-center hover:border-white/20 transition-colors duration-200"
             aria-label="Open navigation menu"
           >
             <Menu className="h-5 w-5" strokeWidth={1.5} />
@@ -278,7 +277,7 @@ export function Navbar() {
             initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
             animate={{ opacity: 1, backdropFilter: 'blur(20px)' }}
             exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-            transition={{ duration: 0.35, ease }}
+            transition={{ duration: shouldReduceMotion ? DURATION_REDUCED : DURATION_MODAL, ease: TRANSITION_EASE }}
             className="fixed inset-0 z-50 bg-[#07080B]/95 flex flex-col justify-between p-6 sm:p-10 md:hidden overflow-y-auto"
           >
             {/* Overlay Top Bar */}
@@ -302,7 +301,7 @@ export function Navbar() {
               </Link>
               <button
                 onClick={() => setMobileOpen(false)}
-                className="h-10 w-10 rounded-full border border-white/10 bg-surface-2 text-muted hover:text-text flex items-center justify-center transition-colors"
+                className="h-11 w-11 min-h-[44px] min-w-[44px] rounded-full border border-white/10 bg-surface-2 text-muted hover:text-text flex items-center justify-center transition-colors"
                 aria-label="Close navigation menu"
               >
                 <X className="h-5 w-5" strokeWidth={1.5} />

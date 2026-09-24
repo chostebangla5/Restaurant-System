@@ -27,6 +27,7 @@ import {
   AlertTriangle,
   Sparkles,
   Tag,
+  Check,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -261,7 +262,7 @@ export function StaffSettingsScreen() {
     return (
       <div className="max-w-4xl space-y-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Venue Settings</h2>
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Venue Settings</h1>
           <p className="text-xs font-mono text-[#8A8F9C]">Loading settings...</p>
         </div>
         <div className="flex items-center justify-center py-20">
@@ -276,7 +277,7 @@ export function StaffSettingsScreen() {
     return (
       <div className="max-w-4xl space-y-6">
         <div>
-          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Venue Settings</h2>
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Venue Settings</h1>
           <p className="text-xs text-[#8A8F9C]">Configure branding, business details, and staff access</p>
         </div>
         <div className="p-6 rounded-card bg-[#0E1016] border border-amber-400/40 space-y-4">
@@ -304,9 +305,9 @@ export function StaffSettingsScreen() {
   return (
     <div className="max-w-4xl space-y-6">
       <div>
-        <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">
+        <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">
           Venue Settings
-        </h2>
+        </h1>
         <p className="text-xs text-[#8A8F9C] mt-1">
           Configure branding, business details, and staff access
         </p>
@@ -366,6 +367,8 @@ export function StaffSettingsScreen() {
                     <img
                       src={venueData.logo_url}
                       alt="Venue Logo"
+                      loading="lazy"
+                      decoding="async"
                       className="max-h-full max-w-full object-contain"
                       onError={(e) => {
                         e.currentTarget.style.display = 'none';
@@ -376,8 +379,8 @@ export function StaffSettingsScreen() {
                     <span className="text-xs font-semibold text-[#F4F5F7] block">
                       Live Logo Preview
                     </span>
-                    <span className="text-[11px] font-mono text-[#C6FF3D]">
-                      ✓ Active on customer digital menus & bills
+                    <span className="text-[11px] font-mono text-[#C6FF3D] flex items-center gap-1 mt-0.5">
+                      <Check className="h-3 w-3 shrink-0" strokeWidth={2} /> Active on customer digital menus & bills
                     </span>
                   </div>
                 </div>

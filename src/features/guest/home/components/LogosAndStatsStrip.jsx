@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { useInView, useReducedMotion } from 'framer-motion';
 
 // Count-up number component that triggers once when scrolled into view
 function CountUpNumber({ target, decimals = 0, duration = 1.8 }) {
@@ -7,8 +7,13 @@ function CountUpNumber({ target, decimals = 0, duration = 1.8 }) {
   const [hasAnimated, setHasAnimated] = useState(false);
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
+    if (shouldReduceMotion) {
+      setValue(target);
+      return;
+    }
     if (isInView && !hasAnimated) {
       setHasAnimated(true);
       let startTime = null;
@@ -31,7 +36,7 @@ function CountUpNumber({ target, decimals = 0, duration = 1.8 }) {
 
       window.requestAnimationFrame(step);
     }
-  }, [isInView, hasAnimated, target, duration, decimals]);
+  }, [isInView, hasAnimated, target, duration, decimals, shouldReduceMotion]);
 
   return <span ref={ref}>{decimals > 0 ? value.toFixed(decimals) : value}</span>;
 }

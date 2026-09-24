@@ -3,18 +3,17 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-
-const ease = [0.22, 1, 0.36, 1];
+import { TRANSITION_EASE, DURATION_SECTION, VIEWPORT_CONFIG } from '@/lib/motion';
 
 export function FinalCtaSection() {
   return (
     <section id="cta" className="w-full relative z-10 py-16 md:py-24">
       {/* Big, Bold, Full-Width Rounded Panel */}
       <motion.div
-        initial={{ opacity: 0, y: 32 }}
+        initial={{ opacity: 0, y: 16 }}
         whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: '-80px' }}
-        transition={{ duration: 0.8, ease }}
+        viewport={VIEWPORT_CONFIG}
+        transition={{ duration: DURATION_SECTION, ease: TRANSITION_EASE }}
         className="relative rounded-[28px] sm:rounded-[36px] overflow-hidden border border-white/[0.12] bg-[#0A0C11] p-10 sm:p-16 md:p-20 text-center space-y-8 shadow-[0_0_80px_rgba(0,0,0,0.8)]"
       >
         {/* Background 1: Line Grid Pattern */}
@@ -70,7 +69,7 @@ export function FinalCtaSection() {
             <Link to="/login" className="w-full sm:w-auto">
               <Button
                 size="lg"
-                className="w-full sm:w-auto rounded-full bg-accent text-bg font-semibold hover:bg-accent-hover px-8 py-3.5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 gap-2.5"
+                className="w-full sm:w-auto rounded-full bg-accent text-bg font-semibold hover:bg-accent-hover px-8 py-3.5 shadow-sm transition-all duration-200 ease-cinematic hover:-translate-y-0.5 gap-2.5"
                 rightIcon={<ArrowRight className="h-4 w-4" strokeWidth={1.5} />}
               >
                 Launch Restaurant Portal
@@ -80,7 +79,7 @@ export function FinalCtaSection() {
               <Button
                 size="lg"
                 variant="outline"
-                className="w-full sm:w-auto rounded-full border border-white/15 bg-white/[0.04] text-text hover:border-white/30 hover:bg-white/[0.08] px-8 py-3.5 transition-all duration-300 hover:-translate-y-0.5"
+                className="w-full sm:w-auto rounded-full border border-white/15 bg-white/[0.04] text-text hover:border-white/30 hover:bg-white/[0.08] px-8 py-3.5 transition-all duration-200 ease-cinematic hover:-translate-y-0.5"
               >
                 Staff Sign In
               </Button>

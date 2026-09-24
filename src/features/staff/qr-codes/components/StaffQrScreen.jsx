@@ -41,11 +41,11 @@ export function StaffQrScreen() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">QR Code Generator & Print Studio</h2>
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">QR Code Generator &amp; Print Studio</h1>
           <p className="text-xs text-[#8A8F9C] mt-1">Design and print live branded table acrylic standees & stickers</p>
         </div>
         {tables.length > 0 && (
-          <Button size="sm" onClick={handlePrint} className="gap-2 rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
+          <Button size="md" onClick={handlePrint} className="gap-2 rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
             <Printer className="h-4 w-4" strokeWidth={1.5} /> Print All QR Standees
           </Button>
         )}
@@ -82,7 +82,7 @@ export function StaffQrScreen() {
                 <div className="text-xs font-mono font-bold text-[#C6FF3D] uppercase tracking-wider truncate">
                   {venueName}
                 </div>
-                <div className="inline-block p-4 rounded-xl bg-white shadow-inner">
+                <div className="inline-block p-4 rounded-xl bg-white border border-black/10 shadow-sm">
                   <QRCodeSVG
                     value={tableUrl}
                     size={160}
@@ -103,7 +103,7 @@ export function StaffQrScreen() {
                     href={tableUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs font-mono text-[#C6FF3D] hover:underline flex items-center gap-1.5 transition-colors"
+                    className="text-xs font-mono text-[#C6FF3D] hover:underline flex items-center gap-1.5 transition-colors py-1.5 px-3 rounded-full hover:bg-[#C6FF3D]/10"
                   >
                     Test Guest Link <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.5} />
                   </a>

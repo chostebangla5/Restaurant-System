@@ -2,29 +2,25 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Quote, Sparkles, CheckCircle2 } from 'lucide-react';
 
-const ease = [0.22, 1, 0.36, 1];
-
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.14,
-      delayChildren: 0.08,
-    },
-  },
-};
+import {
+  TRANSITION_EASE,
+  DURATION_ITEM,
+  VIEWPORT_CONFIG,
+  containerVariants,
+} from '@/lib/motion';
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 28 },
+  hidden: { opacity: 0, y: 14 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.75,
-      ease,
+      duration: DURATION_ITEM,
+      ease: TRANSITION_EASE,
     },
   },
 };
+
 
 export function TestimonialsSection() {
   const testimonials = [
@@ -107,9 +103,9 @@ export function TestimonialsSection() {
           <Sparkles className="h-3 w-3 text-accent" strokeWidth={1.5} />
           <span>OPERATOR TESTIMONIALS</span>
         </div>
-        <h3 className="h2-cinematic text-text">
+        <h2 className="h2-cinematic text-text">
           Trusted by High-Volume Venues
-        </h3>
+        </h2>
         <p className="text-sm text-muted font-sans max-w-lg md:mx-auto leading-relaxed">
           See how premier culinary directors, hospitality operators, and general managers streamline dining with TableSuite.
         </p>
@@ -120,7 +116,7 @@ export function TestimonialsSection() {
         variants={containerVariants}
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: '-60px' }}
+        viewport={VIEWPORT_CONFIG}
         className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8"
       >
         {/* Column 1 */}
@@ -129,7 +125,7 @@ export function TestimonialsSection() {
             <motion.div
               key={item.id}
               variants={cardVariants}
-              className="card-surface rounded-[20px] border border-white/[0.08] hover:border-white/20 p-8 sm:p-10 transition-all duration-300 relative flex flex-col justify-between space-y-7 group"
+              className="card-surface rounded-card border border-white/[0.08] hover:border-white/20 p-8 sm:p-10 transition-all duration-200 ease-cinematic relative flex flex-col justify-between space-y-7 group"
             >
               {/* Card Header: Refined Quote Icon & Micro Metric Pill */}
               <div className="flex items-center justify-between">
@@ -173,7 +169,7 @@ export function TestimonialsSection() {
             <motion.div
               key={item.id}
               variants={cardVariants}
-              className="card-surface rounded-[20px] border border-white/[0.08] hover:border-white/20 p-8 sm:p-10 transition-all duration-300 relative flex flex-col justify-between space-y-7 group"
+              className="card-surface rounded-card border border-white/[0.08] hover:border-white/20 p-8 sm:p-10 transition-all duration-200 ease-cinematic relative flex flex-col justify-between space-y-7 group"
             >
               {/* Card Header: Refined Quote Icon & Micro Metric Pill */}
               <div className="flex items-center justify-between">

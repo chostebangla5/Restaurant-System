@@ -103,14 +103,16 @@ export function StaffLayout() {
           <button
             type="button"
             onClick={toggleDarkMode}
-            className="p-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-[#8A8F9C] hover:text-[#F4F5F7] transition-colors"
+            aria-label="Toggle dark mode"
+            className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-white/[0.04] border border-white/[0.08] text-[#8A8F9C] hover:text-[#F4F5F7] transition-colors"
           >
             {isDarkMode ? <Sun className="h-4 w-4" strokeWidth={1.5} /> : <Moon className="h-4 w-4" strokeWidth={1.5} />}
           </button>
           <button
             type="button"
             onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-            className="p-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-[#8A8F9C] hover:text-[#F4F5F7] transition-colors"
+            aria-label="Toggle navigation sidebar"
+            className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-white/[0.04] border border-white/[0.08] text-[#8A8F9C] hover:text-[#F4F5F7] transition-colors"
           >
             {isMobileSidebarOpen ? <X className="h-4 w-4" strokeWidth={1.5} /> : <Menu className="h-4 w-4" strokeWidth={1.5} />}
           </button>
@@ -205,7 +207,7 @@ export function StaffLayout() {
                 onClick={() => setIsMobileSidebarOpen(false)}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all group relative',
+                    'flex items-center justify-between px-3 py-2.5 min-h-[40px] rounded-xl text-xs font-medium transition-all group relative',
                     isActive
                       ? 'bg-white/[0.06] text-[#F4F5F7] border border-white/[0.12]'
                       : 'text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.03] border border-transparent'
@@ -275,11 +277,11 @@ export function StaffLayout() {
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
         <header className="hidden md:flex items-center justify-between px-8 py-4 bg-[#07080B]/90 backdrop-blur-md border-b border-white/[0.08] sticky top-0 z-20">
           <div>
-            <h1 className="text-base font-heading font-bold text-[#F4F5F7]">
+            <span className="text-base font-heading font-bold text-[#F4F5F7] block">
               {navItems.find((n) =>
                 n.end ? n.path === location.pathname : location.pathname.startsWith(n.path)
               )?.label || 'Dashboard'}
-            </h1>
+            </span>
             <p className="text-xs text-[#8A8F9C]">
               {currentVenueName}
             </p>

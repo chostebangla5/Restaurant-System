@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { TRANSITION_EASE, DURATION_ITEM } from '@/lib/motion';
 import { useAuth } from '@/features/shared/auth';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
@@ -34,6 +35,7 @@ import {
   CheckCircle2,
   XCircle,
   AlertCircle,
+  Check,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -257,20 +259,20 @@ export function StaffTeamScreen() {
   ];
 
   return (
-    <div className="space-y-6 pb-48">
+    <div className="space-y-6 pb-12">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7] flex items-center gap-2.5">
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7] flex items-center gap-2.5">
             <Users className="h-5 w-5 text-[#C6FF3D]" strokeWidth={1.5} />
             Staff Management
-          </h2>
+          </h1>
           <p className="text-xs text-[#8A8F9C] mt-1">
             Manage your team, roles, access & approvals
           </p>
         </div>
         <Button
-          size="sm"
+          size="md"
           onClick={() => setShowAddModal(true)}
           leftIcon={<UserPlus className="h-4 w-4" strokeWidth={1.5} />}
           className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold"
@@ -288,7 +290,7 @@ export function StaffTeamScreen() {
               key={stat.title}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08 }}
+              transition={{ delay: i * 0.08, duration: DURATION_ITEM, ease: TRANSITION_EASE }}
               className="p-5 rounded-card bg-[#0E1016] border border-white/[0.08] hover:border-white/[0.18] transition-all space-y-3"
             >
               <div className="flex items-center justify-between">
@@ -345,12 +347,10 @@ export function StaffTeamScreen() {
             const percent = totalStaff > 0 ? (count / totalStaff) * 100 : 0;
             if (percent === 0) return null;
             return (
-              <motion.div
+              <div
                 key={role}
-                initial={{ width: 0 }}
-                animate={{ width: `${percent}%` }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                className={`${config.color.split(' ')[0]} first:rounded-l-full last:rounded-r-full`}
+                style={{ width: `${percent}%` }}
+                className={`${config.color.split(' ')[0]} first:rounded-l-full last:rounded-r-full transition-all duration-300 ease-cinematic`}
                 title={`${config.label}: ${count}`}
               />
             );
@@ -439,11 +439,10 @@ export function StaffTeamScreen() {
               return (
                 <motion.div
                   key={member.id}
-                  layout
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  transition={{ delay: idx * 0.04 }}
+                  transition={{ delay: idx * 0.04, duration: DURATION_ITEM, ease: TRANSITION_EASE }}
                   className={`group relative rounded-card border-l-2 ${config.borderColor} border border-white/[0.08] bg-[#0E1016] transition-all hover:border-white/[0.18] ${
                     member.is_active ? '' : 'opacity-60'
                   }`}
@@ -544,7 +543,7 @@ export function StaffTeamScreen() {
                                   >
                                     <roleConf.icon className="h-3.5 w-3.5" strokeWidth={1.5} />
                                     <span>{roleConf.label}</span>
-                                    {member.role === roleKey && <span className="ml-auto text-[11px] font-mono font-bold">✓</span>}
+                                    {member.role === roleKey && <Check className="ml-auto h-3.5 w-3.5 text-[#C6FF3D]" strokeWidth={2} />}
                                   </button>
                                 ))}
                               </div>
@@ -751,8 +750,8 @@ function AddStaffModal({ isOpen, onClose, onSubmit, isLoading }) {
                     </p>
                   </div>
                   {isSelected && (
-                    <span className="absolute top-2 right-2 h-4 w-4 rounded-full bg-[#C6FF3D] flex items-center justify-center text-[#07080B] text-[9px] font-bold">
-                      ✓
+                    <span className="absolute top-2 right-2 h-4 w-4 rounded-full bg-[#C6FF3D] flex items-center justify-center text-[#07080B]">
+                      <Check className="h-2.5 w-2.5" strokeWidth={3} />
                     </span>
                   )}
                 </button>

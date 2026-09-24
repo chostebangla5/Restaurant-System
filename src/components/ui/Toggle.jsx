@@ -25,7 +25,7 @@ export function Toggle({
         disabled={disabled}
         onClick={() => !disabled && onChange?.(!checked)}
         className={cn(
-          'group relative inline-flex shrink-0 cursor-pointer items-center rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-accent border border-white/10 disabled:cursor-not-allowed disabled:opacity-40',
+          'group relative inline-flex shrink-0 cursor-pointer items-center rounded-full p-0.5 transition-colors duration-200 ease-in-out focus:outline-none focus:ring-1 focus:ring-accent border border-white/10 disabled:cursor-not-allowed disabled:opacity-40 touch-manipulation before:absolute before:-inset-2 before:content-[\'\']',
           isSm ? 'h-5 w-9' : 'h-6 w-11',
           checked
             ? 'bg-accent border-accent text-bg'

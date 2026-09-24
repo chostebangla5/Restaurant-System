@@ -82,7 +82,7 @@ export function PendingApprovalScreen() {
           </Button>
 
           <Button
-            size="sm"
+            size="md"
             variant="ghost"
             className="w-full text-muted hover:text-text text-xs font-medium"
             onClick={signOut}

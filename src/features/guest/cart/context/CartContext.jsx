@@ -161,7 +161,7 @@ export function CartProvider({ children }) {
       }
 
       setAppliedCoupon(result.coupon);
-      toast.success(`Coupon "${result.coupon.code}" applied! 🎉`, { duration: 3000 });
+      toast.success(`Coupon "${result.coupon.code}" applied!`, { duration: 3000 });
       return { success: true, coupon: result.coupon };
     } catch (err) {
       toast.error(err.message || 'Failed to apply coupon');
@@ -212,7 +212,7 @@ export function CartProvider({ children }) {
       });
 
       clearCart();
-      toast.success('Order placed & sent to kitchen! 🍳', { duration: 4000 });
+      toast.success('Order placed & sent to kitchen!', { duration: 4000 });
       navigate(`/t/${shortCode}/orders`);
       return order;
     } catch (err) {

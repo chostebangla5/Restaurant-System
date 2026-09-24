@@ -98,10 +98,10 @@ export function StaffFeedbackScreen() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Feedback & Reviews</h2>
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Feedback &amp; Reviews</h1>
           <p className="text-xs text-[#8A8F9C] mt-1">Guest ratings, comments & experience insights</p>
         </div>
-        <Button size="sm" variant="ghost" onClick={loadData} className="rounded-full text-xs font-mono text-[#8A8F9C] hover:text-[#F4F5F7]">
+        <Button size="md" variant="ghost" onClick={loadData} className="rounded-full text-xs font-mono text-[#8A8F9C] hover:text-[#F4F5F7]">
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} /> Refresh
         </Button>
       </div>
@@ -188,7 +188,7 @@ export function StaffFeedbackScreen() {
               onClick={() => setRatingFilter(null)}
               className="mt-3 text-xs font-mono text-[#C6FF3D] hover:underline"
             >
-              Clear filter — showing {ratingFilter}★ reviews only
+              Clear filter — showing {ratingFilter}-star reviews only
             </button>
           )}
         </div>
@@ -233,7 +233,7 @@ export function StaffFeedbackScreen() {
             <MessageSquare className="h-8 w-8 mx-auto text-[#8A8F9C]" strokeWidth={1.5} />
             <p className="text-sm font-semibold text-[#F4F5F7]">No feedback yet</p>
             <p className="text-xs text-[#8A8F9C]">
-              {ratingFilter ? `No ${ratingFilter}★ reviews found. Try clearing the filter.` : 'Guest feedback will appear here after meals'}
+              {ratingFilter ? `No ${ratingFilter}-star reviews found. Try clearing the filter.` : 'Guest feedback will appear here after meals'}
             </p>
           </div>
         ) : (

@@ -1,8 +1,9 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { Cpu, Activity, Zap, CheckCircle2 } from 'lucide-react';
 
 export function HeroVisual() {
+  const shouldReduceMotion = useReducedMotion();
   return (
     <div className="relative w-full max-w-lg mx-auto lg:max-w-none select-none">
       {/* Background SVG Circuit / Node Network */}
@@ -45,7 +46,7 @@ export function HeroVisual() {
           strokeWidth="1.5"
           strokeDasharray="16 120"
           fill="none"
-          className="animate-[dash_6s_linear_infinite]"
+          opacity="0.8"
         />
 
         {/* Junction Nodes */}
@@ -60,7 +61,7 @@ export function HeroVisual() {
       <div className="relative z-10 flex flex-col gap-4">
         {/* Top Autonomous Status Pill */}
         <motion.div
-          animate={{ y: [-4, 4, -4] }}
+          animate={shouldReduceMotion ? {} : { y: [-3, 3, -3] }}
           transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
           className="self-end mr-4 inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/10 bg-[#0E1016]/90 backdrop-blur-md shadow-lg"
         >
@@ -76,7 +77,7 @@ export function HeroVisual() {
 
         {/* Main Telemetry & Dispatch Hub Card */}
         <motion.div
-          animate={{ y: [0, -6, 0] }}
+          animate={shouldReduceMotion ? {} : { y: [0, -5, 0] }}
           transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
           className="card-surface rounded-card border border-white/[0.09] p-6 sm:p-7 shadow-2xl backdrop-blur-md space-y-5 relative overflow-hidden"
         >
@@ -146,7 +147,7 @@ export function HeroVisual() {
 
         {/* Secondary Offset Live Order Pipeline Card */}
         <motion.div
-          animate={{ y: [0, 6, 0] }}
+          animate={shouldReduceMotion ? {} : { y: [0, 5, 0] }}
           transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
           className="self-start -mt-3 ml-4 max-w-sm rounded-2xl border border-white/[0.08] bg-[#141721]/95 p-4 shadow-xl backdrop-blur-md space-y-2.5"
         >

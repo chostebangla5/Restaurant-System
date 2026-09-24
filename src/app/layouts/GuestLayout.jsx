@@ -3,15 +3,25 @@ import { useParams, useLocation, Link } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { applyVenueBranding } from '@/features/shared/branding';
 import { AnimatedOutlet } from '@/components/animation/AnimatedOutlet';
-import { ShoppingBag, Clock, AlertCircle } from 'lucide-react';
+import { Navbar } from '@/components/navigation/Navbar';
+import { Footer } from '@/components/navigation/Footer';
+import {
+  ShoppingBag,
+  Clock,
+  AlertCircle,
+  UtensilsCrossed,
+  ShieldCheck,
+  ArrowLeft,
+} from 'lucide-react';
 import { CartProvider, useCart } from '@/features/guest/cart/context/CartContext';
 import { NotificationOptIn } from '@/features/guest/home/components/NotificationOptIn';
 import { preloadGuestFlow } from '@/app/routes';
 
-/* ─── Inner shell that can read cart context ─── */
+/* ─── Inner shell that reads cart context ─── */
 function GuestShell({ shortCode, tableData }) {
   const { totalItemCount } = useCart();
   const [cartBounce, setCartBounce] = useState(false);
+  const location = useLocation();
   const prevCount = React.useRef(totalItemCount);
 
   useEffect(() => {
@@ -31,73 +41,113 @@ function GuestShell({ shortCode, tableData }) {
     prevCount.current = totalItemCount;
   }, [totalItemCount]);
 
+  const navTabs = [
+    {
+      id: 'menu',
+      label: 'Menu',
+      href: `/t/${shortCode}`,
+      icon: UtensilsCrossed,
+      isActive: location.pathname === `/t/${shortCode}`,
+    },
+    {
+      id: 'cart',
+      label: 'Cart',
+      href: `/t/${shortCode}/cart`,
+      icon: ShoppingBag,
+      badge: totalItemCount > 0 ? totalItemCount : null,
+      isActive: location.pathname === `/t/${shortCode}/cart`,
+    },
+    {
+      id: 'orders',
+      label: 'Live Orders',
+      href: `/t/${shortCode}/orders`,
+      icon: Clock,
+      isActive: location.pathname === `/t/${shortCode}/orders`,
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-bg text-text flex flex-col items-center font-sans selection:bg-accent selection:text-bg">
-      {/* Mobile-constrained viewport shell with subtle hairline borders */}
-      <div className="w-full max-w-md min-h-screen bg-bg border-x border-white/[0.06] shadow-2xl flex flex-col relative">
-        {/* Minimalist Top Header */}
-        <header className="sticky top-0 z-30 bg-surface/90 backdrop-blur-md px-5 py-3.5 safe-top border-b border-white/[0.08]">
-          <div className="flex items-center justify-between">
-            {/* Venue identity */}
-            <div className="flex items-center gap-3 min-w-0">
-              {/* Table number in pill badge */}
-              <div className="h-8 px-3 rounded-full border border-white/10 bg-surface-2 flex items-center justify-center text-accent font-mono font-bold text-xs shrink-0">
-                T-{tableData.tableNumber}
-              </div>
-              <div className="min-w-0">
-                <h1 className="text-sm font-heading font-bold text-text tracking-tight truncate">
-                  {tableData.venueName}
-                </h1>
-                <p className="text-[11px] font-mono text-muted flex items-center gap-1.5">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" />
-                  Table {tableData.tableNumber}
-                </p>
-              </div>
-            </div>
+    <div className="min-h-screen bg-bg text-text flex flex-col font-sans selection:bg-accent selection:text-bg">
+      {/* Top Navbar */}
+      <Navbar />
 
-            {/* Action icons */}
-            <div className="flex items-center gap-2">
-              {/* Order status */}
-              <Link
-                to={`/t/${shortCode}/orders`}
-                className="p-2 rounded-full border border-white/10 bg-surface-2 text-muted hover:text-text hover:border-white/20 transition-colors"
-                title="Order Status"
-              >
-                <Clock className="h-4 w-4" strokeWidth={1.5} />
-              </Link>
+      <div className="pt-20 sm:pt-24 flex-1 flex flex-col">
+        {/* Clean Guest Page Header */}
+        <header className="w-full border-b border-white/[0.08] bg-surface/85 backdrop-blur-md sticky top-[68px] sm:top-[76px] z-30 transition-all">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-3.5 sm:py-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+              {/* Venue & Table Identity */}
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="h-8 sm:h-9 px-3 rounded-full border border-accent/30 bg-accent/10 flex items-center justify-center text-accent font-mono font-bold text-xs tracking-wider shrink-0 shadow-[0_0_12px_rgba(198,255,61,0.12)]">
+                  T-{tableData.tableNumber}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm sm:text-base font-heading font-bold text-text tracking-tight truncate">
+                      {tableData.venueName}
+                    </span>
+                    <span className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-accent font-mono text-[10px] font-medium shrink-0">
+                      <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+                      Active Session
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-mono text-muted flex items-center gap-1.5 truncate">
+                    <span>Table {tableData.tableNumber}</span>
+                    <span className="text-white/20">&bull;</span>
+                    <span className="text-muted/80">Code: {shortCode}</span>
+                  </p>
+                </div>
+              </div>
 
-              {/* Cart icon with badge */}
-              <Link
-                to={`/t/${shortCode}/cart`}
-                className={`relative p-2 rounded-full border border-white/10 bg-surface-2 text-muted hover:text-text hover:border-white/20 transition-all ${
-                  cartBounce ? '-translate-y-0.5' : ''
-                }`}
-                title="View Cart"
-              >
-                <ShoppingBag className="h-4 w-4" strokeWidth={1.5} />
-                {totalItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-accent text-bg text-[10px] font-mono font-bold flex items-center justify-center shadow-sm">
-                    {totalItemCount}
-                  </span>
-                )}
-              </Link>
+              {/* Sub-Navigation Tabs */}
+              <nav className="flex items-center gap-2 shrink-0">
+                {navTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  return (
+                    <Link
+                      key={tab.id}
+                      to={tab.href}
+                      className={`group relative flex items-center gap-2 px-3.5 py-2 sm:px-4 sm:py-2.5 min-h-[44px] rounded-full text-xs font-medium transition-all duration-200 shrink-0 ${
+                        tab.isActive
+                          ? 'bg-accent text-bg font-semibold shadow-xs'
+                          : 'bg-surface-2 text-muted hover:text-white border border-white/10 hover:border-white/20'
+                      }`}
+                    >
+                      <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
+                      <span>{tab.label}</span>
+                      {tab.badge && (
+                        <span
+                          className={`h-4 min-w-4 px-1 rounded-full text-[10px] font-mono font-bold flex items-center justify-center ${
+                            tab.isActive ? 'bg-bg text-accent' : 'bg-accent text-bg'
+                          } ${cartBounce ? 'scale-110' : ''} transition-transform`}
+                        >
+                          {tab.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </nav>
             </div>
           </div>
         </header>
 
-        {/* Dynamic Route Content */}
-        <main className="flex-1 flex flex-col p-4 pb-24 safe-bottom">
+        {/* Dynamic Route Content with consistent container width */}
+        <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-6 sm:py-8 safe-bottom">
           <AnimatedOutlet />
         </main>
-
-        {/* Push Notification Opt-In */}
-        {tableData.venueId && (
-          <NotificationOptIn
-            venueId={tableData.venueId}
-            venueName={tableData.venueName}
-          />
-        )}
       </div>
+
+      {/* Push Notification Opt-In */}
+      {tableData.venueId && (
+        <NotificationOptIn
+          venueId={tableData.venueId}
+          venueName={tableData.venueName}
+        />
+      )}
+
+      {/* Unified Restyled Footer */}
+      <Footer />
     </div>
   );
 }
@@ -158,11 +208,15 @@ export function GuestLayout() {
   /* Loading state */
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-bg flex items-center justify-center p-4">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-7 w-7 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          <span className="text-xs font-mono text-muted">Loading your table…</span>
+      <div className="min-h-screen bg-bg text-text flex flex-col font-sans">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center p-6 pt-28">
+          <div className="flex flex-col items-center gap-3">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+            <span className="text-xs font-mono text-muted tracking-wider uppercase">Loading table session…</span>
+          </div>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -170,23 +224,30 @@ export function GuestLayout() {
   /* Table not found */
   if (tableNotFound) {
     return (
-      <div className="min-h-screen bg-bg text-text flex flex-col items-center justify-center p-6 text-center font-sans">
-        <div className="max-w-sm rounded-card bg-surface p-8 border border-white/10 space-y-4 shadow-2xl">
-          <div className="h-12 w-12 mx-auto rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
-            <AlertCircle className="h-6 w-6" strokeWidth={1.5} />
+      <div className="min-h-screen bg-bg text-text flex flex-col font-sans">
+        <Navbar />
+        <div className="flex-1 flex items-center justify-center p-6 pt-32 pb-16">
+          <div className="max-w-md w-full rounded-card card-surface p-8 border border-white/10 space-y-4 shadow-2xl text-center">
+            <div className="h-12 w-12 mx-auto rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+              <AlertCircle className="h-6 w-6" strokeWidth={1.5} />
+            </div>
+            <h2 className="text-lg sm:text-xl font-heading font-bold text-text">Table Not Found</h2>
+            <p className="text-xs text-muted leading-relaxed font-sans">
+              The QR code scanned (<code className="font-mono text-accent">{shortCode}</code>) is invalid or the table is currently inactive.
+              Please scan the QR standee on your dining table or request staff assistance.
+            </p>
+            <div className="pt-2">
+              <Link
+                to="/"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-surface-2 hover:bg-white/[0.08] border border-white/10 text-text text-xs font-medium transition-colors"
+              >
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Return to Home
+              </Link>
+            </div>
           </div>
-          <h2 className="text-lg font-heading font-bold text-text">Table Not Found</h2>
-          <p className="text-xs text-muted leading-relaxed font-sans">
-            The QR code you scanned (<code className="font-mono text-accent">{shortCode}</code>) is invalid or the table is currently inactive.
-            Please scan the QR code on your table standee or ask a waiter for assistance.
-          </p>
-          <Link
-            to="/"
-            className="inline-block mt-2 px-6 py-2.5 rounded-full bg-surface-2 hover:bg-white/[0.08] border border-white/10 text-text text-xs font-medium transition-colors"
-          >
-            Return to Home
-          </Link>
         </div>
+        <Footer />
       </div>
     );
   }
@@ -197,3 +258,5 @@ export function GuestLayout() {
     </CartProvider>
   );
 }
+
+export default GuestLayout;

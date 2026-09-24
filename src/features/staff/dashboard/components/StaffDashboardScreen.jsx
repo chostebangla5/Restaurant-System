@@ -21,6 +21,7 @@ import {
   Users,
   CheckCircle2,
   Activity,
+  Check,
 } from 'lucide-react';
 import {
   fetchStaffMembers,
@@ -177,14 +178,14 @@ export function StaffDashboardScreen() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 relative z-10 shrink-0">
+        <div className="flex flex-wrap items-center gap-3 relative z-10 shrink-0">
           <Link to="/staff/kitchen">
-            <Button size="sm" variant="outline" className="border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25] hover:bg-white/[0.04]">
+            <Button size="md" variant="outline" className="border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25] hover:bg-white/[0.04]">
               Open KDS Display
             </Button>
           </Link>
           <Link to="/staff/live-orders">
-            <Button size="sm" className="bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
+            <Button size="md" className="bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
               Live Orders Feed
             </Button>
           </Link>
@@ -415,8 +416,15 @@ export function StaffDashboardScreen() {
                       <div className="text-xs font-mono font-bold text-[#F4F5F7]">
                         {formatCurrency(order.total)}
                       </div>
-                      <span className="text-[10px] font-mono text-[#8A8F9C]">
-                        {order.payment_status === 'paid' ? '✓ Paid' : 'Pending'}
+                      <span className="text-[10px] font-mono text-[#8A8F9C] flex items-center justify-end gap-1">
+                        {order.payment_status === 'paid' ? (
+                          <>
+                            <Check className="h-3 w-3 text-emerald-400" strokeWidth={2} />
+                            <span className="text-emerald-400">Paid</span>
+                          </>
+                        ) : (
+                          'Pending'
+                        )}
                       </span>
                     </div>
 

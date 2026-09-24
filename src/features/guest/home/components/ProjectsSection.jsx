@@ -1,52 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion, useMotionValue, useSpring } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ArrowUpRight, Sparkles } from 'lucide-react';
 
-const ease = [0.22, 1, 0.36, 1];
-
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.15,
-      delayChildren: 0.1,
-    },
-  },
-};
+import {
+  TRANSITION_EASE,
+  DURATION_ITEM,
+  VIEWPORT_CONFIG,
+  containerVariants,
+} from '@/lib/motion';
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 32 },
+  hidden: { opacity: 0, y: 14 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.8,
-      ease,
+      duration: DURATION_ITEM,
+      ease: TRANSITION_EASE,
     },
   },
 };
 
+
 export function ProjectsSection() {
-  const [hoveredCard, setHoveredCard] = useState(null);
-
-  // Smooth mouse coordinates for custom cursor-following "View" pill
-  const mouseX = useMotionValue(-200);
-  const mouseY = useMotionValue(-200);
-  const springConfig = { damping: 25, stiffness: 350 };
-  const cursorX = useSpring(mouseX, springConfig);
-  const cursorY = useSpring(mouseY, springConfig);
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      mouseX.set(e.clientX);
-      mouseY.set(e.clientY);
-    };
-
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, [mouseX, mouseY]);
-
   const projects = [
     {
       id: 'copper-chimney',
@@ -57,43 +34,43 @@ export function ProjectsSection() {
       image: '/images/projects/copper-chimney.jpg',
       tags: ['Fine Dining', 'Multi-Round POS', 'Sub-Second KDS'],
       ratio: 'aspect-[16/10]',
-      link: '/t/TBL001',
+      link: '/t/DEMO1',
       column: 1,
     },
     {
-      id: 'roast-and-brew',
-      title: 'Roast & Brew Artisan Roastery',
-      subtitle: 'High-Volume Specialty Café & Roastery',
+      id: 'roast-brew',
+      title: 'Roast & Brew Artisan Roasteries',
+      subtitle: 'High-Volume Fast Casual',
       description:
-        'Peak-hour contactless QR ordering reducing morning queue times by 48% with automated barista station dispatch.',
-      image: '/images/projects/roast-and-brew.jpg',
-      tags: ['Specialty Café', 'Peak Velocity', 'Barista KDS'],
+        'Eliminated morning counter queues completely with instant QR order ingestion and automated barista station routing.',
+      image: '/images/projects/roast-brew.jpg',
+      tags: ['Specialty Coffee', 'Queue Elimination', 'Barista Dispatch'],
       ratio: 'aspect-[4/3]',
-      link: '/t/CAFE01',
+      link: '/t/DEMO2',
       column: 2,
     },
     {
-      id: 'bao-house',
-      title: 'Bao House Pan-Asian',
-      subtitle: 'High-Volume Kitchen Display Integration',
+      id: 'bombay-canteen',
+      title: 'The Bombay Social Club',
+      subtitle: 'Bar, Lounge & Modern Indian Kitchen',
       description:
-        'Multi-station kitchen line synchronization with live prep timers across wok, dim sum, and sushi stations.',
-      image: '/images/projects/bao-house.jpg',
-      tags: ['Pan-Asian', 'Live Timers', 'Station Routing'],
+        'Seamless drinks re-ordering directly from cocktail tables with automated bar ticket printing and split billing.',
+      image: '/images/projects/bombay-canteen.jpg',
+      tags: ['Lounge & Cocktails', 'Real-Time Sync', 'Contactless Pay'],
       ratio: 'aspect-[4/3]',
-      link: '/t/ASIAN01',
+      link: '/t/DEMO3',
       column: 1,
     },
     {
-      id: 'velvet-rooftop',
-      title: 'Velvet Lounge & Rooftop',
-      subtitle: 'Nightlife, Cocktail Bar & Instant Billing',
+      id: 'heritage-haveli',
+      title: 'Haveli Heritage Courtyard',
+      subtitle: 'Luxury Banquet & Heritage Dining',
       description:
-        'Split-billing contactless settlement via instant UPI and card terminals with real-time table turnover metrics.',
-      image: '/images/projects/velvet-rooftop.jpg',
-      tags: ['Nightlife & Lounge', 'UPI FastPay', 'Table Turnover'],
+        'Full digital menu with multilingual allergen tagging, chef notes, and real-time inventory decrement sync.',
+      image: '/images/projects/heritage-haveli.jpg',
+      tags: ['Heritage Venue', 'Custom Menu Engine', 'Table Audits'],
       ratio: 'aspect-[16/10]',
-      link: '/t/ROOF01',
+      link: '/t/DEMO1',
       column: 2,
     },
   ];
@@ -103,42 +80,27 @@ export function ProjectsSection() {
 
   return (
     <section id="projects" className="w-full relative z-10 py-16 md:py-24 space-y-16">
-      {/* Custom Cursor-Following "View" Pill on Desktop */}
-      <motion.div
-        className="pointer-events-none fixed top-0 left-0 z-50 hidden md:flex items-center gap-1.5 px-4 py-2 rounded-full bg-accent text-bg font-mono text-xs font-bold uppercase tracking-wider shadow-[0_0_25px_rgba(198,255,61,0.5)] -translate-x-1/2 -translate-y-1/2 select-none"
-        style={{
-          x: cursorX,
-          y: cursorY,
-          opacity: hoveredCard ? 1 : 0,
-          scale: hoveredCard ? 1 : 0.4,
-        }}
-        transition={{ opacity: { duration: 0.18 }, scale: { duration: 0.18 } }}
-      >
-        <span>View</span>
-        <ArrowUpRight className="h-3.5 w-3.5 stroke-[2.5]" />
-      </motion.div>
-
       {/* Section Header */}
       <div className="space-y-3 text-left md:text-center max-w-2xl md:mx-auto">
         <div className="font-mono text-xs uppercase tracking-widest text-accent inline-flex items-center gap-2 px-3 py-1 rounded-full border border-white/10 bg-surface/80">
           <Sparkles className="h-3 w-3 text-accent" strokeWidth={1.5} />
           <span>FEATURED DEPLOYMENTS</span>
         </div>
-        <h3 className="h2-cinematic text-text">
+        <h2 className="h2-cinematic text-text">
           Selected Deployments &amp; Case Studies
-        </h3>
+        </h2>
         <p className="text-sm text-muted font-sans max-w-lg md:mx-auto leading-relaxed">
           Explore how leading hospitality groups deploy TableSuite to eliminate queues and maximize seat velocity.
         </p>
       </div>
 
-      {/* Staggered Two-Column Masonry-Style Layout */}
+      {/* 2-Column Staggered Masonry Grid */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: '-60px' }}
-        className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10"
+        viewport={VIEWPORT_CONFIG}
+        className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-10 items-start"
       >
         {/* Column 1 */}
         <div className="space-y-8 lg:space-y-10">
@@ -146,32 +108,31 @@ export function ProjectsSection() {
             <motion.div
               key={project.id}
               variants={cardVariants}
-              onMouseEnter={() => setHoveredCard(project.id)}
-              onMouseLeave={() => setHoveredCard(null)}
               className="w-full"
             >
               <Link
                 to={project.link}
-                className="group relative block w-full rounded-[20px] overflow-hidden border border-white/[0.08] hover:border-white/25 bg-surface transition-all duration-500 md:cursor-none shadow-sm"
+                className="group relative block w-full rounded-card overflow-hidden border border-white/[0.08] hover:border-white/25 bg-surface transition-all duration-200 ease-cinematic shadow-sm"
               >
                 {/* Image Container with Aspect Ratio and Slow 1.05 Zoom */}
                 <div className={`w-full ${project.ratio} overflow-hidden relative`}>
                   <img
                     src={project.image}
                     alt={project.title}
-                    className="w-full h-full object-cover transform scale-100 group-hover:scale-105 transition-transform duration-700 ease-out"
+                    className="w-full h-full object-cover transform scale-100 group-hover:scale-105 transition-transform duration-300 ease-cinematic"
                     loading="lazy"
+                    decoding="async"
                   />
 
                   {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#07080B]/95 via-[#07080B]/40 to-transparent transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#07080B]/95 via-[#07080B]/40 to-transparent transition-opacity duration-300" />
 
                   {/* Top Eyebrow Badge & Arrow */}
                   <div className="absolute top-5 left-5 right-5 flex items-center justify-between z-10">
                     <span className="font-mono text-[10px] text-white/80 uppercase tracking-widest px-3 py-1 rounded-full border border-white/10 bg-[#07080B]/60 backdrop-blur-md">
                       {project.subtitle}
                     </span>
-                    <div className="h-8 w-8 rounded-full border border-white/15 bg-[#07080B]/60 backdrop-blur-md flex items-center justify-center text-accent group-hover:scale-110 group-hover:border-accent/40 transition-all duration-300">
+                    <div className="h-8 w-8 rounded-full border border-white/15 bg-[#07080B]/60 backdrop-blur-md flex items-center justify-center text-accent group-hover:scale-110 group-hover:border-accent/40 transition-all duration-200">
                       <ArrowUpRight className="h-4 w-4" strokeWidth={1.5} />
                     </div>
                   </div>
@@ -191,7 +152,7 @@ export function ProjectsSection() {
                     </div>
 
                     {/* Title */}
-                    <h4 className="font-heading font-bold text-xl sm:text-2xl text-text group-hover:text-white tracking-tight transition-colors">
+                    <h4 className="font-heading font-bold text-xl sm:text-2xl text-text group-hover:text-white tracking-tight transition-colors duration-200">
                       {project.title}
                     </h4>
 
@@ -206,38 +167,37 @@ export function ProjectsSection() {
           ))}
         </div>
 
-        {/* Column 2 (Offset by md:pt-12 for Staggered Masonry) */}
+        {/* Column 2 (Offset by md:pt-14 for Staggered Masonry) */}
         <div className="space-y-8 lg:space-y-10 md:pt-14">
           {col2Projects.map((project) => (
             <motion.div
               key={project.id}
               variants={cardVariants}
-              onMouseEnter={() => setHoveredCard(project.id)}
-              onMouseLeave={() => setHoveredCard(null)}
               className="w-full"
             >
               <Link
                 to={project.link}
-                className="group relative block w-full rounded-[20px] overflow-hidden border border-white/[0.08] hover:border-white/25 bg-surface transition-all duration-500 md:cursor-none shadow-sm"
+                className="group relative block w-full rounded-card overflow-hidden border border-white/[0.08] hover:border-white/25 bg-surface transition-all duration-200 ease-cinematic shadow-sm"
               >
                 {/* Image Container with Aspect Ratio and Slow 1.05 Zoom */}
                 <div className={`w-full ${project.ratio} overflow-hidden relative`}>
                   <img
                     src={project.image}
                     alt={project.title}
-                    className="w-full h-full object-cover transform scale-100 group-hover:scale-105 transition-transform duration-700 ease-out"
+                    className="w-full h-full object-cover transform scale-100 group-hover:scale-105 transition-transform duration-300 ease-cinematic"
                     loading="lazy"
+                    decoding="async"
                   />
 
                   {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#07080B]/95 via-[#07080B]/40 to-transparent transition-opacity duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#07080B]/95 via-[#07080B]/40 to-transparent transition-opacity duration-300" />
 
                   {/* Top Eyebrow Badge & Arrow */}
                   <div className="absolute top-5 left-5 right-5 flex items-center justify-between z-10">
                     <span className="font-mono text-[10px] text-white/80 uppercase tracking-widest px-3 py-1 rounded-full border border-white/10 bg-[#07080B]/60 backdrop-blur-md">
                       {project.subtitle}
                     </span>
-                    <div className="h-8 w-8 rounded-full border border-white/15 bg-[#07080B]/60 backdrop-blur-md flex items-center justify-center text-accent group-hover:scale-110 group-hover:border-accent/40 transition-all duration-300">
+                    <div className="h-8 w-8 rounded-full border border-white/15 bg-[#07080B]/60 backdrop-blur-md flex items-center justify-center text-accent group-hover:scale-110 group-hover:border-accent/40 transition-all duration-200">
                       <ArrowUpRight className="h-4 w-4" strokeWidth={1.5} />
                     </div>
                   </div>
@@ -257,7 +217,7 @@ export function ProjectsSection() {
                     </div>
 
                     {/* Title */}
-                    <h4 className="font-heading font-bold text-xl sm:text-2xl text-text group-hover:text-white tracking-tight transition-colors">
+                    <h4 className="font-heading font-bold text-xl sm:text-2xl text-text group-hover:text-white tracking-tight transition-colors duration-200">
                       {project.title}
                     </h4>
 
@@ -275,3 +235,5 @@ export function ProjectsSection() {
     </section>
   );
 }
+
+export default ProjectsSection;

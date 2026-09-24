@@ -17,8 +17,8 @@ const DIETARY_TAG_OPTIONS = [
   { value: 'veg', label: 'Veg', color: 'success' },
   { value: 'non-veg', label: 'Non-Veg', color: 'danger' },
   { value: 'gluten-free', label: 'Gluten-Free', color: 'default' },
-  { value: 'spicy', label: 'Spicy 🌶️', color: 'warning' },
-  { value: 'chef-special', label: 'Chef Special ⭐', color: 'primary' },
+  { value: 'spicy', label: 'Spicy', color: 'warning' },
+  { value: 'chef-special', label: 'Chef Special', color: 'primary' },
   { value: 'contains-nuts', label: 'Contains Nuts', color: 'default' },
 ];
 
@@ -130,7 +130,9 @@ export function MenuItemForm({
           {formData.imageUrl && (
             <img
               src={formData.imageUrl}
-              alt=""
+              alt={formData.name ? `${formData.name} preview` : 'Menu item preview'}
+              loading="lazy"
+              decoding="async"
               className="h-16 w-16 rounded-xl object-cover shrink-0 border border-white/[0.08]"
               onError={(e) => { e.target.style.display = 'none'; }}
             />
@@ -203,7 +205,7 @@ export function MenuItemForm({
                   key={tag.value}
                   type="button"
                   onClick={() => toggleTag(tag.value)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                  className={`px-3 py-2 min-h-[38px] rounded-full text-xs font-medium border touch-manipulation transition-all ${
                     isActive
                       ? 'bg-[#C6FF3D] text-[#07080B] border-[#C6FF3D] font-semibold shadow-sm'
                       : 'bg-[#141721] text-[#8A8F9C] border-white/[0.08] hover:text-[#F4F5F7] hover:border-white/[0.2]'

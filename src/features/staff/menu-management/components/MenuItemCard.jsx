@@ -99,6 +99,8 @@ export function MenuItemCard({
           <img
             src={item.image_url}
             alt={item.name}
+            loading="lazy"
+            decoding="async"
             className="h-16 w-16 rounded-xl object-cover shrink-0 border border-white/[0.08]"
             onError={(e) => { e.target.style.display = 'none'; }}
           />
@@ -116,33 +118,36 @@ export function MenuItemCard({
           />
         </div>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
           <button
             type="button"
             onClick={() => onToggleBestseller?.(item.id, !item.is_bestseller)}
             className={cn(
-              'p-1.5 rounded-full transition-colors',
+              'p-2 min-h-[36px] min-w-[36px] relative before:absolute before:-inset-1 before:content-[\'\'] touch-manipulation rounded-full transition-colors flex items-center justify-center',
               item.is_bestseller
                 ? 'text-[#C6FF3D] bg-[#C6FF3D]/10'
                 : 'text-[#8A8F9C] hover:bg-white/[0.06] hover:text-[#F4F5F7]'
             )}
             title={item.is_bestseller ? 'Remove bestseller' : 'Mark as bestseller'}
+            aria-label={item.is_bestseller ? 'Remove bestseller' : 'Mark as bestseller'}
           >
             <Star className={cn('h-3.5 w-3.5', item.is_bestseller && 'fill-current')} strokeWidth={1.5} />
           </button>
           <button
             type="button"
             onClick={() => onEdit?.(item)}
-            className="p-1.5 rounded-full text-[#8A8F9C] hover:bg-white/[0.06] hover:text-[#F4F5F7] transition-colors"
+            className="p-2 min-h-[36px] min-w-[36px] relative before:absolute before:-inset-1 before:content-[\'\'] touch-manipulation rounded-full text-[#8A8F9C] hover:bg-white/[0.06] hover:text-[#F4F5F7] transition-colors flex items-center justify-center"
             title="Edit item"
+            aria-label="Edit item"
           >
             <Pencil className="h-3.5 w-3.5" strokeWidth={1.5} />
           </button>
           <button
             type="button"
             onClick={() => onDelete?.(item)}
-            className="p-1.5 rounded-full text-[#8A8F9C] hover:bg-rose-500/10 hover:text-rose-400 transition-colors"
+            className="p-2 min-h-[36px] min-w-[36px] relative before:absolute before:-inset-1 before:content-[\'\'] touch-manipulation rounded-full text-[#8A8F9C] hover:bg-rose-500/10 hover:text-rose-400 transition-colors flex items-center justify-center"
             title="Remove item"
+            aria-label="Remove item"
           >
             <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
           </button>

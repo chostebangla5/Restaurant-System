@@ -140,7 +140,7 @@ export function StaffTablesScreen() {
             Real-time dining occupancy, multi-round session billing, and QR table shortcuts
           </p>
         </div>
-        <Button size="sm" onClick={() => setIsAddTableOpen(true)} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
+        <Button size="md" onClick={() => setIsAddTableOpen(true)} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
           + Add Table
         </Button>
       </div>
@@ -174,7 +174,7 @@ export function StaffTablesScreen() {
                 onClick={() => setSelectedTable(t)}
                 className={`p-5 rounded-card border transition-all duration-300 cursor-pointer hover:-translate-y-0.5 flex flex-col justify-between ${
                   occupied
-                    ? 'bg-[#141721] border-amber-400/40 shadow-lg shadow-amber-950/20'
+                    ? 'bg-[#141721] border-amber-400/40 shadow-sm'
                     : 'bg-[#0E1016] border-white/[0.08] hover:border-white/[0.2]'
                 }`}
               >

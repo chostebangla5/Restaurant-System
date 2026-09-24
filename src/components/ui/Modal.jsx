@@ -1,7 +1,8 @@
 import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TRANSITION_EASE, DURATION_MODAL, DURATION_REDUCED } from '@/lib/motion';
 
 export function Modal({
   isOpen,
@@ -42,6 +43,8 @@ export function Modal({
     xl: 'max-w-4xl',
   };
 
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -51,17 +54,17 @@ export function Modal({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25 }}
+            transition={{ duration: shouldReduceMotion ? DURATION_REDUCED : 0.2 }}
             onClick={onClose}
             className="fixed inset-0 bg-bg/80 backdrop-blur-sm"
           />
 
           {/* Content */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.96, y: 16 }}
+            initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 16 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98, y: 8 }}
+            transition={{ duration: shouldReduceMotion ? DURATION_REDUCED : DURATION_MODAL, ease: TRANSITION_EASE }}
             className={cn(
               'relative z-10 w-full rounded-card bg-surface p-6 sm:p-8 shadow-2xl border border-white/10 text-text',
               sizes[size],
@@ -87,7 +90,8 @@ export function Modal({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="rounded-full p-2 text-muted hover:bg-white/[0.06] hover:text-text transition-colors"
+                    aria-label="Close dialog"
+                    className="rounded-full p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center text-muted hover:bg-white/[0.06] hover:text-text transition-colors"
                   >
                     <X className="h-4 w-4" strokeWidth={1.5} />
                   </button>

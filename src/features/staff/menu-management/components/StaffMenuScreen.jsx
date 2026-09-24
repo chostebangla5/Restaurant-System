@@ -258,14 +258,14 @@ export function StaffMenuScreen() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Menu & Catalog Studio</h2>
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Menu &amp; Catalog Studio</h1>
           <p className="text-xs text-[#8A8F9C] mt-1 font-mono">
             {categories.length} categories · {items.length} items
           </p>
         </div>
         <div className="flex items-center gap-2.5">
           <Button
-            size="sm"
+            size="md"
             variant="outline"
             className="rounded-full border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25]"
             onClick={() => {
@@ -276,7 +276,7 @@ export function StaffMenuScreen() {
             <Plus className="h-3.5 w-3.5 mr-1" strokeWidth={1.5} /> Category
           </Button>
           <Button
-            size="sm"
+            size="md"
             className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold"
             onClick={() => {
               setEditingItem(null);

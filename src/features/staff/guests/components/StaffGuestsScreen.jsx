@@ -22,14 +22,16 @@ import {
   Phone,
   Mail,
   Trophy,
+  Medal,
+  Award,
   Calendar,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const TIER_CONFIG = {
-  gold: { label: 'Gold', color: 'bg-amber-400/10 text-amber-300 border border-amber-400/25', icon: '🥇' },
-  silver: { label: 'Silver', color: 'bg-white/[0.04] text-stone-300 border border-white/[0.12]', icon: '🥈' },
-  bronze: { label: 'Bronze', color: 'bg-[#C6FF3D]/10 text-[#C6FF3D] border border-[#C6FF3D]/25', icon: '🥉' },
+  gold: { label: 'Gold', color: 'bg-amber-400/10 text-amber-300 border border-amber-400/25', Icon: Trophy },
+  silver: { label: 'Silver', color: 'bg-white/[0.04] text-stone-300 border border-white/[0.12]', Icon: Medal },
+  bronze: { label: 'Bronze', color: 'bg-[#C6FF3D]/10 text-[#C6FF3D] border border-[#C6FF3D]/25', Icon: Award },
 };
 
 export function StaffGuestsScreen() {
@@ -151,14 +153,14 @@ export function StaffGuestsScreen() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Guests & CRM</h2>
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Guests &amp; CRM</h1>
           <p className="text-xs text-[#8A8F9C] mt-1">Customer loyalty, visit history & engagement tracking</p>
         </div>
         <div className="flex items-center gap-2.5">
-          <Button size="sm" variant="outline" onClick={handleExport} className="rounded-full border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25]">
+          <Button size="md" variant="outline" onClick={handleExport} className="rounded-full border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25]">
             <Download className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} /> Export
           </Button>
-          <Button size="sm" onClick={handleAddGuest} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
+          <Button size="md" onClick={handleAddGuest} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
             <Plus className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} /> Add Guest
           </Button>
         </div>
@@ -261,8 +263,8 @@ export function StaffGuestsScreen() {
                         {guest.phone}
                       </td>
                       <td className="px-5 py-3.5">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold ${tier.color}`}>
-                          {tier.icon} {tier.label}
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold ${tier.color}`}>
+                          {tier.Icon && <tier.Icon className="h-3 w-3 shrink-0" strokeWidth={1.5} />} {tier.label}
                         </span>
                       </td>
                       <td className="px-5 py-3.5 text-xs font-mono font-bold text-[#F4F5F7]">
@@ -357,9 +359,15 @@ export function StaffGuestsScreen() {
                   </p>
                 )}
               </div>
-              <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-mono font-semibold ${TIER_CONFIG[selectedGuest.loyalty_tier]?.color || TIER_CONFIG.bronze.color}`}>
-                {TIER_CONFIG[selectedGuest.loyalty_tier]?.icon || '🥉'} {TIER_CONFIG[selectedGuest.loyalty_tier]?.label || 'Bronze'} Tier
-              </span>
+              {(() => {
+                const guestTier = TIER_CONFIG[selectedGuest.loyalty_tier] || TIER_CONFIG.bronze;
+                const TierIcon = guestTier.Icon;
+                return (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-semibold ${guestTier.color}`}>
+                    {TierIcon && <TierIcon className="h-3.5 w-3.5 shrink-0" strokeWidth={1.5} />} {guestTier.label} Tier
+                  </span>
+                );
+              })()}
             </div>
 
             {/* Stats Row */}

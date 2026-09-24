@@ -4,29 +4,25 @@ import { motion } from 'framer-motion';
 import { Check, Sparkles, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
-const ease = [0.22, 1, 0.36, 1];
-
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.12,
-      delayChildren: 0.08,
-    },
-  },
-};
+import {
+  TRANSITION_EASE,
+  DURATION_ITEM,
+  VIEWPORT_CONFIG,
+  containerVariants,
+} from '@/lib/motion';
 
 const cardVariants = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 14 },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.7,
-      ease,
+      duration: DURATION_ITEM,
+      ease: TRANSITION_EASE,
     },
   },
 };
+
 
 export function PricingSection() {
   const [billingCycle, setBillingCycle] = useState('annual');
@@ -108,9 +104,9 @@ export function PricingSection() {
           <Sparkles className="h-3 w-3 text-accent" strokeWidth={1.5} />
           <span>TRANSPARENT PRICING</span>
         </div>
-        <h3 className="h2-cinematic text-text">
+        <h2 className="h2-cinematic text-text">
           Predictable Plans for Modern Venues
-        </h3>
+        </h2>
         <p className="text-sm text-muted font-sans max-w-lg md:mx-auto leading-relaxed">
           No hidden transaction cuts, no per-order commissions. Transparent pricing that scales with your tables.
         </p>
@@ -121,7 +117,7 @@ export function PricingSection() {
             <button
               type="button"
               onClick={() => setBillingCycle('monthly')}
-              className={`px-4 py-1.5 rounded-full font-mono text-xs transition-colors duration-200 ${
+              className={`px-4 py-2 min-h-[38px] rounded-full font-mono text-xs touch-manipulation transition-colors duration-200 ${
                 billingCycle === 'monthly'
                   ? 'bg-white/10 text-white font-semibold'
                   : 'text-muted hover:text-text'
@@ -132,14 +128,14 @@ export function PricingSection() {
             <button
               type="button"
               onClick={() => setBillingCycle('annual')}
-              className={`px-4 py-1.5 rounded-full font-mono text-xs transition-colors duration-200 flex items-center gap-2 ${
+              className={`px-4 py-2 min-h-[38px] rounded-full font-mono text-xs touch-manipulation transition-colors duration-200 flex items-center gap-2 ${
                 billingCycle === 'annual'
                   ? 'bg-accent text-bg font-bold'
                   : 'text-muted hover:text-text'
               }`}
             >
               <span>Annual</span>
-              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-bg/20 uppercase tracking-tight">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-bg/20 uppercase tracking-tight">
                 Save 20%
               </span>
             </button>
@@ -152,7 +148,7 @@ export function PricingSection() {
         variants={containerVariants}
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: '-60px' }}
+        viewport={VIEWPORT_CONFIG}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-stretch"
       >
         {plans.map((plan) => {
@@ -162,7 +158,7 @@ export function PricingSection() {
             <motion.div
               key={plan.id}
               variants={cardVariants}
-              className={`relative card-surface rounded-[20px] p-8 sm:p-10 transition-all duration-300 flex flex-col justify-between space-y-8 ${
+              className={`relative card-surface rounded-card p-8 sm:p-10 transition-all duration-200 ease-cinematic flex flex-col justify-between space-y-8 ${
                 plan.featured
                   ? 'border border-accent/60 bg-surface shadow-[0_0_35px_rgba(198,255,61,0.06)]'
                   : 'border border-white/[0.08] hover:border-white/20 bg-surface'

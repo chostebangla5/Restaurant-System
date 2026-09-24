@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Bell, BellRing, X, Tag } from 'lucide-react';
 import {
   isPushSupported,
@@ -7,6 +7,7 @@ import {
   subscribeToPush,
   getExistingSubscription,
 } from '@/lib/pushSubscription';
+import { TRANSITION_EASE, DURATION_MODAL, DURATION_REDUCED } from '@/lib/motion';
 
 /**
  * Guest-side notification opt-in banner — Tech Studio themed.
@@ -19,6 +20,7 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isDismissed, setIsDismissed] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
   useEffect(() => {
     // Don't show if push not supported
@@ -84,9 +86,10 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
     return (
       <AnimatePresence>
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 12 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
+          exit={{ opacity: 0, y: shouldReduceMotion ? 0 : 12 }}
+          transition={{ duration: shouldReduceMotion ? DURATION_REDUCED : DURATION_MODAL, ease: TRANSITION_EASE }}
           className="fixed bottom-4 left-4 right-4 z-40 sm:left-auto sm:right-4 sm:max-w-sm"
         >
           <div className="flex items-center gap-2.5 rounded-full bg-[#0E1016] px-4 py-3 text-[#C6FF3D] shadow-2xl border border-[#C6FF3D]/30 font-sans">
@@ -102,17 +105,18 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
     <AnimatePresence>
       {isVisible && !isDismissed && (
         <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 40, scale: 0.95 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }}
+          transition={{ duration: shouldReduceMotion ? DURATION_REDUCED : DURATION_MODAL, ease: TRANSITION_EASE }}
           className="fixed bottom-4 left-4 right-4 z-40 sm:left-auto sm:right-4 sm:max-w-sm"
         >
           <div className="relative overflow-hidden rounded-card bg-[#0E1016] p-5 shadow-2xl border border-white/[0.08]">
             {/* Dismiss button */}
             <button
               onClick={handleDismiss}
-              className="absolute top-3.5 right-3.5 p-1 rounded-full text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.06] transition-colors"
+              aria-label="Dismiss notification prompt"
+              className="absolute top-2.5 right-2.5 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.06] transition-colors"
             >
               <X className="h-4 w-4" strokeWidth={1.5} />
             </button>
@@ -124,10 +128,10 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
               </div>
               <div className="flex-1 pr-4">
                 <h4 className="text-sm font-heading font-semibold text-[#F4F5F7] mb-1">
-                  Get exclusive deals ✨
+                  Get exclusive deals
                 </h4>
                 <p className="text-xs text-[#8A8F9C] leading-relaxed">
-                  Enable notifications for offers & discounts from {venueName}
+                  Enable notifications for offers &amp; discounts from {venueName}
                 </p>
               </div>
             </div>
@@ -137,7 +141,7 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
               <button
                 onClick={handleSubscribe}
                 disabled={isLoading}
-                className="flex-1 flex items-center justify-center gap-2 rounded-full bg-[#C6FF3D] hover:bg-[#b8f52e] px-4 py-2 text-xs font-semibold text-[#07080B] transition-all disabled:opacity-60"
+                className="flex-1 flex items-center justify-center gap-2 rounded-full bg-[#C6FF3D] hover:bg-[#b8f52e] px-4 py-2.5 min-h-[44px] text-xs font-semibold text-[#07080B] transition-all disabled:opacity-60"
               >
                 {isLoading ? (
                   <div className="h-3.5 w-3.5 border-2 border-[#07080B]/30 border-t-[#07080B] rounded-full animate-spin" />
@@ -148,7 +152,7 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
               </button>
               <button
                 onClick={handleDismiss}
-                className="rounded-full px-3 py-2 text-xs font-medium text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.04] transition-colors"
+                className="rounded-full px-3.5 py-2.5 min-h-[44px] text-xs font-medium text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.04] transition-colors"
               >
                 Not now
               </button>
