@@ -1,3 +1,4 @@
+// @ts-nocheck
 // ============================================================================
 // Supabase Edge Function — Send Push Notifications
 // Deploy with: supabase functions deploy send-push
@@ -10,6 +11,8 @@
 //
 // Generate VAPID keys: npx web-push generate-vapid-keys
 // ============================================================================
+
+declare const Deno: any;
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
@@ -255,7 +258,7 @@ serve(async (req: Request) => {
 
     if (subscriptions && subscriptions.length > 0) {
       const results = await Promise.allSettled(
-        subscriptions.map(async (sub) => {
+        subscriptions.map(async (sub: any) => {
           const result = await sendWebPush(
             sub,
             pushPayload,
