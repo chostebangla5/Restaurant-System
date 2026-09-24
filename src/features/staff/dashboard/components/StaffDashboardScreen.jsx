@@ -11,21 +11,17 @@ import {
 } from '@/features/shared/orders/api/ordersApi';
 import toast from 'react-hot-toast';
 import {
-  CurrencyRupeeIcon,
-  ShoppingBagIcon,
-  TableCellsIcon,
-  FireIcon,
-  ArrowTrendingUpIcon,
-  CheckBadgeIcon,
-  ClockIcon,
-  ChevronRightIcon,
-  ArrowPathIcon,
-  UsersIcon,
-  UserPlusIcon,
-  PhoneIcon,
-  CheckCircleIcon,
-  EllipsisHorizontalIcon,
-} from '@heroicons/react/24/outline';
+  Coins,
+  ShoppingBag,
+  Grid,
+  Flame,
+  TrendingUp,
+  Clock,
+  ChevronRight,
+  Users,
+  CheckCircle2,
+  Activity,
+} from 'lucide-react';
 import {
   fetchStaffMembers,
   toggleStaffActive,
@@ -35,26 +31,26 @@ const ROLE_THEMES = {
   owner: {
     label: 'Owner',
     badgeVariant: 'warning',
-    border: 'border-l-amber-500',
-    avatarBg: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300',
+    border: 'border-l-[#C6FF3D]',
+    avatarBg: 'bg-white/[0.06] text-[#C6FF3D] border border-[#C6FF3D]/30',
   },
   manager: {
     label: 'Manager',
     badgeVariant: 'primary',
-    border: 'border-l-blue-500',
-    avatarBg: 'bg-blue-100 text-blue-800 dark:bg-blue-950/60 dark:text-blue-300',
+    border: 'border-l-sky-400',
+    avatarBg: 'bg-white/[0.06] text-sky-400 border border-sky-400/30',
   },
   kitchen: {
     label: 'Kitchen',
     badgeVariant: 'danger',
-    border: 'border-l-rose-500',
-    avatarBg: 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300',
+    border: 'border-l-amber-400',
+    avatarBg: 'bg-white/[0.06] text-amber-400 border border-amber-400/30',
   },
   waiter: {
     label: 'Waiter',
     badgeVariant: 'success',
-    border: 'border-l-emerald-500',
-    avatarBg: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300',
+    border: 'border-l-emerald-400',
+    avatarBg: 'bg-white/[0.06] text-emerald-400 border border-emerald-400/30',
   },
 };
 
@@ -136,57 +132,59 @@ export function StaffDashboardScreen() {
       title: "Today's Gross Sales",
       value: formatCurrency(stats.todayGrossSales),
       trend: 'Real-time billing total',
-      icon: CurrencyRupeeIcon,
-      color: 'text-emerald-500 bg-emerald-500/10',
+      icon: Coins,
+      color: 'text-[#C6FF3D] bg-[#C6FF3D]/10 border border-[#C6FF3D]/25',
     },
     {
       title: 'Active Orders',
       value: String(stats.activeOrdersCount),
       trend: `${stats.activeOrdersCount} in Kitchen queue`,
-      icon: FireIcon,
-      color: 'text-amber-500 bg-amber-500/10',
+      icon: Flame,
+      color: 'text-amber-400 bg-amber-400/10 border border-amber-400/25',
     },
     {
       title: 'Occupied Tables',
       value: `${stats.occupiedTablesCount} / ${stats.totalTablesCount}`,
       trend: `${Math.round((stats.occupiedTablesCount / stats.totalTablesCount) * 100) || 0}% Dining Capacity`,
-      icon: TableCellsIcon,
-      color: 'text-blue-500 bg-blue-500/10',
+      icon: Grid,
+      color: 'text-sky-400 bg-sky-400/10 border border-sky-400/25',
     },
     {
       title: 'Avg. Kitchen Turnaround',
       value: stats.avgKitchenTurnaround || '--',
       trend: stats.turnaroundTrend || 'Live speed metric',
-      icon: ShoppingBagIcon,
-      color: 'text-purple-500 bg-purple-500/10',
+      icon: ShoppingBag,
+      color: 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/25',
     },
   ];
 
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-gradient-to-r from-stone-900 to-stone-800 p-6 rounded-3xl border border-stone-800 text-white shadow-xl">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-bold uppercase tracking-wider text-stone-400">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 bg-[#0E1016] p-6 sm:p-8 rounded-card border border-white/[0.08] relative overflow-hidden">
+        <div className="space-y-2 relative z-10">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#C6FF3D] animate-pulse" />
+            <span className="font-mono text-[11px] font-medium uppercase tracking-wider text-[#8A8F9C]">
               {venue?.name || 'TableSuite Dining Venue'} &bull; Operational
             </span>
           </div>
-          <h1 className="text-xl sm:text-2xl font-black">Real-Time Floor & Kitchen Operations</h1>
-          <p className="text-xs text-stone-400 mt-1 max-w-lg">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-heading font-extrabold tracking-tight text-[#F4F5F7]">
+            Real-Time Floor & Kitchen Operations
+          </h1>
+          <p className="text-xs sm:text-sm text-[#8A8F9C] max-w-xl leading-relaxed">
             Live orders stream from guest QR codes instantly. Kitchen updates reflect directly on guests' screens.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-3 relative z-10 shrink-0">
           <Link to="/staff/kitchen">
-            <Button size="sm" variant="outline" className="border-stone-700 text-stone-200 hover:bg-stone-800">
+            <Button size="sm" variant="outline" className="border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25] hover:bg-white/[0.04]">
               Open KDS Display
             </Button>
           </Link>
           <Link to="/staff/live-orders">
-            <Button size="sm" className="bg-brand-primary font-bold shadow-md shadow-brand-primary/25">
+            <Button size="sm" className="bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
               Live Orders Feed
             </Button>
           </Link>
@@ -200,22 +198,22 @@ export function StaffDashboardScreen() {
           return (
             <div
               key={i}
-              className="p-5 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-sm space-y-3"
+              className="p-5 rounded-card bg-[#0E1016] border border-white/[0.08] space-y-3 hover:border-white/[0.18] hover:-translate-y-0.5 transition-all duration-300"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-500 dark:text-stone-400">
+                <span className="text-xs font-mono uppercase tracking-wider text-[#8A8F9C]">
                   {stat.title}
                 </span>
-                <div className={`p-2.5 rounded-xl ${stat.color}`}>
-                  <Icon className="h-5 w-5" />
+                <div className={`p-2 rounded-xl ${stat.color}`}>
+                  <Icon className="h-4 w-4" strokeWidth={1.5} />
                 </div>
               </div>
               <div>
-                <h3 className="text-2xl font-black text-stone-900 dark:text-white tracking-tight">
+                <h3 className="text-2xl font-heading font-extrabold text-[#F4F5F7] tracking-tight">
                   {stat.value}
                 </h3>
-                <p className="text-xs text-stone-500 dark:text-stone-400 flex items-center gap-1 mt-1 font-medium">
-                  <ArrowTrendingUpIcon className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                <p className="text-xs text-[#8A8F9C] flex items-center gap-1.5 mt-1 font-sans">
+                  <TrendingUp className="h-3 w-3 text-[#C6FF3D] shrink-0" strokeWidth={1.5} />
                   {stat.trend}
                 </p>
               </div>
@@ -224,24 +222,24 @@ export function StaffDashboardScreen() {
         })}
       </div>
 
-      {/* PetPooja-Style Dynamic Staff & Shift Panel */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-sm space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-100 dark:border-stone-800">
+      {/* Dynamic Staff & Shift Panel */}
+      <div className="p-6 rounded-card bg-[#0E1016] border border-white/[0.08] space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.06]">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-              <UsersIcon className="h-5 w-5" />
+            <div className="h-9 w-9 rounded-xl bg-white/[0.04] border border-white/[0.08] text-[#C6FF3D] flex items-center justify-center">
+              <Users className="h-4 w-4" strokeWidth={1.5} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-extrabold text-stone-900 dark:text-white">
+              <div className="flex items-center gap-2.5">
+                <h2 className="text-sm sm:text-base font-heading font-bold text-[#F4F5F7]">
                   Floor & Kitchen Crew
                 </h2>
-                <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full font-mono text-[10px] bg-[#C6FF3D]/10 text-[#C6FF3D] border border-[#C6FF3D]/25">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#C6FF3D] animate-pulse" />
                   {staffList.filter((s) => s.is_active).length} On Duty
                 </span>
               </div>
-              <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+              <p className="text-xs text-[#8A8F9C] mt-0.5">
                 PetPooja-style live staff status, active shift coverage, and today's performance
               </p>
             </div>
@@ -252,10 +250,10 @@ export function StaffDashboardScreen() {
               <Button
                 size="sm"
                 variant="outline"
-                className="text-xs font-bold gap-1 border-stone-300 dark:border-stone-700 hover:border-brand-primary hover:text-brand-primary"
+                className="text-xs font-medium gap-1.5 border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25]"
               >
                 Manage Staff
-                <ChevronRightIcon className="h-3.5 w-3.5" />
+                <ChevronRight className="h-3 w-3" strokeWidth={1.5} />
               </Button>
             </Link>
           </div>
@@ -263,27 +261,27 @@ export function StaffDashboardScreen() {
 
         {/* Quick Role Breakdown Pills */}
         <div className="flex flex-wrap items-center gap-2">
-          <div className="px-3 py-1.5 rounded-xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200/60 dark:border-stone-700/60 text-xs font-medium text-stone-700 dark:text-stone-300 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            Waiters: <strong className="text-stone-900 dark:text-white">{staffList.filter((s) => s.role === 'waiter').length}</strong>
+          <div className="px-3 py-1 rounded-full bg-[#141721] border border-white/[0.08] text-xs font-mono text-[#8A8F9C] flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#C6FF3D]" />
+            Waiters: <strong className="text-[#F4F5F7] font-semibold">{staffList.filter((s) => s.role === 'waiter').length}</strong>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200/60 dark:border-stone-700/60 text-xs font-medium text-stone-700 dark:text-stone-300 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-rose-500" />
-            Kitchen: <strong className="text-stone-900 dark:text-white">{staffList.filter((s) => s.role === 'kitchen').length}</strong>
+          <div className="px-3 py-1 rounded-full bg-[#141721] border border-white/[0.08] text-xs font-mono text-[#8A8F9C] flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+            Kitchen: <strong className="text-[#F4F5F7] font-semibold">{staffList.filter((s) => s.role === 'kitchen').length}</strong>
           </div>
-          <div className="px-3 py-1.5 rounded-xl bg-stone-50 dark:bg-stone-800/60 border border-stone-200/60 dark:border-stone-700/60 text-xs font-medium text-stone-700 dark:text-stone-300 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-blue-500" />
-            Management: <strong className="text-stone-900 dark:text-white">{staffList.filter((s) => s.role === 'manager' || s.role === 'owner').length}</strong>
+          <div className="px-3 py-1 rounded-full bg-[#141721] border border-white/[0.08] text-xs font-mono text-[#8A8F9C] flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+            Management: <strong className="text-[#F4F5F7] font-semibold">{staffList.filter((s) => s.role === 'manager' || s.role === 'owner').length}</strong>
           </div>
         </div>
 
         {/* Staff Cards Row */}
         {loadingStaff ? (
-          <div className="py-8 text-center text-xs text-stone-400">Loading crew status...</div>
+          <div className="py-8 text-center text-xs font-mono text-[#8A8F9C]">Loading crew status...</div>
         ) : staffList.length === 0 ? (
-          <div className="py-8 text-center text-xs text-stone-500">
+          <div className="py-8 text-center text-xs text-[#8A8F9C]">
             No staff members found.{' '}
-            <Link to="/staff/team" className="text-brand-primary font-bold hover:underline">
+            <Link to="/staff/team" className="text-[#C6FF3D] font-medium hover:underline">
               Add team members
             </Link>
           </div>
@@ -294,26 +292,26 @@ export function StaffDashboardScreen() {
               return (
                 <div
                   key={member.id}
-                  className={`p-3.5 rounded-2xl bg-stone-50/70 dark:bg-stone-800/50 border border-stone-200/80 dark:border-stone-700/70 border-l-4 ${theme.border} transition-all hover:shadow-md hover:border-stone-300 dark:hover:border-stone-600 flex flex-col justify-between gap-3`}
+                  className={`p-3.5 rounded-card bg-[#141721] border border-white/[0.08] border-l-2 ${theme.border} transition-all hover:border-white/[0.2] flex flex-col justify-between gap-3`}
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div className="relative shrink-0">
-                        <div className={`h-9 w-9 rounded-xl flex items-center justify-center font-bold text-xs ${theme.avatarBg}`}>
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center font-mono font-medium text-xs ${theme.avatarBg}`}>
                           {member.avatar_initials || member.full_name?.slice(0, 2).toUpperCase() || 'ST'}
                         </div>
                         <span
-                          className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white dark:border-stone-800 ${
-                            member.is_active ? 'bg-emerald-500' : 'bg-stone-300 dark:bg-stone-600'
+                          className={`absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full border border-[#141721] ${
+                            member.is_active ? 'bg-[#C6FF3D]' : 'bg-[#8A8F9C]'
                           }`}
                           title={member.is_active ? 'On Duty' : 'Off Duty'}
                         />
                       </div>
                       <div className="min-w-0">
-                        <h4 className="text-xs font-bold text-stone-900 dark:text-white truncate">
+                        <h4 className="text-xs font-semibold text-[#F4F5F7] truncate">
                           {member.full_name}
                         </h4>
-                        <span className="text-[10px] text-stone-500 dark:text-stone-400 capitalize">
+                        <span className="text-[10px] font-mono text-[#8A8F9C] capitalize">
                           {member.role}
                         </span>
                       </div>
@@ -324,18 +322,18 @@ export function StaffDashboardScreen() {
                     </Badge>
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-stone-200/50 dark:border-stone-700/50 text-[11px]">
-                    <span className="text-stone-500 dark:text-stone-400 font-medium">
+                  <div className="flex items-center justify-between pt-2 border-t border-white/[0.06] text-[11px]">
+                    <span className="text-[#8A8F9C] font-mono text-[10px]">
                       {member.orders_handled_today || 0} orders today
                     </span>
 
                     <button
                       type="button"
                       onClick={() => handleToggleDuty(member.id, member.is_active)}
-                      className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-colors ${
+                      className={`px-2 py-0.5 rounded-full text-[10px] font-mono transition-colors border ${
                         member.is_active
-                          ? 'bg-emerald-100 text-emerald-700 hover:bg-rose-100 hover:text-rose-700 dark:bg-emerald-950/40 dark:text-emerald-300 dark:hover:bg-rose-950/40 dark:hover:text-rose-300'
-                          : 'bg-stone-200 text-stone-600 hover:bg-emerald-100 hover:text-emerald-700 dark:bg-stone-700 dark:text-stone-300'
+                          ? 'bg-[#C6FF3D]/10 text-[#C6FF3D] border-[#C6FF3D]/30 hover:bg-rose-500/10 hover:text-rose-400 hover:border-rose-500/30'
+                          : 'bg-white/[0.04] text-[#8A8F9C] border-white/[0.08] hover:bg-[#C6FF3D]/10 hover:text-[#C6FF3D] hover:border-[#C6FF3D]/30'
                       }`}
                       title="Click to toggle Shift / Duty"
                     >
@@ -350,28 +348,28 @@ export function StaffDashboardScreen() {
       </div>
 
       {/* Live Recent Orders Section */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-sm space-y-4">
-        <div className="flex items-center justify-between">
+      <div className="p-6 rounded-card bg-[#0E1016] border border-white/[0.08] space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
           <div className="flex items-center gap-2.5">
-            <div className="h-3 w-3 rounded-full bg-brand-primary animate-ping" />
-            <h2 className="text-base font-bold text-stone-900 dark:text-white">
+            <span className="h-2 w-2 rounded-full bg-[#C6FF3D] animate-pulse" />
+            <h2 className="text-sm sm:text-base font-heading font-bold text-[#F4F5F7]">
               Live Incoming Orders Queue
             </h2>
           </div>
           <Link
             to="/staff/live-orders"
-            className="text-xs font-bold text-brand-primary hover:underline flex items-center gap-1"
+            className="text-xs font-mono text-[#C6FF3D] hover:underline flex items-center gap-1"
           >
-            View all stream <ChevronRightIcon className="h-3.5 w-3.5" />
+            View all stream <ChevronRight className="h-3 w-3" strokeWidth={1.5} />
           </Link>
         </div>
 
         {stats.recentOrders.length === 0 ? (
-          <div className="py-12 text-center text-xs font-semibold text-stone-500">
+          <div className="py-12 text-center text-xs font-mono text-[#8A8F9C]">
             No orders in the system yet.
           </div>
         ) : (
-          <div className="divide-y divide-stone-100 dark:divide-stone-800">
+          <div className="divide-y divide-white/[0.06]">
             {stats.recentOrders.map((order) => {
               const itemsSummary = (order.items || [])
                 .map((it) => `${it.qty}x ${it.name}`)
@@ -380,16 +378,16 @@ export function StaffDashboardScreen() {
               return (
                 <div
                   key={order.id}
-                  className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-stone-50/80 dark:hover:bg-stone-800/40 px-2 rounded-xl transition-colors"
+                  className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-white/[0.02] px-2 rounded-xl transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="h-10 w-10 rounded-xl bg-brand-primary text-white font-black text-xs flex items-center justify-center shrink-0 shadow-sm shadow-brand-primary/20">
+                    <span className="h-9 w-9 rounded-full bg-[#141721] border border-white/[0.08] text-[#C6FF3D] font-mono font-bold text-xs flex items-center justify-center shrink-0">
                       T-{order.table_number}
                     </span>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-xs text-stone-900 dark:text-white">
-                          Round #{order.round_number} &bull; {order.id}
+                        <span className="font-mono text-xs text-[#F4F5F7]">
+                          Round #{order.round_number} &bull; <span className="text-[#8A8F9C]">{order.id}</span>
                         </span>
                         <Badge
                           variant={
@@ -406,7 +404,7 @@ export function StaffDashboardScreen() {
                           {order.status.toUpperCase()}
                         </Badge>
                       </div>
-                      <p className="text-xs text-stone-600 dark:text-stone-300 truncate mt-0.5 max-w-md">
+                      <p className="text-xs text-[#8A8F9C] truncate mt-0.5 max-w-md">
                         {itemsSummary}
                       </p>
                     </div>
@@ -414,10 +412,10 @@ export function StaffDashboardScreen() {
 
                   <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0">
                     <div className="text-right">
-                      <div className="text-xs font-black text-stone-900 dark:text-white">
+                      <div className="text-xs font-mono font-bold text-[#F4F5F7]">
                         {formatCurrency(order.total)}
                       </div>
-                      <span className="text-[10px] text-stone-400">
+                      <span className="text-[10px] font-mono text-[#8A8F9C]">
                         {order.payment_status === 'paid' ? '✓ Paid' : 'Pending'}
                       </span>
                     </div>
@@ -427,7 +425,7 @@ export function StaffDashboardScreen() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleAdvanceStatus(order.id, order.status)}
-                        className="h-8 text-xs font-bold border-stone-300 hover:border-brand-primary hover:text-brand-primary"
+                        className="h-8 text-xs border-white/[0.12] text-[#F4F5F7] hover:border-[#C6FF3D] hover:text-[#C6FF3D]"
                       >
                         {order.status === 'placed'
                           ? 'Start Cooking'

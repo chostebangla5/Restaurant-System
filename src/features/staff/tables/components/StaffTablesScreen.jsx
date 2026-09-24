@@ -18,12 +18,12 @@ import {
 } from '@/features/shared/orders/api/ordersApi';
 import toast from 'react-hot-toast';
 import {
-  QrCodeIcon,
-  TableCellsIcon,
-  ArrowTopRightOnSquareIcon,
-  UserGroupIcon,
-  TrashIcon,
-} from '@heroicons/react/24/outline';
+  QrCode,
+  Grid,
+  ExternalLink,
+  Users,
+  Trash2,
+} from 'lucide-react';
 
 export function StaffTablesScreen() {
   const { venueId, orgId } = useAuth();
@@ -135,25 +135,25 @@ export function StaffTablesScreen() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-stone-900 dark:text-white">Floor & Table Management</h1>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Floor & Table Management</h1>
+          <p className="text-xs text-[#8A8F9C] mt-1">
             Real-time dining occupancy, multi-round session billing, and QR table shortcuts
           </p>
         </div>
-        <Button size="sm" onClick={() => setIsAddTableOpen(true)}>
+        <Button size="sm" onClick={() => setIsAddTableOpen(true)} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
           + Add Table
         </Button>
       </div>
 
       {/* Tables Grid or Empty State */}
       {isLoading ? (
-        <div className="py-20 text-center text-xs font-semibold text-stone-400">
+        <div className="py-20 text-center text-xs font-mono text-[#8A8F9C]">
           Loading dining floor layout...
         </div>
       ) : tables.length === 0 ? (
-        <div className="p-8 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800">
+        <div className="p-8 rounded-card bg-[#0E1016] border border-white/[0.08]">
           <EmptyState
-            icon={TableCellsIcon}
+            icon={Grid}
             title="No Tables Configured Yet"
             description="Set up your dining floor layout by adding your first restaurant table. Each table gets a unique QR code for guest ordering."
             actionLabel="+ Add Your First Table"
@@ -172,15 +172,15 @@ export function StaffTablesScreen() {
               <div
                 key={t.id}
                 onClick={() => setSelectedTable(t)}
-                className={`p-5 rounded-3xl border transition-all cursor-pointer shadow-sm hover:scale-[1.02] flex flex-col justify-between ${
+                className={`p-5 rounded-card border transition-all duration-300 cursor-pointer hover:-translate-y-0.5 flex flex-col justify-between ${
                   occupied
-                    ? 'bg-amber-500/10 border-amber-500/40 ring-1 ring-amber-500/20'
-                    : 'bg-white dark:bg-stone-900 border-stone-200/80 dark:border-stone-800 hover:border-brand-primary/40'
+                    ? 'bg-[#141721] border-amber-400/40 shadow-lg shadow-amber-950/20'
+                    : 'bg-[#0E1016] border-white/[0.08] hover:border-white/[0.2]'
                 }`}
               >
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xl font-black text-stone-900 dark:text-white">
+                    <span className="text-xl font-heading font-extrabold text-[#F4F5F7]">
                       T-{t.number}
                     </span>
                     <Badge variant={occupied ? 'warning' : 'success'} size="sm">
@@ -188,23 +188,23 @@ export function StaffTablesScreen() {
                     </Badge>
                   </div>
 
-                  <div className="flex items-center gap-1 text-xs text-stone-500 mt-2 font-medium">
-                    <UserGroupIcon className="h-3.5 w-3.5" />
+                  <div className="flex items-center gap-1.5 text-xs text-[#8A8F9C] mt-2">
+                    <Users className="h-3.5 w-3.5" strokeWidth={1.5} />
                     <span>Capacity: {t.capacity} seats</span>
                   </div>
                 </div>
 
-                <div className="pt-4 mt-2 border-t border-stone-100 dark:border-stone-800/80 flex items-center justify-between">
+                <div className="pt-4 mt-3 border-t border-white/[0.06] flex items-center justify-between">
                   <div>
                     {occupied ? (
-                      <span className="text-xs font-black text-brand-primary">
+                      <span className="text-xs font-mono font-bold text-[#C6FF3D]">
                         {formatCurrency(totalBill)}
                       </span>
                     ) : (
-                      <span className="text-[11px] text-stone-400">Available</span>
+                      <span className="text-[11px] font-mono text-[#8A8F9C]">Available</span>
                     )}
                   </div>
-                  <span className="text-[11px] font-mono text-stone-500 flex items-center gap-0.5 hover:text-brand-primary">
+                  <span className="text-[11px] font-mono text-[#8A8F9C] hover:text-[#C6FF3D] transition-colors">
                     /t/{t.code}
                   </span>
                 </div>
@@ -228,16 +228,16 @@ export function StaffTablesScreen() {
 
           return (
             <div className="space-y-4 py-2">
-              <div className="flex items-center justify-between p-3.5 rounded-2xl bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700">
+              <div className="flex items-center justify-between p-4 rounded-xl bg-[#141721] border border-white/[0.08]">
                 <div>
-                  <span className="text-xs text-stone-500 font-semibold block">Active Dining Status</span>
-                  <span className="text-sm font-black text-stone-900 dark:text-white">
+                  <span className="text-xs text-[#8A8F9C] block font-mono">Active Dining Status</span>
+                  <span className="text-sm font-heading font-bold text-[#F4F5F7]">
                     {activeOrders.length > 0 ? `${activeOrders.length} active round(s)` : 'Vacant Table'}
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs text-stone-500 font-semibold block">Total Due</span>
-                  <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                  <span className="text-xs text-[#8A8F9C] block font-mono">Total Due</span>
+                  <span className="text-sm font-mono font-bold text-[#C6FF3D]">
                     {formatCurrency(totalBill)}
                   </span>
                 </div>
@@ -245,17 +245,17 @@ export function StaffTablesScreen() {
 
               {/* Active Orders List */}
               {activeOrders.length > 0 ? (
-                <div className="space-y-2 max-h-56 overflow-y-auto">
+                <div className="space-y-2 max-h-56 overflow-y-auto no-scrollbar">
                   {activeOrders.map((o) => (
                     <div
                       key={o.id}
-                      className="p-3 rounded-xl bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-800 text-xs flex items-center justify-between"
+                      className="p-3 rounded-xl bg-[#141721] border border-white/[0.08] text-xs flex items-center justify-between"
                     >
                       <div>
-                        <span className="font-extrabold text-stone-900 dark:text-white">
-                          Round #{o.round_number} &bull; {o.id}
+                        <span className="font-mono font-semibold text-[#F4F5F7]">
+                          Round #{o.round_number} &bull; <span className="text-[#8A8F9C]">{o.id}</span>
                         </span>
-                        <p className="text-[11px] text-stone-500 truncate max-w-xs mt-0.5">
+                        <p className="text-[11px] text-[#8A8F9C] truncate max-w-xs mt-0.5">
                           {(o.items || []).map((it) => `${it.qty}x ${it.name}`).join(', ')}
                         </p>
                       </div>
@@ -266,7 +266,7 @@ export function StaffTablesScreen() {
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-stone-500 text-center py-4">
+                <p className="text-xs text-[#8A8F9C] text-center py-4 font-mono">
                   Table is currently vacant and clean.
                 </p>
               )}
@@ -276,7 +276,7 @@ export function StaffTablesScreen() {
                 {activeOrders.length > 0 && (
                   <Button
                     size="lg"
-                    className="w-full font-bold"
+                    className="w-full font-semibold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e]"
                     onClick={() => handleSettleTable(selectedTable)}
                   >
                     Settle Bill & Free Table ({formatCurrency(totalBill)})
@@ -287,17 +287,17 @@ export function StaffTablesScreen() {
                   href={`/t/${selectedTable.code}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="w-full flex items-center justify-center gap-1.5 p-2.5 rounded-xl border border-stone-300 dark:border-stone-700 text-xs font-bold text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-800 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 p-2.5 rounded-full border border-white/[0.12] text-xs font-medium text-[#F4F5F7] hover:border-white/[0.25] hover:bg-white/[0.04] transition-colors"
                 >
-                  <ArrowTopRightOnSquareIcon className="h-4 w-4" /> Open Guest View (/t/{selectedTable.code})
+                  <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.5} /> Open Guest View (/t/{selectedTable.code})
                 </a>
 
                 <button
                   type="button"
                   onClick={() => handleDeleteTable(selectedTable)}
-                  className="w-full flex items-center justify-center gap-1.5 p-2 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-colors"
+                  className="w-full flex items-center justify-center gap-1.5 p-2 text-xs font-medium text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 rounded-full transition-colors"
                 >
-                  <TrashIcon className="h-3.5 w-3.5" /> Remove Table
+                  <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} /> Remove Table
                 </button>
               </div>
             </div>
@@ -331,7 +331,7 @@ export function StaffTablesScreen() {
             required
             min="1"
           />
-          <Button type="submit" size="lg" className="w-full font-bold" isLoading={isSubmitting}>
+          <Button type="submit" size="lg" className="w-full font-semibold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e]" isLoading={isSubmitting}>
             Create Table & Generate QR
           </Button>
         </form>

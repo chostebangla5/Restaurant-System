@@ -13,14 +13,13 @@ import {
 } from '@/features/shared/orders/api/ordersApi';
 import toast from 'react-hot-toast';
 import {
-  FireIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  ShoppingBagIcon,
-  BanknotesIcon,
-  SpeakerWaveIcon,
-  XMarkIcon,
-} from '@heroicons/react/24/solid';
+  Clock,
+  CheckCircle2,
+  ShoppingBag,
+  Banknote,
+  Volume2,
+  Utensils,
+} from 'lucide-react';
 
 export function StaffLiveOrdersScreen() {
   const { venueId } = useAuth();
@@ -133,20 +132,20 @@ export function StaffLiveOrdersScreen() {
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-stone-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7] flex items-center gap-3">
             Live Orders Stream
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-brand-primary/10 text-brand-primary">
+            <span className="font-mono text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#C6FF3D]/10 text-[#C6FF3D] border border-[#C6FF3D]/25">
               {filteredOrders.length} tickets
             </span>
           </h1>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <p className="text-xs text-[#8A8F9C] mt-1">
             Realtime dining ticket feed connected directly to tables & kitchen
           </p>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 bg-white dark:bg-stone-800 px-3 py-1.5 rounded-xl border border-stone-200 dark:border-stone-700 shadow-xs">
-            <SpeakerWaveIcon className="h-4 w-4 text-stone-400" />
+          <div className="flex items-center gap-2.5 bg-[#0E1016] px-3.5 py-2 rounded-full border border-white/[0.08]">
+            <Volume2 className="h-4 w-4 text-[#8A8F9C]" strokeWidth={1.5} />
             <Toggle
               size="sm"
               checked={soundEnabled}
@@ -175,10 +174,10 @@ export function StaffLiveOrdersScreen() {
             key={tab.id}
             type="button"
             onClick={() => setActiveFilter(tab.id)}
-            className={`whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+            className={`whitespace-nowrap px-4 py-1.5 rounded-full text-xs font-medium transition-all shrink-0 ${
               activeFilter === tab.id
-                ? 'bg-brand-primary text-white shadow-sm shadow-brand-primary/25'
-                : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-100 border border-stone-200 dark:border-stone-700'
+                ? 'bg-[#C6FF3D] text-[#07080B] font-semibold shadow-sm'
+                : 'bg-[#0E1016] text-[#8A8F9C] hover:text-[#F4F5F7] border border-white/[0.08]'
             }`}
           >
             {tab.label}
@@ -188,12 +187,14 @@ export function StaffLiveOrdersScreen() {
 
       {/* Order Tickets Grid */}
       {filteredOrders.length === 0 ? (
-        <div className="py-20 text-center rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 space-y-3">
-          <div className="text-3xl">🍽️</div>
-          <h3 className="text-sm font-bold text-stone-700 dark:text-stone-300">
+        <div className="py-20 text-center rounded-card bg-[#0E1016] border border-white/[0.08] space-y-3">
+          <div className="h-12 w-12 rounded-full bg-[#141721] border border-white/[0.08] text-[#C6FF3D] flex items-center justify-center mx-auto">
+            <Utensils className="h-5 w-5" strokeWidth={1.5} />
+          </div>
+          <h3 className="text-sm font-heading font-semibold text-[#F4F5F7]">
             No orders match this filter
           </h3>
-          <p className="text-xs text-stone-400 max-w-xs mx-auto">
+          <p className="text-xs text-[#8A8F9C] max-w-xs mx-auto">
             Guest orders placed from table QR codes will appear here in real time.
           </p>
         </div>
@@ -202,51 +203,51 @@ export function StaffLiveOrdersScreen() {
           {filteredOrders.map((order) => (
             <div
               key={order.id}
-              className={`p-5 rounded-3xl bg-white dark:bg-stone-900 border transition-all shadow-sm flex flex-col justify-between ${
+              className={`p-5 rounded-card bg-[#0E1016] border transition-all duration-300 flex flex-col justify-between ${
                 order.status === 'placed'
-                  ? 'border-rose-400 dark:border-rose-700 ring-1 ring-rose-400/20 shadow-rose-500/5'
+                  ? 'border-rose-500/60 shadow-lg shadow-rose-950/20'
                   : order.status === 'cooking'
-                  ? 'border-amber-400 dark:border-amber-700 ring-1 ring-amber-400/20'
+                  ? 'border-amber-400/60 shadow-lg shadow-amber-950/20'
                   : order.status === 'ready'
-                  ? 'border-blue-400 dark:border-blue-700 ring-1 ring-blue-400/20'
-                  : 'border-stone-200/80 dark:border-stone-800'
+                  ? 'border-[#C6FF3D]/60 shadow-lg shadow-[#C6FF3D]/5'
+                  : 'border-white/[0.08] hover:border-white/[0.18]'
               }`}
             >
               <div className="space-y-3.5">
                 {/* Ticket Top Bar */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-black text-xs px-2.5 py-1 bg-brand-primary text-white rounded-lg shadow-xs">
+                    <span className="font-mono font-bold text-xs px-2.5 py-1 bg-[#141721] text-[#C6FF3D] border border-white/[0.08] rounded-full">
                       T-{order.table_number}
                     </span>
-                    <span className="text-xs font-bold text-stone-700 dark:text-stone-300">
+                    <span className="text-xs font-mono font-semibold text-[#F4F5F7]">
                       Round #{order.round_number}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-semibold text-stone-400 flex items-center gap-1">
-                      <ClockIcon className="h-3 w-3" /> {formatElapsed(order.created_at)}
+                    <span className="text-[11px] font-mono text-[#8A8F9C] flex items-center gap-1">
+                      <Clock className="h-3 w-3" strokeWidth={1.5} /> {formatElapsed(order.created_at)}
                     </span>
                     {getStatusBadge(order.status)}
                   </div>
                 </div>
 
                 {/* Items List */}
-                <div className="space-y-1.5 py-2 border-y border-stone-100 dark:border-stone-800 text-xs">
+                <div className="space-y-2 py-2.5 border-y border-white/[0.06] text-xs">
                   {(order.items || []).map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-start text-stone-800 dark:text-stone-200">
+                    <div key={idx} className="flex justify-between items-start text-[#F4F5F7]">
                       <div className="min-w-0 pr-2">
-                        <span className="font-black text-brand-primary mr-1.5">
+                        <span className="font-mono font-bold text-[#C6FF3D] mr-1.5">
                           {item.qty}x
                         </span>
-                        <span className="font-bold">{item.name}</span>
+                        <span className="font-medium">{item.name}</span>
                         {item.notes && (
-                          <span className="block text-[10px] italic text-amber-500">
+                          <span className="block text-[10px] font-mono text-amber-300 mt-0.5">
                             Note: {item.notes}
                           </span>
                         )}
                       </div>
-                      <span className="font-bold text-stone-500 shrink-0">
+                      <span className="font-mono font-medium text-[#8A8F9C] shrink-0">
                         {formatCurrency((item?.price || 0) * (item?.qty || 1))}
                       </span>
                     </div>
@@ -255,8 +256,8 @@ export function StaffLiveOrdersScreen() {
 
                 {/* Guest notes */}
                 {order.guest_notes && (
-                  <div className="p-2 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-600 dark:text-amber-400">
-                    <span className="font-bold">Guest Note:</span> {order.guest_notes}
+                  <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/20 text-xs font-sans text-amber-300">
+                    <span className="font-semibold">Guest Note:</span> {order.guest_notes}
                   </div>
                 )}
               </div>
@@ -266,16 +267,16 @@ export function StaffLiveOrdersScreen() {
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5">
                     {order.payment_status === 'paid' ? (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                         ✓ Paid ({order.payment_method})
                       </span>
                     ) : (
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30">
                         Unpaid (Pay at Counter)
                       </span>
                     )}
                   </div>
-                  <span className="text-sm font-black text-stone-900 dark:text-white">
+                  <span className="text-sm font-mono font-bold text-[#F4F5F7]">
                     {formatCurrency(order?.total || 0)}
                   </span>
                 </div>
@@ -288,14 +289,14 @@ export function StaffLiveOrdersScreen() {
                         size="sm"
                         variant="secondary"
                         onClick={() => handleStatusChange(order.id, 'acknowledged')}
-                        className="text-xs font-bold"
+                        className="text-xs font-medium rounded-full border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25]"
                       >
                         Acknowledge
                       </Button>
                       <Button
                         size="sm"
                         onClick={() => handleStatusChange(order.id, 'cooking')}
-                        className="text-xs font-bold"
+                        className="text-xs font-medium rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e]"
                       >
                         Start Cooking
                       </Button>
@@ -306,7 +307,7 @@ export function StaffLiveOrdersScreen() {
                     <Button
                       size="sm"
                       onClick={() => handleStatusChange(order.id, 'cooking')}
-                      className="col-span-2 text-xs font-bold"
+                      className="col-span-2 text-xs font-medium rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e]"
                     >
                       Start Cooking
                     </Button>
@@ -316,9 +317,9 @@ export function StaffLiveOrdersScreen() {
                     <Button
                       size="sm"
                       onClick={() => handleStatusChange(order.id, 'ready')}
-                      className="col-span-2 bg-blue-600 hover:bg-blue-700 text-xs font-bold"
+                      className="col-span-2 rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] text-xs font-medium"
                     >
-                      <ShoppingBagIcon className="h-3.5 w-3.5 mr-1" /> Mark Ready
+                      <ShoppingBag className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} /> Mark Ready
                     </Button>
                   )}
 
@@ -326,9 +327,9 @@ export function StaffLiveOrdersScreen() {
                     <Button
                       size="sm"
                       onClick={() => handleStatusChange(order.id, 'served')}
-                      className="col-span-2 bg-emerald-600 hover:bg-emerald-700 text-xs font-bold"
+                      className="col-span-2 rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] text-xs font-medium"
                     >
-                      <CheckCircleIcon className="h-3.5 w-3.5 mr-1" /> Mark Served
+                      <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} /> Mark Served
                     </Button>
                   )}
 
@@ -337,14 +338,14 @@ export function StaffLiveOrdersScreen() {
                       size="sm"
                       variant="secondary"
                       onClick={() => handleSettle(order.id)}
-                      className="col-span-2 text-xs font-bold"
+                      className="col-span-2 text-xs font-medium rounded-full border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25]"
                     >
-                      <BanknotesIcon className="h-3.5 w-3.5 mr-1 text-brand-primary" /> Settle & Complete
+                      <Banknote className="h-3.5 w-3.5 mr-1.5 text-[#C6FF3D]" strokeWidth={1.5} /> Settle & Complete
                     </Button>
                   )}
 
                   {order.status === 'completed' && (
-                    <div className="col-span-2 text-center text-xs font-bold text-stone-400 py-1">
+                    <div className="col-span-2 text-center text-xs font-mono text-[#8A8F9C] py-1">
                       ✓ Order Fulfilled
                     </div>
                   )}

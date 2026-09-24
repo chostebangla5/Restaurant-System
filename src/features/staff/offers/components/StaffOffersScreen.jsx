@@ -191,21 +191,21 @@ export function StaffOffersScreen() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-stone-900 dark:text-white flex items-center gap-2">
-            <Megaphone className="h-5 w-5 text-brand-primary" />
+          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7] flex items-center gap-2.5">
+            <Megaphone className="h-5 w-5 text-[#C6FF3D]" strokeWidth={1.5} />
             Offers & Coupons
           </h2>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <p className="text-xs text-[#8A8F9C] mt-1">
             Create promotional offers, generate promo coupon codes, and send push notifications
           </p>
         </div>
         <div className="flex items-center gap-3">
           {/* Device count indicator */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-800">
-            <Smartphone className="h-3.5 w-3.5 text-brand-primary" />
-            <span className="text-xs font-semibold text-stone-700 dark:text-stone-300">
+          <div className="hidden sm:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#0E1016] border border-white/[0.08]">
+            <Smartphone className="h-3.5 w-3.5 text-[#C6FF3D]" strokeWidth={1.5} />
+            <span className="text-xs font-mono text-[#8A8F9C]">
               {deviceCount} device{deviceCount !== 1 ? 's' : ''} subscribed
             </span>
           </div>
@@ -215,7 +215,8 @@ export function StaffOffersScreen() {
               setEditingOffer(null);
               setShowCreateModal(true);
             }}
-            leftIcon={<Plus className="h-4 w-4" />}
+            leftIcon={<Plus className="h-4 w-4" strokeWidth={1.5} />}
+            className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold"
           >
             Create Offer
           </Button>
@@ -228,28 +229,31 @@ export function StaffOffersScreen() {
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-48 rounded-2xl bg-stone-100 dark:bg-stone-800 animate-pulse"
+              className="h-48 rounded-card bg-[#0E1016] border border-white/[0.08] animate-pulse"
             />
           ))}
         </div>
       ) : offers.length === 0 ? (
-        <EmptyState
-          icon={Megaphone}
-          title="No offers yet"
-          description="Create your first promotional offer and send it as a push notification directly to your guests' phones."
-          action={
-            <Button
-              size="sm"
-              onClick={() => {
-                setEditingOffer(null);
-                setShowCreateModal(true);
-              }}
-              leftIcon={<Plus className="h-4 w-4" />}
-            >
-              Create First Offer
-            </Button>
-          }
-        />
+        <div className="p-8 rounded-card bg-[#0E1016] border border-white/[0.08]">
+          <EmptyState
+            icon={Megaphone}
+            title="No offers yet"
+            description="Create your first promotional offer and send it as a push notification directly to your guests' phones."
+            action={
+              <Button
+                size="sm"
+                onClick={() => {
+                  setEditingOffer(null);
+                  setShowCreateModal(true);
+                }}
+                leftIcon={<Plus className="h-4 w-4" strokeWidth={1.5} />}
+                className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold"
+              >
+                Create First Offer
+              </Button>
+            }
+          />
+        </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           <AnimatePresence mode="popLayout">
@@ -272,16 +276,16 @@ export function StaffOffersScreen() {
       {/* Sent Recently Section */}
       <div className="mt-8">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-stone-400" />
+          <h3 className="text-sm font-heading font-semibold text-[#F4F5F7] flex items-center gap-2">
+            <Clock className="h-4 w-4 text-[#8A8F9C]" strokeWidth={1.5} />
             Sent recently
           </h3>
           <Button
             variant="ghost"
             size="sm"
             onClick={loadHistory}
-            leftIcon={<RefreshCw className="h-3 w-3" />}
-            className="text-xs"
+            leftIcon={<RefreshCw className="h-3 w-3" strokeWidth={1.5} />}
+            className="text-xs font-mono text-[#8A8F9C] hover:text-[#F4F5F7] rounded-full"
           >
             Refresh
           </Button>
@@ -292,14 +296,14 @@ export function StaffOffersScreen() {
             {[1, 2].map((i) => (
               <div
                 key={i}
-                className="h-16 rounded-xl bg-stone-100 dark:bg-stone-800 animate-pulse"
+                className="h-16 rounded-xl bg-[#0E1016] border border-white/[0.08] animate-pulse"
               />
             ))}
           </div>
         ) : history.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/30 p-6 text-center">
-            <Bell className="h-6 w-6 text-stone-300 dark:text-stone-600 mx-auto mb-2" />
-            <p className="text-xs text-stone-500">
+          <div className="rounded-card border border-dashed border-white/[0.12] bg-[#0E1016] p-6 text-center">
+            <Bell className="h-6 w-6 text-[#8A8F9C] mx-auto mb-2" strokeWidth={1.5} />
+            <p className="text-xs text-[#8A8F9C]">
               No notifications sent yet. Create an offer and send it to your guests!
             </p>
           </div>
@@ -311,42 +315,42 @@ export function StaffOffersScreen() {
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.05 }}
-                className="flex items-center gap-4 rounded-xl border border-stone-100 dark:border-stone-800 bg-white dark:bg-stone-900 p-4 hover:bg-stone-50 dark:hover:bg-stone-800/70 transition-colors"
+                className="flex items-center gap-4 rounded-xl border border-white/[0.08] bg-[#0E1016] p-4 hover:border-white/[0.18] transition-colors"
               >
                 {/* Icon */}
-                <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-brand-primary/10">
-                  <Send className="h-4 w-4 text-brand-primary" />
+                <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-[#141721] border border-white/[0.08] text-[#C6FF3D]">
+                  <Send className="h-4 w-4" strokeWidth={1.5} />
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-stone-800 dark:text-stone-200 truncate">
+                  <p className="text-sm font-medium text-[#F4F5F7] truncate">
                     {item.title}
                   </p>
                   {item.message && (
-                    <p className="text-xs text-stone-500 dark:text-stone-400 truncate mt-0.5">
+                    <p className="text-xs text-[#8A8F9C] truncate mt-0.5">
                       {item.message}
                     </p>
                   )}
                 </div>
 
                 {/* Stats */}
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <div className="flex items-center gap-1">
-                    <CheckCircle className="h-3 w-3 text-emerald-500" />
-                    <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                <div className="flex items-center gap-3 flex-shrink-0 font-mono text-xs">
+                  <div className="flex items-center gap-1 text-emerald-400">
+                    <CheckCircle className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    <span>
                       {item.devices_delivered}
                     </span>
                   </div>
                   {item.devices_failed > 0 && (
-                    <div className="flex items-center gap-1">
-                      <XCircle className="h-3 w-3 text-rose-400" />
-                      <span className="text-xs font-semibold text-rose-500">
+                    <div className="flex items-center gap-1 text-rose-400">
+                      <XCircle className="h-3.5 w-3.5" strokeWidth={1.5} />
+                      <span>
                         {item.devices_failed}
                       </span>
                     </div>
                   )}
-                  <span className="text-[11px] text-stone-400 whitespace-nowrap">
+                  <span className="text-[11px] text-[#8A8F9C] whitespace-nowrap">
                     {timeAgo(item.sent_at)}
                   </span>
                 </div>

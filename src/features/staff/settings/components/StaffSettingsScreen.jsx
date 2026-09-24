@@ -19,21 +19,21 @@ import {
   deactivateStaff,
 } from '../api/settingsApi';
 import {
-  PaintBrushIcon,
-  BuildingStorefrontIcon,
-  UsersIcon,
-  PlusIcon,
-  ArrowPathIcon,
-  ExclamationTriangleIcon,
-  SparklesIcon,
-  TagIcon,
-} from '@heroicons/react/24/outline';
+  Paintbrush,
+  Store,
+  Users,
+  Plus,
+  RefreshCw,
+  AlertTriangle,
+  Sparkles,
+  Tag,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const TAB_LIST = [
-  { value: 'branding', label: 'Branding', icon: PaintBrushIcon },
-  { value: 'business', label: 'Business Details', icon: BuildingStorefrontIcon },
-  { value: 'staff', label: 'Staff Management', icon: UsersIcon },
+  { value: 'branding', label: 'Branding', icon: Paintbrush },
+  { value: 'business', label: 'Business Details', icon: Store },
+  { value: 'staff', label: 'Staff Management', icon: Users },
 ];
 
 const ROLE_OPTIONS = [
@@ -261,11 +261,11 @@ export function StaffSettingsScreen() {
     return (
       <div className="max-w-4xl space-y-6">
         <div>
-          <h2 className="text-xl font-bold text-stone-900 dark:text-white">Venue Settings</h2>
-          <p className="text-xs text-stone-500">Loading settings...</p>
+          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Venue Settings</h2>
+          <p className="text-xs font-mono text-[#8A8F9C]">Loading settings...</p>
         </div>
         <div className="flex items-center justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-primary border-t-transparent" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#C6FF3D] border-t-transparent" />
         </div>
       </div>
     );
@@ -276,23 +276,23 @@ export function StaffSettingsScreen() {
     return (
       <div className="max-w-4xl space-y-6">
         <div>
-          <h2 className="text-xl font-bold text-stone-900 dark:text-white">Venue Settings</h2>
-          <p className="text-xs text-stone-500">Configure branding, business details, and staff access</p>
+          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Venue Settings</h2>
+          <p className="text-xs text-[#8A8F9C]">Configure branding, business details, and staff access</p>
         </div>
-        <div className="p-6 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 space-y-4">
+        <div className="p-6 rounded-card bg-[#0E1016] border border-amber-400/40 space-y-4">
           <div className="flex items-start gap-3">
-            <ExclamationTriangleIcon className="h-6 w-6 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-            <div className="space-y-2">
-              <h3 className="text-sm font-bold text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="h-5 w-5 text-amber-400 shrink-0 mt-0.5" strokeWidth={1.5} />
+            <div className="space-y-1.5">
+              <h3 className="text-sm font-heading font-bold text-amber-300">
                 Settings Load Error
               </h3>
-              <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+              <p className="text-xs text-[#8A8F9C] leading-relaxed">
                 {loadError}
               </p>
             </div>
           </div>
-          <Button onClick={loadAllData} size="sm">
-            <ArrowPathIcon className="h-4 w-4" /> Retry Loading
+          <Button onClick={loadAllData} size="sm" className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
+            <RefreshCw className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} /> Retry Loading
           </Button>
         </div>
       </div>
@@ -304,10 +304,10 @@ export function StaffSettingsScreen() {
   return (
     <div className="max-w-4xl space-y-6">
       <div>
-        <h2 className="text-xl font-bold text-stone-900 dark:text-white">
+        <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">
           Venue Settings
         </h2>
-        <p className="text-xs text-stone-500">
+        <p className="text-xs text-[#8A8F9C] mt-1">
           Configure branding, business details, and staff access
         </p>
       </div>
@@ -317,12 +317,12 @@ export function StaffSettingsScreen() {
       {/* ─── Branding Tab ─── */}
       {activeTab === 'branding' && (
         <form onSubmit={handleSaveBranding} className="space-y-6">
-          <div className="p-6 rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-sm space-y-6">
+          <div className="p-6 rounded-card bg-[#0E1016] border border-white/[0.08] space-y-6">
             <div>
-              <h3 className="text-base font-bold text-stone-900 dark:text-white">
+              <h3 className="text-sm font-heading font-bold text-[#F4F5F7]">
                 Brand Identity & Theme
               </h3>
-              <p className="text-xs text-stone-500 mt-0.5">
+              <p className="text-xs text-[#8A8F9C] mt-1">
                 Customize your restaurant name, customer ordering URL, and custom brand theme color.
               </p>
             </div>
@@ -342,9 +342,9 @@ export function StaffSettingsScreen() {
                   onChange={handleVenueField('slug')}
                   placeholder="e.g. spice-garden"
                 />
-                <p className="text-[11px] text-stone-500 dark:text-stone-400 mt-1 flex items-center gap-1 font-mono">
+                <p className="text-[11px] text-[#8A8F9C] mt-1.5 flex items-center gap-1 font-mono">
                   <span>Guest URL:</span>
-                  <span className="text-brand-primary font-semibold">
+                  <span className="text-[#C6FF3D]">
                     /t/{'{table_code}'}
                   </span>
                 </p>
@@ -361,8 +361,8 @@ export function StaffSettingsScreen() {
                 helperText="Enter direct URL to your PNG, SVG, or JPEG logo."
               />
               {venueData.logo_url && (
-                <div className="flex items-center gap-3 p-3 rounded-2xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200/70 dark:border-stone-700/60 max-w-md">
-                  <div className="h-12 w-12 rounded-xl bg-white dark:bg-stone-900 p-1 flex items-center justify-center border border-stone-200 dark:border-stone-700 overflow-hidden shadow-xs shrink-0">
+                <div className="flex items-center gap-3 p-3 rounded-xl bg-[#141721] border border-white/[0.08] max-w-md">
+                  <div className="h-12 w-12 rounded-lg bg-white/5 p-1 flex items-center justify-center border border-white/[0.08] overflow-hidden shrink-0">
                     <img
                       src={venueData.logo_url}
                       alt="Venue Logo"
@@ -373,10 +373,10 @@ export function StaffSettingsScreen() {
                     />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-stone-900 dark:text-white block">
+                    <span className="text-xs font-semibold text-[#F4F5F7] block">
                       Live Logo Preview
                     </span>
-                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                    <span className="text-[11px] font-mono text-[#C6FF3D]">
                       ✓ Active on customer digital menus & bills
                     </span>
                   </div>
@@ -385,8 +385,8 @@ export function StaffSettingsScreen() {
             </div>
 
             {/* Brand Color & Presets */}
-            <div className="space-y-3 pt-2 border-t border-stone-100 dark:border-stone-800">
-              <label className="block text-xs font-bold text-stone-800 dark:text-stone-200">
+            <div className="space-y-3 pt-3 border-t border-white/[0.06]">
+              <label className="block text-xs font-mono uppercase tracking-wider text-[#8A8F9C]">
                 Brand Accent Color
               </label>
 
@@ -398,7 +398,7 @@ export function StaffSettingsScreen() {
                   { name: 'Amber Flame', hex: '#D97706' },
                   { name: 'Royal Indigo', hex: '#4F46E5' },
                   { name: 'Fresh Emerald', hex: '#059669' },
-                  { name: 'Midnight Slate', hex: '#0F172A' },
+                  { name: 'Neon Studio', hex: '#C6FF3D' },
                 ].map((preset) => {
                   const isSelected =
                     venueData.brand_color?.toLowerCase() === preset.hex.toLowerCase();
@@ -410,17 +410,17 @@ export function StaffSettingsScreen() {
                         setVenueData((p) => ({ ...p, brand_color: preset.hex }));
                         updateBrandColor(preset.hex);
                       }}
-                      className={`group flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all cursor-pointer ${
+                      className={`group flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border transition-all cursor-pointer ${
                         isSelected
-                          ? 'border-stone-900 dark:border-white bg-stone-100 dark:bg-stone-800 shadow-xs'
-                          : 'border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900/60 hover:border-stone-400'
+                          ? 'border-[#C6FF3D] bg-[#141721] text-[#F4F5F7]'
+                          : 'border-white/[0.08] bg-[#141721] text-[#8A8F9C] hover:text-[#F4F5F7]'
                       }`}
                     >
                       <span
-                        className="h-3.5 w-3.5 rounded-full shadow-xs flex items-center justify-center shrink-0"
+                        className="h-3 w-3 rounded-full flex items-center justify-center shrink-0"
                         style={{ backgroundColor: preset.hex }}
                       />
-                      <span className="text-stone-700 dark:text-stone-300">
+                      <span>
                         {preset.name}
                       </span>
                     </button>
@@ -436,7 +436,7 @@ export function StaffSettingsScreen() {
                     id="brand-color-picker"
                     value={venueData.brand_color || '#EA580C'}
                     onChange={handleColorChange}
-                    className="h-10 w-10 rounded-xl cursor-pointer border border-stone-200 dark:border-stone-700 p-0.5 bg-transparent"
+                    className="h-9 w-9 rounded-full cursor-pointer border border-white/[0.12] p-0.5 bg-transparent"
                   />
                 </div>
                 <div className="w-36">
@@ -450,23 +450,23 @@ export function StaffSettingsScreen() {
             </div>
 
             {/* Live Component Preview Showcase */}
-            <div className="pt-3 border-t border-stone-100 dark:border-stone-800">
-              <span className="block text-xs font-bold text-stone-800 dark:text-stone-200 mb-3">
+            <div className="pt-3 border-t border-white/[0.06]">
+              <span className="block text-xs font-mono uppercase tracking-wider text-[#8A8F9C] mb-3">
                 Live Customer UI Preview
               </span>
-              <div className="p-5 rounded-2xl bg-stone-50 dark:bg-stone-950/40 border border-stone-200/80 dark:border-stone-800/80 flex flex-wrap items-center justify-between gap-4">
+              <div className="p-5 rounded-card bg-[#141721] border border-white/[0.08] flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div
-                    className="h-10 w-10 rounded-xl flex items-center justify-center text-white font-bold text-sm shadow-sm"
-                    style={{ backgroundColor: venueData.brand_color || '#EA580C' }}
+                    className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm text-[#07080B]"
+                    style={{ backgroundColor: venueData.brand_color || '#C6FF3D' }}
                   >
                     {(venueData.name || 'V').charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <span className="text-sm font-black text-stone-900 dark:text-white block">
+                    <span className="text-sm font-heading font-bold text-[#F4F5F7] block">
                       {venueData.name || 'Restaurant Name'}
                     </span>
-                    <span className="text-[11px] text-stone-500">
+                    <span className="text-[11px] font-mono text-[#8A8F9C]">
                       Smart QR Digital Ordering
                     </span>
                   </div>
@@ -476,22 +476,25 @@ export function StaffSettingsScreen() {
                   {/* Promo Badge */}
                   <span
                     style={{
-                      backgroundColor: `${venueData.brand_color || '#EA580C'}18`,
-                      color: venueData.brand_color || '#EA580C',
-                      borderColor: `${venueData.brand_color || '#EA580C'}35`,
+                      backgroundColor: `${venueData.brand_color || '#C6FF3D'}18`,
+                      color: venueData.brand_color || '#C6FF3D',
+                      borderColor: `${venueData.brand_color || '#C6FF3D'}35`,
                     }}
-                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono border"
                   >
-                    <TagIcon className="h-3.5 w-3.5" /> Flat 20% OFF
+                    <Tag className="h-3 w-3" strokeWidth={1.5} /> Flat 20% OFF
                   </span>
 
                   {/* Primary Button */}
                   <button
                     type="button"
-                    style={{ backgroundColor: venueData.brand_color || '#EA580C' }}
-                    className="px-4 py-2 rounded-xl text-white font-bold text-xs shadow-sm hover:opacity-95 transition-all flex items-center gap-1.5 cursor-default"
+                    style={{
+                      backgroundColor: venueData.brand_color || '#C6FF3D',
+                      color: '#07080B',
+                    }}
+                    className="px-4 py-2 rounded-full font-semibold text-xs shadow-sm flex items-center gap-1.5 cursor-default"
                   >
-                    <SparklesIcon className="h-4 w-4" /> View Menu & Order
+                    <Sparkles className="h-3.5 w-3.5" strokeWidth={1.5} /> View Menu & Order
                   </button>
                 </div>
               </div>
@@ -499,7 +502,7 @@ export function StaffSettingsScreen() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Button type="submit" size="lg" isLoading={isSaving} className="font-bold px-8">
+            <Button type="submit" size="lg" isLoading={isSaving} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold px-8">
               Save Branding Changes
             </Button>
           </div>
@@ -509,8 +512,8 @@ export function StaffSettingsScreen() {
       {/* ─── Business Details Tab ─── */}
       {activeTab === 'business' && (
         <form onSubmit={handleSaveBusiness} className="space-y-6">
-          <div className="p-6 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-sm space-y-5">
-            <h3 className="text-sm font-bold text-stone-900 dark:text-white">
+          <div className="p-6 rounded-card bg-[#0E1016] border border-white/[0.08] space-y-5">
+            <h3 className="text-sm font-heading font-bold text-[#F4F5F7]">
               Location & Contact
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -527,8 +530,8 @@ export function StaffSettingsScreen() {
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-sm space-y-5">
-            <h3 className="text-sm font-bold text-stone-900 dark:text-white">
+          <div className="p-6 rounded-card bg-[#0E1016] border border-white/[0.08] space-y-5">
+            <h3 className="text-sm font-heading font-bold text-[#F4F5F7]">
               Tax & Legal
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -561,8 +564,8 @@ export function StaffSettingsScreen() {
             </div>
           </div>
 
-          <div className="p-6 rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-stone-900 dark:text-white">
+          <div className="p-6 rounded-card bg-[#0E1016] border border-white/[0.08] space-y-4">
+            <h3 className="text-sm font-heading font-bold text-[#F4F5F7]">
               Ordering Preferences
             </h3>
             <Toggle
@@ -591,7 +594,7 @@ export function StaffSettingsScreen() {
             />
           </div>
 
-          <Button type="submit" isLoading={isSaving}>
+          <Button type="submit" isLoading={isSaving} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
             Save Business Details
           </Button>
         </form>
@@ -601,35 +604,37 @@ export function StaffSettingsScreen() {
       {activeTab === 'staff' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-stone-900 dark:text-white">
+            <h3 className="text-sm font-heading font-bold text-[#F4F5F7]">
               Team Members ({staffList.length})
             </h3>
             {(myRole === 'owner' || myRole === 'manager') && (
               <Button
                 size="sm"
                 onClick={() => setInviteModalOpen(true)}
+                className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold"
               >
-                <PlusIcon className="h-4 w-4" /> Invite Staff
+                <Plus className="h-4 w-4 mr-1.5" strokeWidth={1.5} /> Invite Staff
               </Button>
             )}
           </div>
 
           {/* Temporary Password Callout */}
           {lastTempPassword && (
-            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/40 space-y-2">
-              <p className="text-xs font-bold text-emerald-800 dark:text-emerald-300">
+            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 space-y-2">
+              <p className="text-xs font-mono font-bold text-emerald-400">
                 Staff member created! Temporary password:
               </p>
-              <code className="block text-sm font-mono bg-white dark:bg-stone-900 px-3 py-2 rounded-lg border text-stone-900 dark:text-white select-all">
+              <code className="block text-sm font-mono bg-[#141721] px-3 py-2 rounded-lg border border-white/[0.08] text-[#F4F5F7] select-all">
                 {lastTempPassword}
               </code>
-              <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
+              <p className="text-[11px] text-[#8A8F9C]">
                 Share this securely. The staff member should change it after their first login.
               </p>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setLastTempPassword(null)}
+                className="rounded-full text-xs text-[#8A8F9C] hover:text-[#F4F5F7]"
               >
                 Dismiss
               </Button>
@@ -637,33 +642,33 @@ export function StaffSettingsScreen() {
           )}
 
           {/* Staff Table */}
-          <div className="rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
+          <div className="rounded-card bg-[#0E1016] border border-white/[0.08] overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-stone-100 dark:border-stone-800 text-left">
-                  <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-stone-400">Name</th>
-                  <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-stone-400">Email</th>
-                  <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-stone-400">Role</th>
-                  <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-stone-400">Status</th>
-                  <th className="px-5 py-3 text-[11px] font-bold uppercase tracking-wider text-stone-400">Actions</th>
+                <tr className="border-b border-white/[0.08] bg-[#141721] text-left">
+                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Name</th>
+                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Email</th>
+                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Role</th>
+                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Status</th>
+                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100 dark:divide-stone-800">
+              <tbody className="divide-y divide-white/[0.06]">
                 {staffList.length > 0 ? (
                   staffList.map((s) => (
-                    <tr key={s.id} className="hover:bg-stone-50 dark:hover:bg-stone-800/30 transition-colors">
-                      <td className="px-5 py-3">
+                    <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2.5">
-                          <div className="h-8 w-8 rounded-full bg-stone-200 dark:bg-stone-700 flex items-center justify-center font-bold text-xs text-stone-700 dark:text-stone-200">
+                          <div className="h-8 w-8 rounded-full bg-[#141721] border border-white/[0.12] flex items-center justify-center font-mono font-bold text-xs text-[#F4F5F7]">
                             {(s.full_name || 'S').slice(0, 2).toUpperCase()}
                           </div>
-                          <span className="text-xs font-semibold text-stone-900 dark:text-white">
+                          <span className="text-xs font-semibold text-[#F4F5F7]">
                             {s.full_name}
                           </span>
                         </div>
                       </td>
-                      <td className="px-5 py-3 text-xs text-stone-500">{s.email}</td>
-                      <td className="px-5 py-3">
+                      <td className="px-5 py-3.5 text-xs text-[#8A8F9C] font-mono">{s.email}</td>
+                      <td className="px-5 py-3.5">
                         {myRole === 'owner' && s.role !== 'owner' ? (
                           <Select
                             value={s.role}
@@ -680,7 +685,7 @@ export function StaffSettingsScreen() {
                           </Badge>
                         )}
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-5 py-3.5">
                         <Badge
                           variant={s.is_active ? 'success' : 'danger'}
                           size="sm"
@@ -688,12 +693,12 @@ export function StaffSettingsScreen() {
                           {s.is_active ? 'Active' : 'Inactive'}
                         </Badge>
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-5 py-3.5">
                         {s.role !== 'owner' && s.is_active && myRole === 'owner' && (
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-rose-500 hover:text-rose-600"
+                            className="text-rose-400 hover:text-rose-300 rounded-full text-xs"
                             onClick={() => handleDeactivate(s.id, s.full_name)}
                           >
                             Deactivate
@@ -704,7 +709,7 @@ export function StaffSettingsScreen() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="px-5 py-8 text-center text-xs text-stone-500">
+                    <td colSpan="5" className="px-5 py-8 text-center text-xs font-mono text-[#8A8F9C]">
                       No staff members found for this venue. Invite your first team member above.
                     </td>
                   </tr>

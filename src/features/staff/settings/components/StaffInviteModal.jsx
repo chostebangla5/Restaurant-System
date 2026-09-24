@@ -65,19 +65,19 @@ export function StaffInviteModal({
           options={ROLE_OPTIONS}
         />
 
-        <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-800/40">
-          <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed">
-            <strong>Note:</strong> A temporary password will be generated and
+        <div className="p-3.5 rounded-xl bg-[#141721] border border-white/[0.08]">
+          <p className="text-xs text-[#8A8F9C] leading-relaxed">
+            <strong className="text-[#F4F5F7]">Note:</strong> A temporary password will be generated and
             shown to you after creation. Share it securely with the staff member
             so they can log in and change it.
           </p>
         </div>
 
         <div className="flex justify-end gap-3 pt-2">
-          <Button variant="ghost" onClick={onClose} type="button">
+          <Button variant="ghost" onClick={onClose} type="button" className="rounded-full text-[#8A8F9C] hover:text-[#F4F5F7]">
             Cancel
           </Button>
-          <Button type="submit" isLoading={isLoading}>
+          <Button type="submit" isLoading={isLoading} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
             Create Staff Login
           </Button>
         </div>

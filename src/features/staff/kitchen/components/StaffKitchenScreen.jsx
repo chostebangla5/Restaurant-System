@@ -11,12 +11,13 @@ import {
 } from '@/features/shared/orders/api/ordersApi';
 import toast from 'react-hot-toast';
 import {
-  FireIcon,
-  ClockIcon,
-  CheckBadgeIcon,
-  SpeakerWaveIcon,
-  CheckCircleIcon,
-} from '@heroicons/react/24/solid';
+  Flame,
+  Clock,
+  CheckCheck,
+  CheckCircle2,
+  ChefHat,
+  AlertTriangle,
+} from 'lucide-react';
 
 export function StaffKitchenScreen() {
   const { venueId } = useAuth();
@@ -82,22 +83,24 @@ export function StaffKitchenScreen() {
   return (
     <div className="space-y-6">
       {/* KDS Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-stone-900 p-5 rounded-3xl border border-stone-800 text-white">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 bg-[#0E1016] p-6 rounded-card border border-white/[0.08] text-[#F4F5F7]">
         <div>
-          <div className="flex items-center gap-2">
-            <FireIcon className="h-5 w-5 text-orange-500" />
-            <h1 className="text-xl font-black tracking-tight">Kitchen Display System (KDS)</h1>
-            <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30">
+          <div className="flex items-center gap-2.5">
+            <div className="h-7 w-7 rounded-full bg-[#141721] border border-[#C6FF3D]/30 flex items-center justify-center text-[#C6FF3D]">
+              <Flame className="h-4 w-4" strokeWidth={1.5} />
+            </div>
+            <h1 className="text-xl font-heading font-bold tracking-tight">Kitchen Display System (KDS)</h1>
+            <span className="font-mono text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#C6FF3D]/10 text-[#C6FF3D] border border-[#C6FF3D]/25">
               {activeKitchenTickets.length} active tickets
             </span>
           </div>
-          <p className="text-xs text-stone-400 mt-1">
+          <p className="text-xs text-[#8A8F9C] mt-1.5 leading-relaxed">
             Realtime high-contrast station tickets. Cook, mark ready, and bump orders.
           </p>
         </div>
 
         {/* Station Tabs */}
-        <div className="flex items-center gap-2 bg-stone-800/80 p-1 rounded-2xl border border-stone-700">
+        <div className="flex items-center gap-1.5 bg-[#141721] p-1 rounded-full border border-white/[0.08] overflow-x-auto">
           {[
             { id: 'all', label: 'All Stations' },
             { id: 'hot', label: '🔥 Hot Kitchen' },
@@ -108,10 +111,10 @@ export function StaffKitchenScreen() {
               key={st.id}
               type="button"
               onClick={() => setSelectedStation(st.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap ${
                 selectedStation === st.id
-                  ? 'bg-brand-primary text-white shadow-md'
-                  : 'text-stone-400 hover:text-stone-200'
+                  ? 'bg-[#C6FF3D] text-[#07080B] font-semibold shadow-sm'
+                  : 'text-[#8A8F9C] hover:text-[#F4F5F7]'
               }`}
             >
               {st.label}
@@ -122,12 +125,16 @@ export function StaffKitchenScreen() {
 
       {/* Ticket Grid */}
       {activeKitchenTickets.length === 0 ? (
-        <div className="py-24 text-center rounded-3xl bg-stone-900 border border-stone-800 text-stone-400 space-y-3">
-          <div className="text-4xl">👨‍🍳</div>
-          <h3 className="text-base font-bold text-white">Kitchen Queue is All Clear</h3>
-          <p className="text-xs text-stone-400 max-w-sm mx-auto">
-            No pending cooking tickets in this station right now. New guest QR orders will pop up instantly with sound alert.
-          </p>
+        <div className="py-24 text-center rounded-card bg-[#0E1016] border border-white/[0.08] text-[#8A8F9C] space-y-4">
+          <div className="h-14 w-14 rounded-full bg-[#141721] border border-white/[0.08] text-[#C6FF3D] flex items-center justify-center mx-auto">
+            <ChefHat className="h-7 w-7" strokeWidth={1.5} />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-base font-heading font-semibold text-[#F4F5F7]">Kitchen Queue is All Clear</h3>
+            <p className="text-xs text-[#8A8F9C] max-w-sm mx-auto leading-relaxed">
+              No pending cooking tickets in this station right now. New guest QR orders will pop up instantly with sound alert.
+            </p>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -139,84 +146,84 @@ export function StaffKitchenScreen() {
             return (
               <div
                 key={ticket.id}
-                className={`p-5 rounded-3xl bg-stone-900 border-2 transition-all shadow-xl flex flex-col justify-between ${
+                className={`p-5 rounded-card bg-[#0E1016] border transition-all duration-300 flex flex-col justify-between ${
                   isUrgent
-                    ? 'border-rose-500 shadow-rose-950/40 animate-pulse'
+                    ? 'border-rose-500/80 shadow-lg shadow-rose-950/20'
                     : isWarning
-                    ? 'border-amber-500 shadow-amber-950/40'
-                    : 'border-stone-700'
+                    ? 'border-amber-400/80 shadow-lg shadow-amber-950/20'
+                    : 'border-white/[0.08] hover:border-white/[0.18]'
                 }`}
               >
                 <div className="space-y-4">
                   {/* Top Bar */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <span className="h-11 w-11 rounded-2xl bg-brand-primary text-white font-black text-sm flex items-center justify-center shadow-lg shadow-brand-primary/30">
+                      <span className="h-10 w-10 rounded-full bg-[#141721] border border-white/[0.12] text-[#C6FF3D] font-mono font-bold text-xs flex items-center justify-center">
                         T-{ticket.table_number}
                       </span>
                       <div>
-                        <span className="font-extrabold text-sm text-white block">
+                        <span className="font-mono font-semibold text-xs text-[#F4F5F7] block">
                           Round #{ticket.round_number}
                         </span>
-                        <span className="text-[11px] text-stone-400 font-mono">
+                        <span className="text-[11px] text-[#8A8F9C] font-mono">
                           {ticket.id}
                         </span>
                       </div>
                     </div>
 
                     <div
-                      className={`px-3 py-1 rounded-xl text-xs font-black flex items-center gap-1.5 ${
+                      className={`px-3 py-1 rounded-full text-xs font-mono flex items-center gap-1.5 border ${
                         isUrgent
-                          ? 'bg-rose-500 text-white'
+                          ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
                           : isWarning
-                          ? 'bg-amber-500 text-stone-950'
-                          : 'bg-stone-800 text-stone-300'
+                          ? 'bg-amber-400/15 text-amber-300 border-amber-400/30'
+                          : 'bg-[#141721] text-[#8A8F9C] border-white/[0.08]'
                       }`}
                     >
-                      <ClockIcon className="h-4 w-4" /> {mins}m elapsed
+                      <Clock className="h-3.5 w-3.5" strokeWidth={1.5} /> {mins}m elapsed
                     </div>
                   </div>
 
                   {/* Itemized Cooking Checklist */}
-                  <div className="space-y-2 border-y border-stone-800 py-3">
+                  <div className="space-y-2 border-y border-white/[0.06] py-3">
                     {(ticket.items || []).map((item, idx) => {
                       const isTicked = tickedItems[`${ticket.id}-${idx}`];
                       return (
                         <div
                           key={idx}
                           onClick={() => toggleItemTick(ticket.id, idx)}
-                          className={`p-2.5 rounded-xl cursor-pointer transition-all flex items-start justify-between gap-3 ${
+                          className={`p-2.5 rounded-xl cursor-pointer transition-all flex items-start justify-between gap-3 border ${
                             isTicked
-                              ? 'bg-stone-800/40 text-stone-500 line-through'
-                              : 'bg-stone-800/80 text-white hover:bg-stone-800'
+                              ? 'bg-white/[0.02] border-white/[0.04] text-[#8A8F9C] line-through'
+                              : 'bg-[#141721] border-white/[0.06] text-[#F4F5F7] hover:border-white/[0.15]'
                           }`}
                         >
                           <div className="flex items-start gap-2.5 min-w-0">
                             <span
-                              className={`h-5 w-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                              className={`h-4 w-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
                                 isTicked
-                                  ? 'border-emerald-500 bg-emerald-500 text-white'
-                                  : 'border-stone-600 bg-stone-700'
+                                  ? 'border-[#C6FF3D] bg-[#C6FF3D] text-[#07080B]'
+                                  : 'border-white/[0.2] bg-white/[0.04]'
                               }`}
                             >
-                              {isTicked && <CheckCircleIcon className="h-4 w-4" />}
+                              {isTicked && <CheckCircle2 className="h-3 w-3" strokeWidth={2} />}
                             </span>
                             <div>
-                              <span className="text-sm font-extrabold text-brand-primary mr-1.5">
+                              <span className="font-mono text-xs font-bold text-[#C6FF3D] mr-1.5">
                                 {item.qty}x
                               </span>
-                              <span className="text-xs sm:text-sm font-bold">
+                              <span className="text-xs sm:text-sm font-medium">
                                 {item.name}
                               </span>
                               {item.notes && (
-                                <span className="block text-[11px] text-amber-400 font-medium not-italic mt-0.5">
+                                <span className="block text-[11px] text-amber-300 font-mono mt-0.5">
                                   ⚠️ {item.notes}
                                 </span>
                               )}
                             </div>
                           </div>
 
-                          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-stone-700 text-stone-300 shrink-0">
+                          <span className="text-[9px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-[#8A8F9C] shrink-0">
                             {item.station || 'hot'}
                           </span>
                         </div>
@@ -225,7 +232,7 @@ export function StaffKitchenScreen() {
                   </div>
 
                   {ticket.guest_notes && (
-                    <p className="text-xs bg-amber-500/10 border border-amber-500/20 text-amber-400 p-2.5 rounded-xl font-medium">
+                    <p className="text-xs bg-amber-400/10 border border-amber-400/20 text-amber-300 p-2.5 rounded-xl font-sans">
                       Table Note: {ticket.guest_notes}
                     </p>
                   )}
@@ -236,9 +243,9 @@ export function StaffKitchenScreen() {
                   <Button
                     size="lg"
                     onClick={() => handleBumpTicket(ticket.id)}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2"
+                    className="w-full bg-[#C6FF3D] hover:bg-[#b8f52e] text-[#07080B] font-semibold text-xs tracking-wider flex items-center justify-center gap-2 rounded-full"
                   >
-                    <CheckBadgeIcon className="h-5 w-5" /> BUMP TICKET &bull; MARK READY
+                    <CheckCheck className="h-4 w-4" strokeWidth={1.5} /> BUMP TICKET &bull; MARK READY
                   </Button>
                 </div>
               </div>

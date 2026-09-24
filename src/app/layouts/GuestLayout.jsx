@@ -3,9 +3,10 @@ import { useParams, useLocation, Link } from 'react-router-dom';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { applyVenueBranding } from '@/features/shared/branding';
 import { AnimatedOutlet } from '@/components/animation/AnimatedOutlet';
-import { ShoppingBagIcon, ClockIcon } from '@heroicons/react/24/outline';
+import { ShoppingBag, Clock, AlertCircle } from 'lucide-react';
 import { CartProvider, useCart } from '@/features/guest/cart/context/CartContext';
 import { NotificationOptIn } from '@/features/guest/home/components/NotificationOptIn';
+import { preloadGuestFlow } from '@/app/routes';
 
 /* ─── Inner shell that can read cart context ─── */
 function GuestShell({ shortCode, tableData }) {
@@ -14,7 +15,8 @@ function GuestShell({ shortCode, tableData }) {
   const prevCount = React.useRef(totalItemCount);
 
   useEffect(() => {
-    document.body.style.backgroundColor = '#2B0E14';
+    preloadGuestFlow();
+    document.body.style.backgroundColor = '#07080B';
     return () => {
       document.body.style.backgroundColor = '';
     };
@@ -23,31 +25,31 @@ function GuestShell({ shortCode, tableData }) {
   useEffect(() => {
     if (totalItemCount > prevCount.current) {
       setCartBounce(true);
-      const t = setTimeout(() => setCartBounce(false), 350);
+      const t = setTimeout(() => setCartBounce(false), 300);
       return () => clearTimeout(t);
     }
     prevCount.current = totalItemCount;
   }, [totalItemCount]);
 
   return (
-    <div className="min-h-screen bg-[#2B0E14] flex flex-col items-center font-body">
-      {/* Mobile-constrained viewport shell */}
-      <div className="w-full max-w-md min-h-screen bg-[#2B0E14] shadow-2xl flex flex-col relative">
-        {/* ═══ Royal Plum Header with Gold Trim ═══ */}
-        <header className="sticky top-0 z-30 royal-header px-4 py-3 safe-top">
+    <div className="min-h-screen bg-bg text-text flex flex-col items-center font-sans selection:bg-accent selection:text-bg">
+      {/* Mobile-constrained viewport shell with subtle hairline borders */}
+      <div className="w-full max-w-md min-h-screen bg-bg border-x border-white/[0.06] shadow-2xl flex flex-col relative">
+        {/* Minimalist Top Header */}
+        <header className="sticky top-0 z-30 bg-surface/90 backdrop-blur-md px-5 py-3.5 safe-top border-b border-white/[0.08]">
           <div className="flex items-center justify-between">
             {/* Venue identity */}
             <div className="flex items-center gap-3 min-w-0">
-              {/* Table number in gold-bordered badge */}
-              <div className="h-9 w-9 rounded-xl border border-[#E5C158] bg-[#E5C158]/15 flex items-center justify-center text-[#E5C158] font-serif font-bold text-sm shrink-0 shadow-gold">
-                {tableData.tableNumber}
+              {/* Table number in pill badge */}
+              <div className="h-8 px-3 rounded-full border border-white/10 bg-surface-2 flex items-center justify-center text-accent font-mono font-bold text-xs shrink-0">
+                T-{tableData.tableNumber}
               </div>
               <div className="min-w-0">
-                <h1 className="text-base font-serif font-bold text-[#F6EEDD] tracking-wide truncate">
+                <h1 className="text-sm font-heading font-bold text-text tracking-tight truncate">
                   {tableData.venueName}
                 </h1>
-                <p className="text-[11px] font-body font-bold text-[#E5C158] flex items-center gap-1.5">
-                  <span className="inline-block h-2 w-2 rounded-full bg-[#E5C158] animate-pulse" />
+                <p className="text-[11px] font-mono text-muted flex items-center gap-1.5">
+                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" />
                   Table {tableData.tableNumber}
                 </p>
               </div>
@@ -58,21 +60,23 @@ function GuestShell({ shortCode, tableData }) {
               {/* Order status */}
               <Link
                 to={`/t/${shortCode}/orders`}
-                className="p-2 rounded-xl text-[#E5C158] hover:text-[#FFFDF7] hover:bg-[#E5C158]/15 transition-colors"
+                className="p-2 rounded-full border border-white/10 bg-surface-2 text-muted hover:text-text hover:border-white/20 transition-colors"
                 title="Order Status"
               >
-                <ClockIcon className="h-5 w-5" />
+                <Clock className="h-4 w-4" strokeWidth={1.5} />
               </Link>
 
               {/* Cart icon with badge */}
               <Link
                 to={`/t/${shortCode}/cart`}
-                className={`relative p-2 rounded-xl text-[#E5C158] hover:text-[#FFFDF7] hover:bg-[#E5C158]/15 transition-colors ${cartBounce ? 'animate-cart-bounce' : ''}`}
+                className={`relative p-2 rounded-full border border-white/10 bg-surface-2 text-muted hover:text-text hover:border-white/20 transition-all ${
+                  cartBounce ? '-translate-y-0.5' : ''
+                }`}
                 title="View Cart"
               >
-                <ShoppingBagIcon className="h-5 w-5" />
+                <ShoppingBag className="h-4 w-4" strokeWidth={1.5} />
                 {totalItemCount > 0 && (
-                  <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-[#C83200] text-white text-[10px] font-bold flex items-center justify-center shadow-sm">
+                  <span className="absolute -top-1 -right-1 h-4 min-w-4 px-1 rounded-full bg-accent text-bg text-[10px] font-mono font-bold flex items-center justify-center shadow-sm">
                     {totalItemCount}
                   </span>
                 )}
@@ -81,7 +85,7 @@ function GuestShell({ shortCode, tableData }) {
           </div>
         </header>
 
-        {/* ═══ Dynamic Route Content ═══ */}
+        {/* Dynamic Route Content */}
         <main className="flex-1 flex flex-col p-4 pb-24 safe-bottom">
           <AnimatedOutlet />
         </main>
@@ -103,7 +107,7 @@ export function GuestLayout() {
   const [tableData, setTableData] = useState({
     tableNumber: '',
     venueName: '',
-    brandColor: '#C9A227',
+    brandColor: '#C6FF3D',
     currency: 'INR',
     venueId: null,
   });
@@ -134,11 +138,11 @@ export function GuestLayout() {
           setTableData({
             tableNumber: data.table_number,
             venueName: venue?.name || 'Restaurant Dining',
-            brandColor: venue?.brand_color || '#C9A227',
+            brandColor: venue?.brand_color || '#C6FF3D',
             currency: venue?.currency || 'INR',
             venueId: venue?.id || null,
           });
-          applyVenueBranding(venue?.brand_color || '#C9A227');
+          applyVenueBranding(venue?.brand_color || '#C6FF3D');
         }
       } catch (err) {
         console.warn('Error loading table info:', err);
@@ -151,34 +155,34 @@ export function GuestLayout() {
     loadTableAndVenue();
   }, [shortCode]);
 
-  /* ─── Loading state ─── */
+  /* Loading state */
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-dhaba-plum flex items-center justify-center p-4">
+      <div className="min-h-screen bg-bg flex items-center justify-center p-4">
         <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-dhaba-gold border-t-transparent" />
-          <span className="text-xs font-body text-dhaba-gold/60">Loading your table…</span>
+          <div className="h-7 w-7 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+          <span className="text-xs font-mono text-muted">Loading your table…</span>
         </div>
       </div>
     );
   }
 
-  /* ─── Table not found ─── */
+  /* Table not found */
   if (tableNotFound) {
     return (
-      <div className="min-h-screen bg-dhaba-plum flex flex-col items-center justify-center p-6 text-center font-body">
-        <div className="max-w-sm rounded-2xl royal-card p-8 shadow-gold space-y-4">
-          <div className="h-16 w-16 mx-auto rounded-2xl bg-dhaba-sindoor/10 text-dhaba-sindoor flex items-center justify-center font-serif font-bold text-2xl">
-            ⚠
+      <div className="min-h-screen bg-bg text-text flex flex-col items-center justify-center p-6 text-center font-sans">
+        <div className="max-w-sm rounded-card bg-surface p-8 border border-white/10 space-y-4 shadow-2xl">
+          <div className="h-12 w-12 mx-auto rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+            <AlertCircle className="h-6 w-6" strokeWidth={1.5} />
           </div>
-          <h2 className="text-xl font-serif font-bold text-dhaba-ink">Table Not Found</h2>
-          <p className="text-xs text-dhaba-ink-muted leading-relaxed">
-            The QR code you scanned (<code className="font-mono text-dhaba-sindoor">{shortCode}</code>) is invalid or the table is currently inactive.
+          <h2 className="text-lg font-heading font-bold text-text">Table Not Found</h2>
+          <p className="text-xs text-muted leading-relaxed font-sans">
+            The QR code you scanned (<code className="font-mono text-accent">{shortCode}</code>) is invalid or the table is currently inactive.
             Please scan the QR code on your table standee or ask a waiter for assistance.
           </p>
           <Link
             to="/"
-            className="inline-block mt-2 px-5 py-2.5 rounded-xl bg-dhaba-sindoor hover:bg-dhaba-sindoor-hover text-white text-xs font-bold transition-colors shadow-sindoor"
+            className="inline-block mt-2 px-6 py-2.5 rounded-full bg-surface-2 hover:bg-white/[0.08] border border-white/10 text-text text-xs font-medium transition-colors"
           >
             Return to Home
           </Link>

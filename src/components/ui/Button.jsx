@@ -18,27 +18,27 @@ export const Button = React.forwardRef(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/40 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] select-none rounded-xl';
+      'group inline-flex items-center justify-center font-medium transition-all duration-300 ease-out focus:outline-none focus:ring-1 focus:ring-accent disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98] select-none rounded-full';
 
     const variants = {
       primary:
-        'bg-brand-primary text-white shadow-sm hover:bg-brand-primary-hover shadow-orange-500/20',
+        'bg-accent text-bg font-semibold hover:bg-accent-hover hover:-translate-y-[1px] shadow-sm',
       secondary:
-        'bg-stone-100 text-stone-900 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-100 dark:hover:bg-stone-700',
+        'bg-surface-2 text-text border border-white/10 hover:border-white/20 hover:-translate-y-[1px]',
       outline:
-        'border border-stone-200 bg-transparent text-stone-700 hover:bg-stone-50 dark:border-stone-700 dark:text-stone-300 dark:hover:bg-stone-800',
+        'border border-white/10 bg-transparent text-text hover:border-white/25 hover:bg-white/[0.03] hover:-translate-y-[1px]',
       ghost:
-        'bg-transparent text-stone-600 hover:bg-stone-100 dark:text-stone-400 dark:hover:bg-stone-800',
+        'bg-transparent text-muted hover:text-text hover:bg-white/[0.04]',
       danger:
-        'bg-rose-600 text-white hover:bg-rose-700 shadow-sm shadow-rose-500/20',
+        'bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20',
       accent:
-        'bg-amber-500 text-stone-950 font-semibold hover:bg-amber-400',
+        'bg-accent text-bg font-semibold hover:bg-accent-hover hover:-translate-y-[1px]',
     };
 
     const sizes = {
-      sm: 'text-xs px-3 py-1.5 gap-1.5',
-      md: 'text-sm px-4 py-2.5 gap-2',
-      lg: 'text-base px-5 py-3 gap-2.5 font-semibold',
+      sm: 'text-xs px-4 py-1.5 gap-1.5',
+      md: 'text-sm px-5 py-2.5 gap-2',
+      lg: 'text-base px-7 py-3.5 gap-2.5 font-semibold',
       icon: 'p-2.5 aspect-square',
     };
 
@@ -72,11 +72,11 @@ export const Button = React.forwardRef(
             />
           </svg>
         ) : leftIcon ? (
-          <span className="shrink-0">{leftIcon}</span>
+          <span className="shrink-0 transition-transform duration-300 group-hover:-translate-x-0.5">{leftIcon}</span>
         ) : null}
         {children}
         {!isLoading && rightIcon ? (
-          <span className="shrink-0">{rightIcon}</span>
+          <span className="shrink-0 transition-transform duration-300 group-hover:translate-x-1">{rightIcon}</span>
         ) : null}
       </button>
     );

@@ -37,42 +37,42 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-// Role config — colors, icons, labels (PetPooja-style)
+// Role config — studio aesthetic tokens
 const ROLE_CONFIG = {
   owner: {
     label: 'Owner',
-    color: 'bg-amber-500',
-    borderColor: 'border-l-amber-500',
-    textColor: 'text-amber-700 dark:text-amber-400',
-    bgLight: 'bg-amber-50 dark:bg-amber-950/30',
-    badgeBorder: 'border-amber-200 dark:border-amber-800',
+    color: 'bg-[#C6FF3D] text-[#07080B]',
+    borderColor: 'border-l-[#C6FF3D]',
+    textColor: 'text-[#C6FF3D]',
+    bgLight: 'bg-[#C6FF3D]/10',
+    badgeBorder: 'border-[#C6FF3D]/25',
     icon: Crown,
   },
   manager: {
     label: 'Manager',
-    color: 'bg-blue-500',
-    borderColor: 'border-l-blue-500',
-    textColor: 'text-blue-700 dark:text-blue-400',
-    bgLight: 'bg-blue-50 dark:bg-blue-950/30',
-    badgeBorder: 'border-blue-200 dark:border-blue-800',
+    color: 'bg-sky-400 text-[#07080B]',
+    borderColor: 'border-l-sky-400',
+    textColor: 'text-sky-400',
+    bgLight: 'bg-sky-400/10',
+    badgeBorder: 'border-sky-400/25',
     icon: Shield,
   },
   kitchen: {
     label: 'Kitchen',
-    color: 'bg-rose-500',
-    borderColor: 'border-l-rose-500',
-    textColor: 'text-rose-700 dark:text-rose-400',
-    bgLight: 'bg-rose-50 dark:bg-rose-950/30',
-    badgeBorder: 'border-rose-200 dark:border-rose-800',
+    color: 'bg-amber-400 text-[#07080B]',
+    borderColor: 'border-l-amber-400',
+    textColor: 'text-amber-300',
+    bgLight: 'bg-amber-400/10',
+    badgeBorder: 'border-amber-400/25',
     icon: ChefHat,
   },
   waiter: {
     label: 'Waiter',
-    color: 'bg-emerald-500',
-    borderColor: 'border-l-emerald-500',
-    textColor: 'text-emerald-700 dark:text-emerald-400',
-    bgLight: 'bg-emerald-50 dark:bg-emerald-950/30',
-    badgeBorder: 'border-emerald-200 dark:border-emerald-800',
+    color: 'bg-emerald-400 text-[#07080B]',
+    borderColor: 'border-l-emerald-400',
+    textColor: 'text-emerald-400',
+    bgLight: 'bg-emerald-400/10',
+    badgeBorder: 'border-emerald-400/25',
     icon: ConciergeBell,
   },
 };
@@ -234,29 +234,25 @@ export function StaffTeamScreen() {
       title: 'Total Staff',
       value: totalStaff,
       icon: Users,
-      color: 'from-blue-500 to-blue-600',
-      shadowColor: 'shadow-blue-500/25',
+      color: 'text-sky-400 bg-sky-400/10 border border-sky-400/25',
     },
     {
       title: 'Active Now',
       value: activeStaff,
       icon: UserCheck,
-      color: 'from-emerald-500 to-emerald-600',
-      shadowColor: 'shadow-emerald-500/25',
+      color: 'text-[#C6FF3D] bg-[#C6FF3D]/10 border border-[#C6FF3D]/25',
     },
     {
       title: 'Kitchen Staff',
       value: roleCounts.kitchen || 0,
       icon: ChefHat,
-      color: 'from-rose-500 to-rose-600',
-      shadowColor: 'shadow-rose-500/25',
+      color: 'text-amber-400 bg-amber-400/10 border border-amber-400/25',
     },
     {
       title: 'Floor Staff',
       value: (roleCounts.waiter || 0) + (roleCounts.manager || 0),
       icon: ConciergeBell,
-      color: 'from-amber-500 to-amber-600',
-      shadowColor: 'shadow-amber-500/25',
+      color: 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/25',
     },
   ];
 
@@ -265,24 +261,25 @@ export function StaffTeamScreen() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-stone-900 dark:text-white flex items-center gap-2">
-            <Users className="h-5 w-5 text-brand-primary" />
+          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7] flex items-center gap-2.5">
+            <Users className="h-5 w-5 text-[#C6FF3D]" strokeWidth={1.5} />
             Staff Management
           </h2>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <p className="text-xs text-[#8A8F9C] mt-1">
             Manage your team, roles, access & approvals
           </p>
         </div>
         <Button
           size="sm"
           onClick={() => setShowAddModal(true)}
-          leftIcon={<UserPlus className="h-4 w-4" />}
+          leftIcon={<UserPlus className="h-4 w-4" strokeWidth={1.5} />}
+          className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold"
         >
           Add Staff
         </Button>
       </div>
 
-      {/* PetPooja-style Stat Cards */}
+      {/* Studio Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, i) => {
           const Icon = stat.icon;
@@ -292,18 +289,15 @@ export function StaffTeamScreen() {
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.08 }}
-              className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${stat.color} p-5 text-white shadow-lg ${stat.shadowColor}`}
+              className="p-5 rounded-card bg-[#0E1016] border border-white/[0.08] hover:border-white/[0.18] transition-all space-y-3"
             >
               <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-white/80">{stat.title}</p>
-                  <h3 className="text-3xl font-black mt-1">{stat.value}</h3>
-                </div>
-                <div className="h-12 w-12 rounded-xl bg-white/15 flex items-center justify-center">
-                  <Icon className="h-6 w-6" />
+                <span className="text-xs font-mono uppercase tracking-wider text-[#8A8F9C]">{stat.title}</span>
+                <div className={`p-2 rounded-xl ${stat.color}`}>
+                  <Icon className="h-4 w-4" strokeWidth={1.5} />
                 </div>
               </div>
-              <div className="absolute -right-4 -bottom-4 h-20 w-20 rounded-full bg-white/10" />
+              <h3 className="text-2xl font-heading font-extrabold text-[#F4F5F7]">{stat.value}</h3>
             </motion.div>
           );
         })}
@@ -311,18 +305,18 @@ export function StaffTeamScreen() {
 
       {/* Pending Approvals Section (Admin Confirmation Panel) */}
       {pendingMembers.length > 0 && (
-        <div className="p-5 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 space-y-4 shadow-sm">
+        <div className="p-5 rounded-card bg-[#0E1016] border border-amber-400/30 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
-              <span className="relative flex h-3 w-3">
+              <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400" />
               </span>
-              <h3 className="text-sm font-extrabold text-amber-900 dark:text-amber-200 uppercase tracking-wide">
+              <h3 className="text-xs font-mono font-bold text-amber-300 uppercase tracking-wider">
                 Pending Account Approvals ({pendingMembers.length})
               </h3>
             </div>
-            <p className="text-xs text-amber-800 dark:text-amber-300 font-medium">
+            <p className="text-xs text-[#8A8F9C]">
               These staff accounts cannot access the portal until you confirm them.
             </p>
           </div>
@@ -341,11 +335,11 @@ export function StaffTeamScreen() {
       )}
 
       {/* Role Distribution Bar */}
-      <div className="rounded-2xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 p-5">
-        <h3 className="text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-3">
+      <div className="rounded-card bg-[#0E1016] border border-white/[0.08] p-5">
+        <h3 className="text-xs font-mono font-medium text-[#8A8F9C] uppercase tracking-wider mb-3">
           Role Distribution
         </h3>
-        <div className="flex rounded-full overflow-hidden h-3 bg-stone-100 dark:bg-stone-800">
+        <div className="flex rounded-full overflow-hidden h-2.5 bg-[#141721] border border-white/[0.06]">
           {Object.entries(ROLE_CONFIG).map(([role, config]) => {
             const count = roleCounts[role] || 0;
             const percent = totalStaff > 0 ? (count / totalStaff) * 100 : 0;
@@ -356,7 +350,7 @@ export function StaffTeamScreen() {
                 initial={{ width: 0 }}
                 animate={{ width: `${percent}%` }}
                 transition={{ duration: 0.6, delay: 0.3 }}
-                className={`${config.color} first:rounded-l-full last:rounded-r-full`}
+                className={`${config.color.split(' ')[0]} first:rounded-l-full last:rounded-r-full`}
                 title={`${config.label}: ${count}`}
               />
             );
@@ -367,12 +361,12 @@ export function StaffTeamScreen() {
             const count = roleCounts[role] || 0;
             if (count === 0) return null;
             return (
-              <div key={role} className="flex items-center gap-1.5">
-                <span className={`h-2.5 w-2.5 rounded-full ${config.color}`} />
-                <span className="text-xs font-semibold text-stone-600 dark:text-stone-300">
+              <div key={role} className="flex items-center gap-1.5 font-mono text-xs">
+                <span className={`h-2 w-2 rounded-full ${config.color.split(' ')[0]}`} />
+                <span className="text-[#8A8F9C]">
                   {config.label}
                 </span>
-                <span className="text-xs text-stone-400">{count}</span>
+                <span className="text-[#F4F5F7] font-semibold">{count}</span>
               </div>
             );
           })}
@@ -382,24 +376,24 @@ export function StaffTeamScreen() {
       {/* Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#8A8F9C]" strokeWidth={1.5} />
           <input
             type="text"
             placeholder="Search by name or email..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-xl border border-stone-200 bg-white pl-10 pr-4 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100 dark:placeholder:text-stone-500"
+            className="w-full rounded-full border border-white/[0.08] bg-[#0E1016] pl-9 pr-4 py-2 text-xs text-[#F4F5F7] placeholder:text-[#8A8F9C] focus:border-[#C6FF3D] focus:outline-none transition-colors"
           />
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0 overflow-x-auto no-scrollbar">
           {['all', 'owner', 'manager', 'kitchen', 'waiter'].map((r) => (
             <button
               key={r}
               onClick={() => setFilterRole(r)}
-              className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
+              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
                 filterRole === r
-                  ? 'bg-brand-primary text-white shadow-sm shadow-brand-primary/25'
-                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200 dark:bg-stone-800 dark:text-stone-400 dark:hover:bg-stone-700'
+                  ? 'bg-[#C6FF3D] text-[#07080B] font-semibold shadow-sm'
+                  : 'bg-[#0E1016] text-[#8A8F9C] hover:text-[#F4F5F7] border border-white/[0.08]'
               }`}
             >
               {r === 'all' ? 'All' : ROLE_CONFIG[r]?.label || r}
@@ -412,26 +406,28 @@ export function StaffTeamScreen() {
       {isLoading ? (
         <div className="space-y-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-24 rounded-2xl bg-stone-100 dark:bg-stone-800 animate-pulse" />
+            <div key={i} className="h-20 rounded-card bg-[#0E1016] border border-white/[0.08] animate-pulse" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title={searchQuery || filterRole !== 'all' ? 'No matching staff found' : 'No active staff members yet'}
-          description={
-            searchQuery || filterRole !== 'all'
-              ? 'Try adjusting your search or filters.'
-              : 'Add your first team member or review pending registrations above.'
-          }
-          action={
-            !searchQuery && filterRole === 'all' ? (
-              <Button size="sm" onClick={() => setShowAddModal(true)} leftIcon={<UserPlus className="h-4 w-4" />}>
-                Add First Staff
-              </Button>
-            ) : null
-          }
-        />
+        <div className="p-8 rounded-card bg-[#0E1016] border border-white/[0.08]">
+          <EmptyState
+            icon={Users}
+            title={searchQuery || filterRole !== 'all' ? 'No matching staff found' : 'No active staff members yet'}
+            description={
+              searchQuery || filterRole !== 'all'
+                ? 'Try adjusting your search or filters.'
+                : 'Add your first team member or review pending registrations above.'
+            }
+            action={
+              !searchQuery && filterRole === 'all' ? (
+                <Button size="sm" onClick={() => setShowAddModal(true)} leftIcon={<UserPlus className="h-4 w-4" strokeWidth={1.5} />} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
+                  Add First Staff
+                </Button>
+              ) : null
+            }
+          />
+        </div>
       ) : (
         <div className="space-y-3">
           <AnimatePresence mode="popLayout">
@@ -448,17 +444,15 @@ export function StaffTeamScreen() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ delay: idx * 0.04 }}
-                  className={`group relative rounded-2xl border-2 border-l-4 ${config.borderColor} bg-white dark:bg-stone-900 transition-all hover:shadow-lg ${
-                    member.is_active
-                      ? 'border-stone-200/80 dark:border-stone-800 hover:shadow-stone-200/50 dark:hover:shadow-stone-950/50'
-                      : 'border-stone-200/50 dark:border-stone-800/50 opacity-70'
+                  className={`group relative rounded-card border-l-2 ${config.borderColor} border border-white/[0.08] bg-[#0E1016] transition-all hover:border-white/[0.18] ${
+                    member.is_active ? '' : 'opacity-60'
                   }`}
                 >
                   <div className="flex items-center gap-4 px-5 py-4">
                     {/* Avatar */}
                     <div className="relative flex-shrink-0">
                       <div
-                        className={`h-12 w-12 rounded-xl flex items-center justify-center font-bold text-sm text-white shadow-md ${config.color}`}
+                        className="h-10 w-10 rounded-full flex items-center justify-center font-mono font-bold text-xs bg-[#141721] border border-white/[0.12] text-[#F4F5F7]"
                       >
                         {member.avatar_initials || member.full_name.slice(0, 2).toUpperCase()}
                       </div>
@@ -467,11 +461,11 @@ export function StaffTeamScreen() {
                     {/* Info */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2.5">
-                        <h4 className="text-sm font-bold text-stone-900 dark:text-white truncate">
+                        <h4 className="text-sm font-heading font-semibold text-[#F4F5F7] truncate">
                           {member.full_name}
                         </h4>
                         {isCurrentUser && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-brand-primary/10 text-brand-primary">
+                          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-[#C6FF3D]/10 text-[#C6FF3D] border border-[#C6FF3D]/30">
                             You
                           </span>
                         )}
@@ -479,23 +473,23 @@ export function StaffTeamScreen() {
                           size="sm"
                           className={`${config.bgLight} ${config.textColor} border ${config.badgeBorder}`}
                         >
-                          <RoleIcon className="h-3 w-3 mr-0.5" />
+                          <RoleIcon className="h-3 w-3 mr-1 inline" strokeWidth={1.5} />
                           {config.label}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-4 mt-1.5">
-                        <span className="flex items-center gap-1 text-[11px] text-stone-500 dark:text-stone-400">
-                          <Mail className="h-3 w-3" />
+                      <div className="flex items-center gap-4 mt-1 font-mono text-[11px] text-[#8A8F9C]">
+                        <span className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" strokeWidth={1.5} />
                           {member.email}
                         </span>
                         {member.phone && (
-                          <span className="hidden sm:flex items-center gap-1 text-[11px] text-stone-500 dark:text-stone-400">
-                            <Phone className="h-3 w-3" />
+                          <span className="hidden sm:flex items-center gap-1">
+                            <Phone className="h-3 w-3" strokeWidth={1.5} />
                             {member.phone}
                           </span>
                         )}
-                        <span className="flex items-center gap-1 text-[11px] text-stone-500 dark:text-stone-400">
-                          <Clock className="h-3 w-3" />
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" strokeWidth={1.5} />
                           {timeAgo(member.last_active || member.joined_at)}
                         </span>
                       </div>
@@ -516,10 +510,10 @@ export function StaffTeamScreen() {
                         <button
                           type="button"
                           onClick={(e) => handleToggleMenu(e, member.id)}
-                          className="p-2 rounded-xl text-stone-400 hover:bg-stone-100 hover:text-stone-600 dark:hover:bg-stone-800 dark:hover:text-stone-300 transition-colors"
+                          className="p-1.5 rounded-full text-[#8A8F9C] hover:bg-white/[0.06] hover:text-[#F4F5F7] transition-colors"
                           title="Staff Options"
                         >
-                          <MoreVertical className="h-4 w-4" />
+                          <MoreVertical className="h-4 w-4" strokeWidth={1.5} />
                         </button>
 
                         {/* Dropdown Menu (smart flip up/down so it never clips) */}
@@ -529,10 +523,10 @@ export function StaffTeamScreen() {
                             <div
                               className={`absolute right-0 ${
                                 menuDirection === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'
-                              } z-50 w-52 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl shadow-2xl py-1.5`}
+                              } z-50 w-52 bg-[#141721] border border-white/[0.12] rounded-xl shadow-2xl py-1.5`}
                             >
-                              <div className="px-3.5 py-1.5 border-b border-stone-100 dark:border-stone-700">
-                                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">
+                              <div className="px-3.5 py-1.5 border-b border-white/[0.08]">
+                                <p className="text-[9px] font-mono uppercase tracking-wider text-[#8A8F9C]">
                                   Change Role
                                 </p>
                               </div>
@@ -542,20 +536,20 @@ export function StaffTeamScreen() {
                                     key={roleKey}
                                     type="button"
                                     onClick={() => handleRoleChange(member, roleKey)}
-                                    className={`w-full text-left px-3.5 py-2 text-xs font-semibold flex items-center gap-2.5 transition-colors ${
+                                    className={`w-full text-left px-3.5 py-2 text-xs font-medium flex items-center gap-2.5 transition-colors ${
                                       member.role === roleKey
                                         ? `${roleConf.bgLight} ${roleConf.textColor}`
-                                        : 'text-stone-600 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700/50'
+                                        : 'text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.04]'
                                     }`}
                                   >
-                                    <roleConf.icon className="h-4 w-4" />
+                                    <roleConf.icon className="h-3.5 w-3.5" strokeWidth={1.5} />
                                     <span>{roleConf.label}</span>
-                                    {member.role === roleKey && <span className="ml-auto text-[11px] font-bold">✓</span>}
+                                    {member.role === roleKey && <span className="ml-auto text-[11px] font-mono font-bold">✓</span>}
                                   </button>
                                 ))}
                               </div>
 
-                              <div className="border-t border-stone-100 dark:border-stone-700 pt-1 px-1">
+                              <div className="border-t border-white/[0.08] pt-1 px-1">
                                 <button
                                   type="button"
                                   disabled={isCurrentUser}
@@ -563,13 +557,13 @@ export function StaffTeamScreen() {
                                     setOpenMenuId(null);
                                     handleDelete(member);
                                   }}
-                                  className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-xl flex items-center gap-2 transition-colors ${
+                                  className={`w-full text-left px-3 py-2 text-xs font-medium rounded-lg flex items-center gap-2 transition-colors ${
                                     isCurrentUser
-                                      ? 'text-stone-300 dark:text-stone-600 cursor-not-allowed'
-                                      : 'text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30'
+                                      ? 'text-white/20 cursor-not-allowed'
+                                      : 'text-rose-400 hover:bg-rose-500/10'
                                   }`}
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
+                                  <Trash2 className="h-3.5 w-3.5" strokeWidth={1.5} />
                                   Remove Staff
                                 </button>
                               </div>
@@ -634,35 +628,35 @@ function PendingStaffCard({ member, onApprove, onReject }) {
   const [selectedRole, setSelectedRole] = useState(member.role || 'waiter');
 
   return (
-    <div className="p-4 rounded-xl bg-white dark:bg-stone-900 border border-amber-300/80 dark:border-amber-700/60 shadow-sm flex flex-col justify-between gap-3">
+    <div className="p-4 rounded-xl bg-[#141721] border border-amber-400/25 flex flex-col justify-between gap-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="h-10 w-10 rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-200 flex items-center justify-center font-bold text-xs shrink-0">
+          <div className="h-9 w-9 rounded-full bg-white/[0.04] border border-amber-400/30 text-amber-300 flex items-center justify-center font-mono font-bold text-xs shrink-0">
             {member.avatar_initials || member.full_name?.slice(0, 2).toUpperCase() || 'ST'}
           </div>
           <div className="min-w-0">
-            <h4 className="text-xs font-bold text-stone-900 dark:text-white truncate">
+            <h4 className="text-xs font-semibold text-[#F4F5F7] truncate">
               {member.full_name}
             </h4>
-            <p className="text-[11px] text-stone-500 truncate flex items-center gap-1 mt-0.5">
-              <Mail className="h-3 w-3 shrink-0" />
+            <p className="text-[11px] font-mono text-[#8A8F9C] truncate flex items-center gap-1 mt-0.5">
+              <Mail className="h-3 w-3 shrink-0" strokeWidth={1.5} />
               {member.email}
             </p>
           </div>
         </div>
 
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 shrink-0">
+        <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/30 shrink-0">
           Pending
         </span>
       </div>
 
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-stone-100 dark:border-stone-800">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-stone-400 font-medium">Assign Role:</span>
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 pt-2 border-t border-white/[0.06]">
+        <div className="flex items-center gap-1.5 font-mono text-xs">
+          <span className="text-[11px] text-[#8A8F9C]">Assign Role:</span>
           <select
             value={selectedRole}
             onChange={(e) => setSelectedRole(e.target.value)}
-            className="rounded-lg border border-stone-300 dark:border-stone-700 bg-stone-50 dark:bg-stone-800 px-2 py-1 text-xs font-semibold text-stone-900 dark:text-white"
+            className="rounded-full border border-white/[0.12] bg-[#0E1016] px-2.5 py-1 text-xs font-medium text-[#F4F5F7] focus:border-[#C6FF3D] outline-none"
           >
             <option value="waiter">Waiter</option>
             <option value="kitchen">Kitchen</option>
@@ -675,19 +669,19 @@ function PendingStaffCard({ member, onApprove, onReject }) {
           <Button
             size="sm"
             variant="outline"
-            className="text-xs border-rose-300 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-bold"
+            className="text-xs border-rose-500/20 text-rose-400 hover:bg-rose-500/10 rounded-full font-medium"
             onClick={onReject}
           >
-            <XCircle className="h-3.5 w-3.5 mr-1" />
+            <XCircle className="h-3.5 w-3.5 mr-1" strokeWidth={1.5} />
             Reject
           </Button>
 
           <Button
             size="sm"
-            className="text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/20"
+            className="text-xs font-semibold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e]"
             onClick={() => onApprove(selectedRole)}
           >
-            <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+            <CheckCircle2 className="h-3.5 w-3.5 mr-1" strokeWidth={1.5} />
             Approve & Confirm
           </Button>
         </div>
@@ -724,7 +718,7 @@ function AddStaffModal({ isOpen, onClose, onSubmit, isLoading }) {
     <Modal isOpen={isOpen} onClose={onClose} title="Add Staff Member" description="Invite a new team member to your venue" size="md">
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-2">
+          <label className="block text-xs font-mono uppercase tracking-wider text-[#8A8F9C] mb-2">
             Select Role
           </label>
           <div className="grid grid-cols-2 gap-2">
@@ -736,20 +730,20 @@ function AddStaffModal({ isOpen, onClose, onSubmit, isLoading }) {
                   key={roleKey}
                   type="button"
                   onClick={() => setRole(roleKey)}
-                  className={`relative flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                  className={`relative flex items-center gap-3 p-3 rounded-xl border transition-all text-left ${
                     isSelected
-                      ? `${config.bgLight} ${config.badgeBorder} ${config.textColor} shadow-sm`
-                      : 'border-stone-200 dark:border-stone-700 hover:border-stone-300 dark:hover:border-stone-600'
+                      ? 'bg-[#141721] border-[#C6FF3D]/40 text-[#F4F5F7]'
+                      : 'border-white/[0.08] hover:border-white/[0.18] bg-transparent text-[#8A8F9C]'
                   }`}
                 >
-                  <div className={`h-9 w-9 rounded-lg flex items-center justify-center text-white ${config.color}`}>
-                    <RoleIcon className="h-4 w-4" />
+                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${config.bgLight} ${config.textColor}`}>
+                    <RoleIcon className="h-4 w-4" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className={`text-xs font-bold ${isSelected ? config.textColor : 'text-stone-800 dark:text-stone-200'}`}>
+                    <p className={`text-xs font-semibold ${isSelected ? 'text-[#F4F5F7]' : 'text-[#8A8F9C]'}`}>
                       {config.label}
                     </p>
-                    <p className="text-[10px] text-stone-400 mt-0.5">
+                    <p className="text-[10px] text-[#8A8F9C] mt-0.5">
                       {roleKey === 'owner' && 'Full access'}
                       {roleKey === 'manager' && 'Manage orders & staff'}
                       {roleKey === 'kitchen' && 'KDS & menu access'}
@@ -757,8 +751,8 @@ function AddStaffModal({ isOpen, onClose, onSubmit, isLoading }) {
                     </p>
                   </div>
                   {isSelected && (
-                    <span className="absolute top-2 right-2 h-4 w-4 rounded-full bg-brand-primary flex items-center justify-center">
-                      <span className="text-white text-[8px] font-bold">✓</span>
+                    <span className="absolute top-2 right-2 h-4 w-4 rounded-full bg-[#C6FF3D] flex items-center justify-center text-[#07080B] text-[9px] font-bold">
+                      ✓
                     </span>
                   )}
                 </button>
@@ -786,10 +780,10 @@ function AddStaffModal({ isOpen, onClose, onSubmit, isLoading }) {
         />
 
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Button variant="ghost" size="sm" onClick={onClose} type="button">
+          <Button variant="ghost" size="sm" onClick={onClose} type="button" className="rounded-full text-[#8A8F9C] hover:text-[#F4F5F7]">
             Cancel
           </Button>
-          <Button type="submit" size="sm" isLoading={isLoading} leftIcon={<UserPlus className="h-3.5 w-3.5" />}>
+          <Button type="submit" size="sm" isLoading={isLoading} leftIcon={<UserPlus className="h-3.5 w-3.5" strokeWidth={1.5} />} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
             Add to Team
           </Button>
         </div>

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Button } from '@/components/ui/Button';
-import { Clock, ShieldAlert, RefreshCw, LogOut } from 'lucide-react';
+import { Clock, RefreshCw, LogOut, ShieldAlert } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function PendingApprovalScreen() {
@@ -23,45 +23,47 @@ export function PendingApprovalScreen() {
   };
 
   return (
-    <div className="min-h-screen bg-stone-950 text-stone-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-3xl bg-stone-900 border border-stone-800 shadow-2xl p-8 text-center space-y-6">
+    <div className="min-h-screen bg-bg text-text flex items-center justify-center p-4 selection:bg-accent selection:text-bg relative overflow-hidden font-sans">
+      <div className="absolute inset-0 hero-radial-glow faint-grid pointer-events-none opacity-80" />
+
+      <div className="relative z-10 w-full max-w-md rounded-card bg-surface border border-white/10 shadow-2xl p-8 sm:p-10 text-center space-y-6">
         {/* Animated Icon */}
-        <div className="mx-auto h-16 w-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center relative">
-          <Clock className="h-8 w-8 animate-pulse" />
-          <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-amber-500" />
+        <div className="mx-auto h-14 w-14 rounded-full bg-white/[0.04] border border-white/10 text-accent flex items-center justify-center relative">
+          <Clock className="h-6 w-6" strokeWidth={1.5} />
+          <span className="absolute top-1 right-1 h-2.5 w-2.5 rounded-full bg-accent animate-pulse" />
         </div>
 
         {/* Content */}
         <div className="space-y-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 px-3 py-1 rounded-full border border-amber-500/20">
+          <span className="eyebrow text-accent inline-block px-3 py-1 rounded-full border border-accent/20 bg-accent/10">
             Account Pending Approval
           </span>
-          <h1 className="text-2xl font-black text-white pt-2">
+          <h1 className="font-heading text-2xl font-bold text-text pt-2 tracking-tight">
             Awaiting Admin Review
           </h1>
-          <p className="text-xs text-stone-400 leading-relaxed max-w-sm mx-auto">
-            Your staff account for <strong className="text-stone-200">{venueName}</strong> has been registered. For security, an Administrator or Owner must accept your account before you can access the operational dashboard.
+          <p className="text-xs text-muted leading-relaxed max-w-sm mx-auto font-sans">
+            Your staff account for <strong className="text-text">{venueName}</strong> has been registered. For security, an Administrator or Owner must accept your account before you can access the operational dashboard.
           </p>
         </div>
 
         {/* User Card */}
-        <div className="p-4 rounded-2xl bg-stone-800/60 border border-stone-700/60 text-left text-xs space-y-1.5">
-          <div className="flex justify-between items-center text-stone-400">
+        <div className="p-5 rounded-xl bg-surface-2 border border-white/[0.08] text-left text-xs space-y-2">
+          <div className="flex justify-between items-center text-muted">
             <span>Name:</span>
-            <span className="font-bold text-stone-200">{staffProfile?.full_name || user?.user_metadata?.full_name || 'Staff Member'}</span>
+            <span className="font-medium text-text">{staffProfile?.full_name || user?.user_metadata?.full_name || 'Staff Member'}</span>
           </div>
-          <div className="flex justify-between items-center text-stone-400">
+          <div className="flex justify-between items-center text-muted">
             <span>Email:</span>
-            <span className="font-bold text-stone-200">{user?.email}</span>
+            <span className="font-medium text-text">{user?.email}</span>
           </div>
-          <div className="flex justify-between items-center text-stone-400">
+          <div className="flex justify-between items-center text-muted">
             <span>Venue:</span>
-            <span className="font-bold text-brand-primary">{venueName}</span>
+            <span className="font-medium text-accent">{venueName}</span>
           </div>
-          <div className="flex justify-between items-center text-stone-400 pt-1 border-t border-stone-700/40">
+          <div className="flex justify-between items-center text-muted pt-2 border-t border-white/[0.08]">
             <span>Status:</span>
-            <span className="font-bold text-amber-400 flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
+            <span className="font-medium text-accent flex items-center gap-1.5 font-mono">
+              <span className="h-1.5 w-1.5 rounded-full bg-accent" />
               Pending Admin Review
             </span>
           </div>
@@ -71,26 +73,26 @@ export function PendingApprovalScreen() {
         <div className="space-y-3 pt-2">
           <Button
             size="lg"
-            className="w-full font-bold bg-brand-primary hover:bg-brand-primary/90 text-white"
+            className="w-full font-semibold bg-accent text-bg hover:bg-accent-hover"
             onClick={handleCheckStatus}
             isLoading={isChecking}
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isChecking ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-4 w-4 mr-2 ${isChecking ? 'animate-spin' : ''}`} strokeWidth={1.5} />
             Check Approval Status
           </Button>
 
           <Button
             size="sm"
             variant="ghost"
-            className="w-full text-stone-400 hover:text-white hover:bg-stone-800 text-xs font-semibold"
+            className="w-full text-muted hover:text-text text-xs font-medium"
             onClick={signOut}
           >
-            <LogOut className="h-3.5 w-3.5 mr-1.5" />
+            <LogOut className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} />
             Sign Out
           </Button>
         </div>
 
-        <p className="text-[11px] text-stone-500 pt-2">
+        <p className="text-[11px] text-muted/70 pt-2 font-mono">
           Contact your restaurant manager or owner to approve your access.
         </p>
       </div>

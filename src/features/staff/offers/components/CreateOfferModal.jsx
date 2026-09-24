@@ -3,6 +3,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
+import { Tag } from 'lucide-react';
 
 export function CreateOfferModal({ isOpen, onClose, onSubmit, editingOffer = null, isLoading = false }) {
   const isEditing = !!editingOffer;
@@ -54,19 +55,19 @@ export function CreateOfferModal({ isOpen, onClose, onSubmit, editingOffer = nul
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Preview Banner */}
-        <div className="rounded-xl bg-gradient-to-r from-orange-500 to-amber-500 p-4 text-white">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg">🏷️</span>
-            <span className="font-bold text-sm">Notification Preview</span>
+        <div className="rounded-card bg-[#141721] border border-white/[0.08] p-4 text-[#F4F5F7]">
+          <div className="flex items-center gap-2 mb-1.5">
+            <Tag className="h-4 w-4 text-[#C6FF3D]" strokeWidth={1.5} />
+            <span className="font-mono text-xs uppercase tracking-wider text-[#8A8F9C]">Notification Preview</span>
           </div>
-          <p className="text-sm font-semibold opacity-95 truncate">{previewText}</p>
+          <p className="text-sm font-semibold truncate">{previewText}</p>
           {couponCode && (
-            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-black/25 text-[11px] font-mono font-bold tracking-wider uppercase border border-white/20">
-              🏷️ Coupon: {couponCode.toUpperCase()}
+            <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.04] text-[11px] font-mono tracking-wider uppercase border border-white/[0.12] text-[#C6FF3D]">
+              <Tag className="h-3 w-3" strokeWidth={1.5} /> Coupon: {couponCode.toUpperCase()}
             </div>
           )}
           {description && (
-            <p className="text-xs opacity-80 mt-1 line-clamp-2">{description}</p>
+            <p className="text-xs text-[#8A8F9C] mt-1.5 line-clamp-2">{description}</p>
           )}
         </div>
 
@@ -123,7 +124,7 @@ export function CreateOfferModal({ isOpen, onClose, onSubmit, editingOffer = nul
 
         {/* Message / Description */}
         <div className="w-full">
-          <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-1.5">
+          <label className="block text-xs font-mono uppercase tracking-wider text-[#8A8F9C] mb-1.5">
             Message
           </label>
           <textarea
@@ -131,19 +132,20 @@ export function CreateOfferModal({ isOpen, onClose, onSubmit, editingOffer = nul
             placeholder="Enter the notification message guests will see..."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full rounded-xl border border-stone-200 bg-white px-4 py-2.5 text-sm text-stone-900 transition-all placeholder:text-stone-400 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100 dark:placeholder:text-stone-500 resize-none"
+            className="w-full rounded-xl border border-white/[0.08] bg-[#0E1016] px-4 py-2.5 text-xs text-[#F4F5F7] transition-all placeholder:text-[#8A8F9C] focus:border-[#C6FF3D] focus:outline-none resize-none"
           />
         </div>
 
         {/* Actions */}
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Button variant="ghost" size="sm" onClick={onClose} type="button">
+          <Button variant="ghost" size="sm" onClick={onClose} type="button" className="rounded-full text-[#8A8F9C] hover:text-[#F4F5F7]">
             Cancel
           </Button>
           <Button
             type="submit"
             size="sm"
             isLoading={isLoading}
+            className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold"
           >
             {isEditing ? 'Update Offer' : 'Create Offer'}
           </Button>

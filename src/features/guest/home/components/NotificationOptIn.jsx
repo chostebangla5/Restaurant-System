@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, BellRing, X, Sparkles } from 'lucide-react';
+import { Bell, BellRing, X, Tag } from 'lucide-react';
 import {
   isPushSupported,
   getPermissionStatus,
@@ -9,7 +9,7 @@ import {
 } from '@/lib/pushSubscription';
 
 /**
- * Guest-side notification opt-in banner — Royal Dhaba themed.
+ * Guest-side notification opt-in banner — Tech Studio themed.
  * Shows a subtle, attractive prompt for guests to enable push notifications.
  *
  * Usage: <NotificationOptIn venueId="..." venueName="..." />
@@ -89,9 +89,9 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
           exit={{ opacity: 0, y: 20 }}
           className="fixed bottom-4 left-4 right-4 z-40 sm:left-auto sm:right-4 sm:max-w-sm"
         >
-          <div className="flex items-center gap-2 rounded-2xl bg-[#D4AF37] px-4 py-3 text-[#2B0E14] shadow-xl font-body border border-[#E5C158]">
-            <BellRing className="h-4 w-4 flex-shrink-0 text-[#2B0E14]" />
-            <span className="text-sm font-bold">Notifications enabled! You'll get the best deals.</span>
+          <div className="flex items-center gap-2.5 rounded-full bg-[#0E1016] px-4 py-3 text-[#C6FF3D] shadow-2xl border border-[#C6FF3D]/30 font-sans">
+            <BellRing className="h-4 w-4 flex-shrink-0 text-[#C6FF3D]" strokeWidth={1.5} />
+            <span className="text-xs font-semibold">Notifications enabled! You'll get the best deals.</span>
           </div>
         </motion.div>
       </AnimatePresence>
@@ -105,31 +105,28 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
           initial={{ opacity: 0, y: 40, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 40, scale: 0.95 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
           className="fixed bottom-4 left-4 right-4 z-40 sm:left-auto sm:right-4 sm:max-w-sm"
         >
-          <div className="relative overflow-hidden rounded-2xl bg-dhaba-plum p-4 shadow-2xl shadow-black/40 border border-dhaba-gold/20 font-body">
-            {/* Decorative gold gradient corner */}
-            <div className="absolute top-0 right-0 h-24 w-24 bg-gradient-to-bl from-dhaba-gold/15 to-transparent rounded-bl-full" />
-
+          <div className="relative overflow-hidden rounded-card bg-[#0E1016] p-5 shadow-2xl border border-white/[0.08]">
             {/* Dismiss button */}
             <button
               onClick={handleDismiss}
-              className="absolute top-3 right-3 p-1 rounded-lg text-dhaba-gold/30 hover:text-dhaba-gold/70 hover:bg-dhaba-gold/10 transition-colors"
+              className="absolute top-3.5 right-3.5 p-1 rounded-full text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.06] transition-colors"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4" strokeWidth={1.5} />
             </button>
 
             {/* Content */}
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl bg-dhaba-gold/15 border border-dhaba-gold/30 shadow-gold">
-                <Sparkles className="h-5 w-5 text-dhaba-gold" />
+            <div className="flex items-start gap-3.5">
+              <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-[#141721] border border-white/[0.08] text-[#C6FF3D]">
+                <Tag className="h-4 w-4" strokeWidth={1.5} />
               </div>
               <div className="flex-1 pr-4">
-                <h4 className="text-sm font-bold text-dhaba-ivory mb-0.5 font-serif">
+                <h4 className="text-sm font-heading font-semibold text-[#F4F5F7] mb-1">
                   Get exclusive deals ✨
                 </h4>
-                <p className="text-xs text-dhaba-gold/50 leading-relaxed">
+                <p className="text-xs text-[#8A8F9C] leading-relaxed">
                   Enable notifications for offers & discounts from {venueName}
                 </p>
               </div>
@@ -140,18 +137,18 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
               <button
                 onClick={handleSubscribe}
                 disabled={isLoading}
-                className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-dhaba-sindoor hover:bg-dhaba-sindoor-hover px-4 py-2.5 text-sm font-semibold text-dhaba-ivory transition-all active:scale-[0.98] shadow-sindoor disabled:opacity-60"
+                className="flex-1 flex items-center justify-center gap-2 rounded-full bg-[#C6FF3D] hover:bg-[#b8f52e] px-4 py-2 text-xs font-semibold text-[#07080B] transition-all disabled:opacity-60"
               >
                 {isLoading ? (
-                  <div className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="h-3.5 w-3.5 border-2 border-[#07080B]/30 border-t-[#07080B] rounded-full animate-spin" />
                 ) : (
-                  <Bell className="h-4 w-4" />
+                  <Bell className="h-3.5 w-3.5" strokeWidth={1.5} />
                 )}
                 {isLoading ? 'Enabling...' : 'Enable Offers'}
               </button>
               <button
                 onClick={handleDismiss}
-                className="rounded-xl px-3 py-2.5 text-xs font-medium text-dhaba-gold/40 hover:text-dhaba-gold/70 hover:bg-dhaba-gold/10 transition-colors"
+                className="rounded-full px-3 py-2 text-xs font-medium text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.04] transition-colors"
               >
                 Not now
               </button>

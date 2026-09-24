@@ -3,27 +3,29 @@ import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/features/shared/auth';
 import { AnimatedOutlet } from '@/components/animation/AnimatedOutlet';
 import {
-  Square3Stack3DIcon,
-  FireIcon,
-  QueueListIcon,
-  TableCellsIcon,
-  BookOpenIcon,
-  ReceiptPercentIcon,
-  QrCodeIcon,
-  TagIcon,
-  UserGroupIcon,
-  UsersIcon,
-  Cog6ToothIcon,
-  ArrowRightOnRectangleIcon,
-  SunIcon,
-  MoonIcon,
-  Bars3Icon,
-  XMarkIcon,
-  ChevronUpDownIcon,
-  DocumentTextIcon,
-  ChatBubbleLeftEllipsisIcon,
-} from '@heroicons/react/24/outline';
+  LayoutDashboard,
+  Flame,
+  Activity,
+  Grid,
+  BookOpen,
+  Receipt,
+  QrCode,
+  Tag,
+  UserCheck,
+  Users,
+  Settings,
+  LogOut,
+  Sun,
+  Moon,
+  Menu,
+  X,
+  ChevronsUpDown,
+  FileText,
+  MessageSquare,
+  Sparkles,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { preloadStaffFlow } from '@/app/routes';
 
 export function StaffLayout() {
   const {
@@ -43,6 +45,7 @@ export function StaffLayout() {
   const [isVenueSwitcherOpen, setIsVenueSwitcherOpen] = useState(false);
 
   useEffect(() => {
+    preloadStaffFlow();
     const isDark = document.documentElement.classList.contains('dark');
     setIsDarkMode(isDark);
   }, []);
@@ -58,19 +61,19 @@ export function StaffLayout() {
   };
 
   const navItems = [
-    { label: 'Dashboard', path: '/staff', icon: Square3Stack3DIcon, end: true },
-    { label: 'Live Orders', path: '/staff/live-orders', icon: QueueListIcon, badge: 'Live' },
-    { label: 'Kitchen KDS', path: '/staff/kitchen', icon: FireIcon },
-    { label: 'Tables', path: '/staff/tables', icon: TableCellsIcon },
-    { label: 'Menu Items', path: '/staff/menu', icon: BookOpenIcon },
-    { label: 'Billing & POS', path: '/staff/billing', icon: ReceiptPercentIcon },
-    { label: 'Staff', path: '/staff/team', icon: UsersIcon },
-    { label: 'QR Generator', path: '/staff/qr-codes', icon: QrCodeIcon },
-    { label: 'Offers & Coupons', path: '/staff/offers', icon: TagIcon },
-    { label: 'Guests & CRM', path: '/staff/guests', icon: UserGroupIcon },
-    { label: 'Invoices', path: '/staff/invoices', icon: DocumentTextIcon },
-    { label: 'Feedback', path: '/staff/feedback', icon: ChatBubbleLeftEllipsisIcon },
-    { label: 'Settings', path: '/staff/settings', icon: Cog6ToothIcon },
+    { label: 'Dashboard', path: '/staff', icon: LayoutDashboard, end: true },
+    { label: 'Live Orders', path: '/staff/live-orders', icon: Activity, badge: 'Live' },
+    { label: 'Kitchen KDS', path: '/staff/kitchen', icon: Flame },
+    { label: 'Tables', path: '/staff/tables', icon: Grid },
+    { label: 'Menu Items', path: '/staff/menu', icon: BookOpen },
+    { label: 'Billing & POS', path: '/staff/billing', icon: Receipt },
+    { label: 'Staff', path: '/staff/team', icon: Users },
+    { label: 'QR Generator', path: '/staff/qr-codes', icon: QrCode },
+    { label: 'Offers & Coupons', path: '/staff/offers', icon: Tag },
+    { label: 'Guests & CRM', path: '/staff/guests', icon: UserCheck },
+    { label: 'Invoices', path: '/staff/invoices', icon: FileText },
+    { label: 'Feedback', path: '/staff/feedback', icon: MessageSquare },
+    { label: 'Settings', path: '/staff/settings', icon: Settings },
   ];
 
   const handleSignOut = async () => {
@@ -87,29 +90,29 @@ export function StaffLayout() {
   const hasMultipleVenues = staffProfiles.length > 1;
 
   return (
-    <div className="min-h-screen bg-stone-100 text-stone-900 dark:bg-stone-950 dark:text-stone-100 flex flex-col md:flex-row">
+    <div className="min-h-screen bg-[#07080B] text-[#F4F5F7] flex flex-col md:flex-row selection:bg-[#C6FF3D] selection:text-[#07080B]">
       {/* Mobile Top Header */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 safe-top">
+      <div className="md:hidden flex items-center justify-between px-5 py-3.5 bg-[#0E1016] border-b border-white/[0.08] safe-top sticky top-0 z-30">
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-xl bg-brand-primary flex items-center justify-center text-white font-black text-sm">
+          <div className="h-8 w-8 rounded-full bg-[#141721] border border-[#C6FF3D]/30 flex items-center justify-center text-[#C6FF3D] font-mono font-bold text-xs tracking-wider">
             TS
           </div>
-          <span className="font-bold text-base tracking-tight">TableSuite</span>
+          <span className="font-heading font-bold text-sm tracking-tight text-[#F4F5F7]">TableSuite</span>
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={toggleDarkMode}
-            className="p-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300"
+            className="p-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-[#8A8F9C] hover:text-[#F4F5F7] transition-colors"
           >
-            {isDarkMode ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
+            {isDarkMode ? <Sun className="h-4 w-4" strokeWidth={1.5} /> : <Moon className="h-4 w-4" strokeWidth={1.5} />}
           </button>
           <button
             type="button"
             onClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
-            className="p-2 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-200"
+            className="p-2 rounded-full bg-white/[0.04] border border-white/[0.08] text-[#8A8F9C] hover:text-[#F4F5F7] transition-colors"
           >
-            {isMobileSidebarOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
+            {isMobileSidebarOpen ? <X className="h-4 w-4" strokeWidth={1.5} /> : <Menu className="h-4 w-4" strokeWidth={1.5} />}
           </button>
         </div>
       </div>
@@ -117,44 +120,44 @@ export function StaffLayout() {
       {/* Sidebar Navigation */}
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-40 w-64 bg-white dark:bg-stone-900 border-r border-stone-200 dark:border-stone-800 flex flex-col transition-transform duration-200 md:static md:translate-x-0',
-          isMobileSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'
+          'fixed inset-y-0 left-0 z-40 w-64 bg-[#0E1016] border-r border-white/[0.08] flex flex-col transition-transform duration-200 md:static md:translate-x-0',
+          isMobileSidebarOpen ? 'translate-x-0 shadow-2xl shadow-black/80' : '-translate-x-full md:translate-x-0'
         )}
       >
         {/* Logo */}
-        <div className="p-5 border-b border-stone-100 dark:border-stone-800 flex items-center justify-between">
+        <div className="p-5 border-b border-white/[0.08] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-brand-primary to-amber-500 flex items-center justify-center text-white font-black text-lg shadow-md shadow-brand-primary/20">
+            <div className="h-9 w-9 rounded-full bg-[#141721] border border-[#C6FF3D]/30 flex items-center justify-center text-[#C6FF3D] font-mono font-bold text-xs tracking-wider shadow-sm">
               TS
             </div>
             <div>
-              <h2 className="font-bold text-base leading-tight tracking-tight text-stone-900 dark:text-white">
+              <h2 className="font-heading font-bold text-sm tracking-tight text-[#F4F5F7]">
                 TableSuite
               </h2>
-              <p className="text-xs text-stone-500 dark:text-stone-400">Staff Portal</p>
+              <p className="font-mono text-[10px] text-[#8A8F9C] uppercase tracking-wider">Staff Portal</p>
             </div>
           </div>
         </div>
 
         {/* Venue Switcher */}
-        <div className="px-3 mt-3 relative">
+        <div className="px-3 mt-4 relative">
           <button
             type="button"
             onClick={() => hasMultipleVenues && setIsVenueSwitcherOpen(!isVenueSwitcherOpen)}
             className={cn(
-              'w-full px-4 py-3 rounded-xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200/60 dark:border-stone-700/50 text-left transition-all',
-              hasMultipleVenues && 'hover:bg-stone-100 dark:hover:bg-stone-800 cursor-pointer'
+              'w-full px-3.5 py-2.5 rounded-xl bg-[#141721] border border-white/[0.08] text-left transition-all',
+              hasMultipleVenues && 'hover:border-white/[0.2] cursor-pointer'
             )}
           >
-            <div className="text-[11px] uppercase tracking-wider font-bold text-stone-400 dark:text-stone-500">
+            <div className="text-[10px] uppercase tracking-wider font-mono text-[#8A8F9C]">
               Active Venue
             </div>
             <div className="flex items-center justify-between mt-0.5">
-              <span className="text-xs font-semibold text-stone-800 dark:text-stone-200 truncate">
+              <span className="text-xs font-medium text-[#F4F5F7] truncate">
                 {currentVenueName}
               </span>
               {hasMultipleVenues && (
-                <ChevronUpDownIcon className="h-4 w-4 text-stone-400 shrink-0 ml-2" />
+                <ChevronsUpDown className="h-3.5 w-3.5 text-[#8A8F9C] shrink-0 ml-2" strokeWidth={1.5} />
               )}
             </div>
           </button>
@@ -166,21 +169,21 @@ export function StaffLayout() {
                 className="fixed inset-0 z-10"
                 onClick={() => setIsVenueSwitcherOpen(false)}
               />
-              <div className="absolute top-full left-3 right-3 mt-1 z-20 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-xl shadow-xl overflow-hidden">
+              <div className="absolute top-full left-3 right-3 mt-1.5 z-20 bg-[#141721] border border-white/[0.12] rounded-xl shadow-2xl overflow-hidden py-1">
                 {staffProfiles.map((profile) => (
                   <button
                     key={profile.venue_id}
                     type="button"
                     onClick={() => handleVenueSwitch(profile.venue_id)}
                     className={cn(
-                      'w-full text-left px-4 py-3 text-xs font-semibold transition-colors',
+                      'w-full text-left px-3.5 py-2.5 text-xs font-medium transition-colors',
                       profile.venue_id === venueId
-                        ? 'bg-brand-primary/10 text-brand-primary'
-                        : 'text-stone-700 dark:text-stone-300 hover:bg-stone-50 dark:hover:bg-stone-700/50'
+                        ? 'bg-[#C6FF3D]/10 text-[#C6FF3D]'
+                        : 'text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.04]'
                     )}
                   >
                     <div>{profile.venues?.name || 'Venue'}</div>
-                    <div className="text-[11px] font-normal text-stone-400 mt-0.5 capitalize">
+                    <div className="text-[10px] font-mono text-[#8A8F9C] mt-0.5 capitalize">
                       Role: {profile.role}
                     </div>
                   </button>
@@ -202,21 +205,28 @@ export function StaffLayout() {
                 onClick={() => setIsMobileSidebarOpen(false)}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all group',
+                    'flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all group relative',
                     isActive
-                      ? 'bg-brand-primary text-white shadow-sm shadow-brand-primary/30'
-                      : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800/60 hover:text-stone-900 dark:hover:text-stone-200'
+                      ? 'bg-white/[0.06] text-[#F4F5F7] border border-white/[0.12]'
+                      : 'text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.03] border border-transparent'
                   )
                 }
               >
-                <div className="flex items-center gap-3">
-                  <Icon className="h-5 w-5 shrink-0 opacity-80 group-hover:opacity-100" />
-                  <span>{item.label}</span>
-                </div>
-                {item.badge && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500 text-white animate-pulse">
-                    {item.badge}
-                  </span>
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <span className="absolute left-0 top-2 bottom-2 w-0.5 bg-[#C6FF3D] rounded-full" />
+                    )}
+                    <div className="flex items-center gap-3">
+                      <Icon className={cn('h-4 w-4 shrink-0 transition-colors', isActive ? 'text-[#C6FF3D]' : 'text-[#8A8F9C] group-hover:text-[#F4F5F7]')} strokeWidth={1.5} />
+                      <span>{item.label}</span>
+                    </div>
+                    {item.badge && (
+                      <span className="text-[9px] font-mono uppercase tracking-wider font-semibold px-2 py-0.5 rounded-full bg-[#C6FF3D]/15 text-[#C6FF3D] border border-[#C6FF3D]/30">
+                        {item.badge}
+                      </span>
+                    )}
+                  </>
                 )}
               </NavLink>
             );
@@ -224,17 +234,17 @@ export function StaffLayout() {
         </nav>
 
         {/* User Footer & Theme Toggle */}
-        <div className="p-3 border-t border-stone-100 dark:border-stone-800 space-y-2">
+        <div className="p-3 border-t border-white/[0.08] space-y-2">
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="h-8 w-8 rounded-full bg-stone-200 dark:bg-stone-700 flex items-center justify-center font-bold text-xs text-stone-700 dark:text-stone-200">
+              <div className="h-7 w-7 rounded-full bg-[#141721] border border-white/[0.12] flex items-center justify-center font-mono font-medium text-[11px] text-[#F4F5F7]">
                 {(staffProfile?.full_name || user?.email || 'ST').slice(0, 2).toUpperCase()}
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-bold truncate text-stone-800 dark:text-stone-200">
+                <p className="text-xs font-medium truncate text-[#F4F5F7]">
                   {staffProfile?.full_name || user?.email?.split('@')[0] || 'Staff Member'}
                 </p>
-                <p className="text-[10px] text-stone-400 capitalize">
+                <p className="text-[10px] font-mono text-[#8A8F9C] capitalize">
                   {role || 'Staff'}
                 </p>
               </div>
@@ -243,19 +253,19 @@ export function StaffLayout() {
             <button
               type="button"
               onClick={toggleDarkMode}
-              className="p-1.5 rounded-lg text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 dark:text-stone-400"
+              className="p-1.5 rounded-full text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.05] transition-colors"
               title="Toggle theme"
             >
-              {isDarkMode ? <SunIcon className="h-4 w-4" /> : <MoonIcon className="h-4 w-4" />}
+              {isDarkMode ? <Sun className="h-3.5 w-3.5" strokeWidth={1.5} /> : <Moon className="h-3.5 w-3.5" strokeWidth={1.5} />}
             </button>
           </div>
 
           <button
             type="button"
             onClick={handleSignOut}
-            className="w-full flex items-center justify-center gap-2 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-rose-400/90 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 rounded-full transition-colors"
           >
-            <ArrowRightOnRectangleIcon className="h-4 w-4" />
+            <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} />
             Sign Out
           </button>
         </div>
@@ -263,21 +273,21 @@ export function StaffLayout() {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
-        <header className="hidden md:flex items-center justify-between px-8 py-4 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md border-b border-stone-200/80 dark:border-stone-800/80 sticky top-0 z-20">
+        <header className="hidden md:flex items-center justify-between px-8 py-4 bg-[#07080B]/90 backdrop-blur-md border-b border-white/[0.08] sticky top-0 z-20">
           <div>
-            <h1 className="text-lg font-bold text-stone-900 dark:text-white">
+            <h1 className="text-base font-heading font-bold text-[#F4F5F7]">
               {navItems.find((n) =>
                 n.end ? n.path === location.pathname : location.pathname.startsWith(n.path)
               )?.label || 'Dashboard'}
             </h1>
-            <p className="text-xs text-stone-500 dark:text-stone-400">
+            <p className="text-xs text-[#8A8F9C]">
               {currentVenueName}
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 px-3 py-1.5 rounded-full text-xs font-semibold border border-emerald-200 dark:border-emerald-800">
-              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <div className="flex items-center gap-2 bg-[#C6FF3D]/10 text-[#C6FF3D] px-3 py-1 rounded-full text-xs font-mono border border-[#C6FF3D]/25">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#C6FF3D] animate-pulse"></span>
               Realtime Sync Active
             </div>
           </div>

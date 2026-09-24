@@ -11,22 +11,22 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        'flex flex-col items-center justify-center py-16 px-6 text-center rounded-2xl border-2 border-dashed border-stone-200 dark:border-stone-800 bg-stone-50/50 dark:bg-stone-900/30',
+        'flex flex-col items-center justify-center py-16 px-6 text-center rounded-card border border-dashed border-white/[0.12] bg-[#0E1016]',
         className
       )}
     >
       {Icon && (
-        <div className="h-14 w-14 rounded-2xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center text-stone-400 dark:text-stone-500 mb-4">
-          <Icon className="h-7 w-7" />
+        <div className="h-14 w-14 rounded-full bg-[#141721] border border-white/[0.08] flex items-center justify-center text-[#C6FF3D] mb-4">
+          <Icon className="h-6 w-6" strokeWidth={1.5} />
         </div>
       )}
       {title && (
-        <h3 className="text-sm font-bold text-stone-700 dark:text-stone-300 mb-1">
+        <h3 className="text-sm font-heading font-semibold text-[#F4F5F7] mb-1.5">
           {title}
         </h3>
       )}
       {description && (
-        <p className="text-xs text-stone-500 dark:text-stone-400 max-w-sm leading-relaxed mb-5">
+        <p className="text-xs text-[#8A8F9C] max-w-sm leading-relaxed mb-5">
           {description}
         </p>
       )}

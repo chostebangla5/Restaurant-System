@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/Input';
 import { useAuth } from '../context/AuthContext';
 import { signUpOwner, signUpStaff, generateSlug, resendConfirmationEmail } from '../api/authApi';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { Mail, ShieldCheck } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function StaffLoginScreen() {
@@ -12,17 +13,19 @@ export function StaffLoginScreen() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-stone-950 text-stone-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-3xl bg-stone-900 border border-stone-800 shadow-2xl overflow-hidden">
+    <div className="min-h-screen bg-bg text-text flex items-center justify-center p-4 selection:bg-accent selection:text-bg relative overflow-hidden font-sans">
+      <div className="absolute inset-0 hero-radial-glow faint-grid pointer-events-none opacity-80" />
+
+      <div className="relative z-10 w-full max-w-md rounded-card bg-surface border border-white/10 shadow-2xl p-8 sm:p-10 space-y-6">
         {/* Header */}
-        <div className="text-center pt-8 pb-4 px-8">
-          <div className="mx-auto h-12 w-12 rounded-2xl bg-gradient-to-br from-brand-primary to-amber-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-brand-primary/20">
+        <div className="text-center space-y-2">
+          <div className="mx-auto h-11 w-11 rounded-full bg-surface-2 border border-white/10 flex items-center justify-center text-accent font-heading font-extrabold text-base shadow-sm">
             TS
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-white mt-3">
+          <h1 className="font-heading text-2xl font-bold tracking-tight text-text">
             TableSuite
           </h1>
-          <p className="text-xs text-stone-400 mt-1">
+          <p className="text-xs text-muted">
             {mode === 'login'
               ? 'Sign in to manage your restaurant'
               : 'Create your restaurant or staff account'}
@@ -30,14 +33,14 @@ export function StaffLoginScreen() {
         </div>
 
         {/* Mode Tabs */}
-        <div className="flex mx-8 p-1 rounded-xl bg-stone-800/60 border border-stone-700/50 mb-6">
+        <div className="flex p-1 rounded-full bg-surface-2 border border-white/10">
           <button
             type="button"
             onClick={() => setMode('login')}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex-1 py-2 text-xs font-medium rounded-full transition-all duration-200 cursor-pointer ${
               mode === 'login'
-                ? 'bg-stone-700 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-300'
+                ? 'bg-surface text-text shadow-sm border border-white/15'
+                : 'text-muted hover:text-text'
             }`}
           >
             Staff Sign In
@@ -45,17 +48,17 @@ export function StaffLoginScreen() {
           <button
             type="button"
             onClick={() => setMode('signup')}
-            className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+            className={`flex-1 py-2 text-xs font-medium rounded-full transition-all duration-200 cursor-pointer ${
               mode === 'signup'
-                ? 'bg-stone-700 text-white shadow-sm'
-                : 'text-stone-400 hover:text-stone-300'
+                ? 'bg-surface text-text shadow-sm border border-white/15'
+                : 'text-muted hover:text-text'
             }`}
           >
             Create Account
           </button>
         </div>
 
-        <div className="px-8 pb-8">
+        <div>
           {mode === 'login' ? (
             <LoginForm navigate={navigate} />
           ) : (
@@ -63,9 +66,10 @@ export function StaffLoginScreen() {
           )}
         </div>
 
-        <div className="text-center pb-6">
-          <p className="text-[11px] text-stone-500">
-            Protected by Supabase Row-Level Security & Role Isolation
+        <div className="text-center pt-2 border-t border-white/[0.08]">
+          <p className="text-[11px] text-muted font-mono uppercase tracking-wider flex items-center justify-center gap-1.5">
+            <ShieldCheck className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
+            <span>Protected by Supabase Row-Level Security &amp; Role Isolation</span>
           </p>
         </div>
       </div>
@@ -141,9 +145,9 @@ function LoginForm({ navigate }) {
       />
 
       {unconfirmedEmail && (
-        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2.5">
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-200 text-xs space-y-2.5">
           <div className="flex items-start gap-2.5">
-            <span className="text-lg">✉️</span>
+            <Mail className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" strokeWidth={1.5} />
             <div>
               <p className="font-bold text-white text-sm">Email Not Confirmed Yet</p>
               <p className="text-[11px] text-stone-300 mt-1">
@@ -156,7 +160,7 @@ function LoginForm({ navigate }) {
               type="button"
               disabled={isResending}
               onClick={handleResend}
-              className="px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-bold text-xs transition-colors border border-amber-500/40"
+              className="px-3.5 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 font-medium text-xs transition-colors border border-amber-500/30"
             >
               {isResending ? 'Resending Link...' : 'Resend Verification Email'}
             </button>
@@ -167,7 +171,7 @@ function LoginForm({ navigate }) {
         </div>
       )}
 
-      <Button type="submit" size="lg" className="w-full font-bold" isLoading={isLoading}>
+      <Button type="submit" size="lg" className="w-full font-semibold mt-2" isLoading={isLoading}>
         Sign In to Portal
       </Button>
     </form>
@@ -213,10 +217,7 @@ function SignUpForm({ navigate, setMode }) {
     e.preventDefault();
 
     if (!isSupabaseConfigured()) {
-      toast('Supabase not configured — enter your project URL & anon key in .env.local', {
-        icon: '⚠️',
-        duration: 5000,
-      });
+      toast.error('Supabase not configured — enter your project URL & anon key in .env.local');
       return;
     }
 
@@ -296,14 +297,14 @@ function SignUpForm({ navigate, setMode }) {
   return (
     <form onSubmit={handleSignUp} className="space-y-4">
       {/* Sub-type switcher */}
-      <div className="flex gap-2 p-1 bg-stone-800/40 rounded-xl border border-stone-800">
+      <div className="flex p-1 bg-surface-2 rounded-full border border-white/10">
         <button
           type="button"
           onClick={() => setSignupType('staff')}
-          className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-colors ${
+          className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer ${
             signupType === 'staff'
-              ? 'bg-brand-primary text-white'
-              : 'text-stone-400 hover:text-stone-200'
+              ? 'bg-accent text-bg font-semibold shadow-xs'
+              : 'text-muted hover:text-text'
           }`}
         >
           Join Restaurant Staff
@@ -311,10 +312,10 @@ function SignUpForm({ navigate, setMode }) {
         <button
           type="button"
           onClick={() => setSignupType('owner')}
-          className={`flex-1 py-1.5 text-[11px] font-bold rounded-lg transition-colors ${
+          className={`flex-1 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer ${
             signupType === 'owner'
-              ? 'bg-brand-primary text-white'
-              : 'text-stone-400 hover:text-stone-200'
+              ? 'bg-accent text-bg font-semibold shadow-xs'
+              : 'text-muted hover:text-text'
           }`}
         >
           New Restaurant Owner
@@ -333,16 +334,16 @@ function SignUpForm({ navigate, setMode }) {
         <>
           {venues.length > 0 && (
             <div>
-              <label className="block text-xs font-semibold text-stone-300 mb-1.5">
+              <label className="block text-xs font-medium text-text/80 mb-1.5">
                 Select Restaurant Venue
               </label>
               <select
                 value={selectedVenueId}
                 onChange={(e) => setSelectedVenueId(e.target.value)}
-                className="w-full rounded-xl border border-stone-700 bg-stone-800 px-3 py-2.5 text-xs text-white focus:border-brand-primary focus:outline-none"
+                className="w-full rounded-xl border border-white/10 bg-surface px-4 py-2.5 text-xs text-text focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-colors"
               >
                 {venues.map((v) => (
-                  <option key={v.id} value={v.id}>
+                  <option key={v.id} value={v.id} className="bg-surface text-text">
                     {v.name}
                   </option>
                 ))}
@@ -351,19 +352,19 @@ function SignUpForm({ navigate, setMode }) {
           )}
 
           <div>
-            <label className="block text-xs font-semibold text-stone-300 mb-1.5">
+            <label className="block text-xs font-medium text-text/80 mb-1.5">
               Role Applying For
             </label>
             <select
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value)}
-              className="w-full rounded-xl border border-stone-700 bg-stone-800 px-3 py-2.5 text-xs text-white focus:border-brand-primary focus:outline-none"
+              className="w-full rounded-xl border border-white/10 bg-surface px-4 py-2.5 text-xs text-text focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-colors"
             >
-              <option value="waiter">Waiter (Floor Staff)</option>
-              <option value="kitchen">Kitchen (KDS & Chef)</option>
-              <option value="manager">Manager</option>
+              <option value="waiter" className="bg-surface text-text">Waiter (Floor Staff)</option>
+              <option value="kitchen" className="bg-surface text-text">Kitchen (KDS & Chef)</option>
+              <option value="manager" className="bg-surface text-text">Manager</option>
             </select>
-            <p className="text-[10px] text-amber-500/90 mt-1">
+            <p className="text-[11px] text-amber-400/90 mt-1 font-mono">
               * Account will be pending approval by the restaurant admin before activation.
             </p>
           </div>
@@ -405,16 +406,16 @@ function SignUpForm({ navigate, setMode }) {
         required
         placeholder="Minimum 6 characters"
       />
-      <Button type="submit" size="lg" className="w-full font-bold" isLoading={isLoading}>
+      <Button type="submit" size="lg" className="w-full font-semibold mt-2" isLoading={isLoading}>
         {signupType === 'staff' ? 'Submit Registration for Approval' : 'Create Restaurant Account'}
       </Button>
 
-      <p className="text-center text-xs text-stone-500">
+      <p className="text-center text-xs text-muted pt-2">
         Already have an account?{' '}
         <button
           type="button"
           onClick={() => setMode('login')}
-          className="text-brand-primary font-semibold hover:underline"
+          className="text-accent font-semibold hover:underline cursor-pointer"
         >
           Sign In
         </button>

@@ -20,20 +20,20 @@ export function SendOfferConfirmModal({
     >
       <div className="text-center py-2">
         {/* Icon */}
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-50 dark:bg-orange-950/40">
-          <Send className="h-7 w-7 text-brand-primary" />
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-[#141721] border border-white/[0.08] text-[#C6FF3D]">
+          <Send className="h-5 w-5" strokeWidth={1.5} />
         </div>
 
         {/* Title */}
-        <h3 className="text-lg font-bold text-stone-900 dark:text-white mb-2">
+        <h3 className="text-base font-heading font-bold text-[#F4F5F7] mb-2">
           Send to {deviceCount} phone{deviceCount !== 1 ? 's' : ''}
         </h3>
 
         {/* Description */}
-        <p className="text-sm text-stone-600 dark:text-stone-400 leading-relaxed max-w-sm mx-auto">
-          <span className="font-semibold text-stone-800 dark:text-stone-200">"{offerTitle}"</span> goes to
+        <p className="text-xs text-[#8A8F9C] leading-relaxed max-w-sm mx-auto">
+          <span className="font-semibold text-[#F4F5F7]">"{offerTitle}"</span> goes to
           the notification bar of{' '}
-          <span className="font-semibold text-brand-primary">{deviceCount} phone{deviceCount !== 1 ? 's' : ''}</span>{' '}
+          <span className="font-mono font-semibold text-[#C6FF3D]">{deviceCount} phone{deviceCount !== 1 ? 's' : ''}</span>{' '}
           now. It cannot be taken back.
         </p>
 
@@ -44,6 +44,7 @@ export function SendOfferConfirmModal({
             size="sm"
             onClick={onClose}
             disabled={isLoading}
+            className="rounded-full border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25]"
           >
             Keep things as they are
           </Button>
@@ -52,8 +53,8 @@ export function SendOfferConfirmModal({
             size="sm"
             onClick={onConfirm}
             isLoading={isLoading}
-            leftIcon={!isLoading && <Send className="h-3.5 w-3.5" />}
-            className="bg-brand-primary hover:bg-brand-primary-hover shadow-lg shadow-orange-500/25"
+            leftIcon={!isLoading && <Send className="h-3.5 w-3.5" strokeWidth={1.5} />}
+            className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold"
           >
             Send now
           </Button>

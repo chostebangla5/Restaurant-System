@@ -1,18 +1,132 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { motion, useMotionValue, useMotionTemplate } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import {
-  QrCodeIcon,
-  SparklesIcon,
-  DevicePhoneMobileIcon,
-  ComputerDesktopIcon,
-  BellAlertIcon,
-  UsersIcon,
-  DocumentCheckIcon,
-  ArrowRightIcon,
-  ShieldCheckIcon,
-} from '@heroicons/react/24/outline';
+  QrCode,
+  Sparkles,
+  Smartphone,
+  Monitor,
+  Bell,
+  Users,
+  FileCheck,
+  ArrowRight,
+  ArrowUpRight,
+  ShieldCheck,
+} from 'lucide-react';
+import { Navbar } from '@/components/navigation/Navbar';
+import { HeroVisual } from './HeroVisual';
+import { LogosAndStatsStrip } from './LogosAndStatsStrip';
+import { ProcessTimeline } from './ProcessTimeline';
+import { ProjectsSection } from './ProjectsSection';
+import { PricingSection } from './PricingSection';
+import { TestimonialsSection } from './TestimonialsSection';
+import { AboutSection } from './AboutSection';
+import { ContactSection } from './ContactSection';
+import { FinalCtaSection } from './FinalCtaSection';
+
+const ease = [0.22, 1, 0.36, 1];
+
+const titleContainerVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.12,
+      delayChildren: 0.08,
+    },
+  },
+};
+
+const lineVariants = {
+  hidden: { y: '110%', opacity: 0 },
+  visible: {
+    y: '0%',
+    opacity: 1,
+    transition: {
+      duration: 0.85,
+      ease,
+    },
+  },
+};
+
+const sectionVariants = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease, staggerChildren: 0.08 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease } },
+};
+
+function BentoCard({ feature, index }) {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const Icon = feature.icon;
+  const numberLabel = String(index + 1).padStart(2, '0');
+
+  function handleMouseMove({ currentTarget, clientX, clientY }) {
+    const { left, top } = currentTarget.getBoundingClientRect();
+    mouseX.set(clientX - left);
+    mouseY.set(clientY - top);
+  }
+
+  return (
+    <motion.div
+      variants={itemVariants}
+      onMouseMove={handleMouseMove}
+      className={`group relative card-surface rounded-card border border-white/[0.08] hover:border-white/25 p-7 sm:p-8 transition-colors duration-300 overflow-hidden flex flex-col justify-between ${feature.span}`}
+    >
+      {/* Soft cursor-following spotlight inside the card */}
+      <motion.div
+        className="pointer-events-none absolute -inset-px rounded-card opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        style={{
+          background: useMotionTemplate`
+            radial-gradient(
+              320px circle at ${mouseX}px ${mouseY}px,
+              rgba(198, 255, 61, 0.08),
+              transparent 80%
+            )
+          `,
+        }}
+      />
+
+      {/* Top row: Number label & Lucide icon in small bordered square, plus hover arrow at top right */}
+      <div className="relative z-10 flex items-start justify-between">
+        <div className="flex items-center gap-3.5">
+          {/* Lucide icon in a small bordered square */}
+          <div className="h-10 w-10 rounded-lg border border-white/10 bg-white/[0.03] group-hover:border-white/20 flex items-center justify-center text-accent transition-colors">
+            <Icon className="h-5 w-5" strokeWidth={1.5} />
+          </div>
+          {/* Small numbered label in mono */}
+          <span className="font-mono text-xs text-muted/60 tracking-wider">
+            {numberLabel}
+          </span>
+        </div>
+
+        {/* Small arrow appears at top right on hover */}
+        <div className="h-7 w-7 rounded-full border border-white/10 bg-surface-2/70 flex items-center justify-center opacity-0 -translate-x-1.5 translate-y-1.5 group-hover:opacity-100 group-hover:translate-x-0 group-hover:translate-y-0 transition-all duration-300 text-accent">
+          <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={1.5} />
+        </div>
+      </div>
+
+      {/* Title & Description */}
+      <div className="relative z-10 space-y-2.5 pt-8">
+        <h4 className="font-heading text-lg sm:text-xl font-bold text-text tracking-tight group-hover:text-white transition-colors">
+          {feature.title}
+        </h4>
+        <p className="text-sm text-muted leading-relaxed font-sans">
+          {feature.description}
+        </p>
+      </div>
+    </motion.div>
+  );
+}
 
 export function HomeScreen() {
   const [tableCodeInput, setTableCodeInput] = useState('');
@@ -27,167 +141,295 @@ export function HomeScreen() {
   const features = [
     {
       title: 'Digital QR Table Ordering',
-      description: 'Guests scan the table QR code to browse high-res menus, customize dishes, and place multi-round orders instantly.',
-      icon: QrCodeIcon,
-      color: 'text-amber-500 bg-amber-500/10',
+      description:
+        'Guests scan the table QR code to browse high-res menus, customize dishes, and place multi-round orders instantly.',
+      icon: QrCode,
+      span: 'md:col-span-2 lg:col-span-7 min-h-[230px]',
     },
     {
       title: 'Live Kitchen Display (KDS)',
-      description: 'Stream incoming orders to kitchen stations (Hot, Cold, Bar) in real-time with one-click status updates for chefs.',
-      icon: ComputerDesktopIcon,
-      color: 'text-rose-500 bg-rose-500/10',
+      description:
+        'Stream incoming orders to kitchen stations (Hot, Cold, Bar) in real-time with one-click status updates for chefs.',
+      icon: Monitor,
+      span: 'md:col-span-1 lg:col-span-5 min-h-[230px]',
     },
     {
       title: 'Floor & Table Management',
-      description: 'Monitor real-time table occupancy, generate branded acrylic standees, and settle multi-round bills effortlessly.',
-      icon: DocumentCheckIcon,
-      color: 'text-emerald-500 bg-emerald-500/10',
+      description:
+        'Monitor real-time table occupancy, generate branded acrylic standees, and settle multi-round bills effortlessly.',
+      icon: FileCheck,
+      span: 'md:col-span-1 lg:col-span-5 min-h-[230px]',
     },
     {
       title: 'PetPooja-Style Staff Ops',
-      description: 'Manage floor crew, kitchen attendants, and managers with live shift status, online presence, and order metrics.',
-      icon: UsersIcon,
-      color: 'text-blue-500 bg-blue-500/10',
+      description:
+        'Manage floor crew, kitchen attendants, and managers with live shift status, online presence, and order metrics.',
+      icon: Users,
+      span: 'md:col-span-2 lg:col-span-7 min-h-[230px]',
     },
     {
       title: 'Push Notification CRM',
-      description: 'Target dining guests with native web push notifications for flash discounts, happy hours, and festive coupons.',
-      icon: BellAlertIcon,
-      color: 'text-purple-500 bg-purple-500/10',
+      description:
+        'Target dining guests with native web push notifications for flash discounts, happy hours, and festive coupons.',
+      icon: Bell,
+      span: 'md:col-span-1 lg:col-span-6 min-h-[210px]',
     },
     {
       title: 'Bank-Grade Security & Isolation',
-      description: 'Multi-tenant architecture powered by PostgreSQL Row-Level Security ensures 100% data isolation per venue.',
-      icon: ShieldCheckIcon,
-      color: 'text-teal-500 bg-teal-500/10',
+      description:
+        'Multi-tenant architecture powered by PostgreSQL Row-Level Security ensures 100% data isolation per venue.',
+      icon: ShieldCheck,
+      span: 'md:col-span-1 lg:col-span-6 min-h-[210px]',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-stone-950 text-stone-100 flex flex-col justify-between relative overflow-hidden">
-      {/* Background ambient lighting */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-brand-primary/15 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-bg text-text flex flex-col justify-between relative overflow-x-clip pt-16 md:pt-20 font-sans selection:bg-accent selection:text-bg">
+      {/* Subtle hero glow & faint grid background */}
+      <div className="absolute inset-0 hero-radial-glow faint-grid pointer-events-none opacity-80" />
 
-      {/* Navigation Header */}
-      <header className="flex items-center justify-between z-10 max-w-6xl mx-auto w-full px-6 py-6 border-b border-stone-800/80">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-2xl bg-gradient-to-br from-brand-primary to-amber-500 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-brand-primary/30">
-            TS
+      {/* Sticky Studio Navbar */}
+      <Navbar />
+
+      {/* Main Content */}
+      <main className="relative z-10 w-full max-w-7xl mx-auto px-6 md:px-10 py-6 md:py-10 space-y-24 md:space-y-32">
+        {/* Hero Section */}
+        <section
+          id="hero"
+          className="min-h-[calc(100vh-6rem)] flex flex-col justify-center py-12 md:py-16 lg:py-0 relative"
+        >
+          {/* Soft hero radial glow localized behind editorial content */}
+          <div className="absolute -top-16 left-0 w-[550px] h-[450px] bg-accent/[0.045] rounded-full blur-[140px] pointer-events-none -z-10" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+            {/* Left-Aligned Editorial Column */}
+            <div className="lg:col-span-7 xl:col-span-7 space-y-8 text-left">
+              {/* Mono Eyebrow Label */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, ease }}
+                className="inline-flex"
+              >
+                <div className="font-mono text-xs uppercase tracking-widest text-accent inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full border border-white/10 bg-surface/80 backdrop-blur-sm">
+                  <Sparkles className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
+                  <span>Modern Dining Platform for Restaurants &amp; Cafés</span>
+                </div>
+              </motion.div>
+
+              {/* Huge H1 with Tight Tracking and Line-by-Line Reveal */}
+              <motion.h1
+                variants={titleContainerVariants}
+                initial="hidden"
+                animate="visible"
+                className="font-heading font-extrabold text-4xl sm:text-5xl md:text-6xl lg:text-[4.25rem] xl:text-[5rem] text-text tracking-[-0.035em] leading-[0.98]"
+              >
+                <span className="block overflow-hidden py-0.5">
+                  <motion.span variants={lineVariants} className="block">
+                    Elevate Dining with
+                  </motion.span>
+                </span>
+                <span className="block overflow-hidden py-0.5">
+                  <motion.span variants={lineVariants} className="block text-text">
+                    Smart QR Ordering &amp; POS
+                  </motion.span>
+                </span>
+              </motion.h1>
+
+              {/* Muted Subheading with Max Width of 560px */}
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.8, ease, delay: 0.25 }}
+                className="text-base sm:text-lg text-muted max-w-[560px] leading-relaxed font-sans"
+              >
+                Eliminate ordering friction, boost table turnover by 35%, and delight diners with live kitchen tracking, automated GST billing, and push CRM.
+              </motion.p>
+
+              {/* Existing CTAs as One Primary Pill and One Outline Pill */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, ease, delay: 0.35 }}
+                className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2"
+              >
+                <Link to="/login" className="w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    className="w-full sm:w-auto rounded-full bg-accent text-bg font-semibold hover:bg-accent-hover gap-3 px-8 shadow-sm transition-all duration-300 hover:-translate-y-0.5"
+                    rightIcon={<ArrowRight className="h-4 w-4" strokeWidth={1.5} />}
+                  >
+                    Launch Restaurant Portal
+                  </Button>
+                </Link>
+                <Link to="/login" className="w-full sm:w-auto">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="w-full sm:w-auto rounded-full border border-white/15 bg-transparent text-text hover:border-white/30 hover:bg-white/[0.04] px-8 transition-all duration-300 hover:-translate-y-0.5"
+                  >
+                    Staff Sign In
+                  </Button>
+                </Link>
+              </motion.div>
+            </div>
+
+            {/* Right Column: Tasteful Animated AI Automation Graphic */}
+            <div className="lg:col-span-5 xl:col-span-5 hidden lg:block relative pl-4">
+              <HeroVisual />
+            </div>
           </div>
-          <div>
-            <h1 className="font-extrabold text-lg text-white tracking-tight">TableSuite</h1>
-            <p className="text-xs text-stone-400">Cloud Restaurant Operating System</p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <Link to="/login">
-            <Button size="sm" variant="outline" className="border-stone-700 text-stone-300 hover:text-white">
-              Staff Sign In
-            </Button>
-          </Link>
-          <Link to="/login">
-            <Button size="sm" className="bg-brand-primary font-bold shadow-md shadow-brand-primary/25">
-              Get Started
-            </Button>
-          </Link>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <main className="max-w-5xl mx-auto w-full px-6 my-16 z-10 space-y-16">
-        <div className="text-center space-y-6 max-w-3xl mx-auto">
-          <Badge variant="accent" size="lg" className="mx-auto border border-brand-primary/30 bg-brand-primary/10 text-brand-primary">
-            <SparklesIcon className="h-4 w-4 mr-1.5 inline" /> Modern Dining Platform for Restaurants & Cafés
-          </Badge>
-
-          <h2 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-tight">
-            Elevate Dining with <br className="hidden sm:block" />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary via-amber-400 to-orange-500">
-              Smart QR Ordering & POS
+          {/* Subtle Scroll Indicator */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.55, duration: 0.8 }}
+            onClick={() => {
+              const el = document.getElementById('table-lookup');
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth' });
+              }
+            }}
+            className="pt-10 lg:pt-14 inline-flex items-center gap-3 text-muted text-xs font-mono uppercase tracking-widest cursor-pointer group select-none"
+          >
+            <div className="w-5 h-8 rounded-full border border-white/20 group-hover:border-accent/60 transition-colors flex items-start justify-center p-1">
+              <motion.div
+                animate={{ y: [0, 10, 0] }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                className="w-1 h-1.5 rounded-full bg-accent shadow-[0_0_6px_#C6FF3D]"
+              />
+            </div>
+            <span className="text-[11px] text-muted group-hover:text-text transition-colors">
+              Scroll to explore
             </span>
-          </h2>
+          </motion.div>
+        </section>
 
-          <p className="text-sm sm:text-base text-stone-400 max-w-2xl mx-auto leading-relaxed">
-            Eliminate ordering friction, boost table turnover by 35%, and delight diners with live kitchen tracking, automated GST billing, and push CRM.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <Link to="/login" className="w-full sm:w-auto">
-              <Button size="lg" className="w-full sm:w-auto bg-brand-primary font-bold shadow-lg shadow-brand-primary/30 gap-2">
-                Launch Restaurant Portal <ArrowRightIcon className="h-4 w-4" />
-              </Button>
-            </Link>
-          </div>
-        </div>
+        {/* Logos & Stats Strip */}
+        <LogosAndStatsStrip />
 
         {/* Quick Table Lookup for Guests */}
-        <div className="max-w-md mx-auto p-6 rounded-3xl bg-stone-900/90 border border-stone-800 shadow-2xl text-center space-y-4">
-          <div className="h-10 w-10 mx-auto rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center">
-            <DevicePhoneMobileIcon className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-white">Dining at a Restaurant?</h3>
-            <p className="text-xs text-stone-400 mt-0.5">
-              Enter the 6-character code printed on your table standee to browse the menu:
-            </p>
-          </div>
+        <motion.section
+          id="table-lookup"
+          variants={sectionVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-100px' }}
+          className="max-w-xl mx-auto"
+        >
+          <div className="card-surface p-8 sm:p-10 border border-white/[0.08] rounded-card text-center space-y-6">
+            <div className="h-11 w-11 mx-auto rounded-full bg-white/[0.04] border border-white/10 text-accent flex items-center justify-center">
+              <Smartphone className="h-5 w-5" strokeWidth={1.5} />
+            </div>
 
-          <form onSubmit={handleTableLookup} className="flex gap-2">
-            <input
-              type="text"
-              placeholder="e.g. TBL001"
-              value={tableCodeInput}
-              onChange={(e) => setTableCodeInput(e.target.value.toUpperCase())}
-              maxLength={8}
-              className="flex-1 rounded-xl border border-stone-700 bg-stone-800/80 px-4 py-2.5 text-xs text-white uppercase tracking-wider font-mono placeholder:text-stone-500 focus:border-brand-primary focus:outline-none"
-            />
-            <Button type="submit" size="md" className="font-bold">
-              Open Menu
-            </Button>
-          </form>
-        </div>
+            <div className="space-y-1.5">
+              <h3 className="font-heading text-xl font-bold text-text tracking-tight">
+                Dining at a Restaurant?
+              </h3>
+              <p className="text-xs text-muted max-w-sm mx-auto leading-relaxed">
+                Enter the 6-character code printed on your table standee to browse the menu:
+              </p>
+            </div>
 
-        {/* Feature Grid */}
-        <div className="space-y-6">
-          <div className="text-center">
-            <h3 className="text-xl sm:text-2xl font-black text-white">
+            <form onSubmit={handleTableLookup} className="flex flex-col sm:flex-row gap-3 pt-2">
+              <input
+                type="text"
+                placeholder="e.g. TBL001"
+                value={tableCodeInput}
+                onChange={(e) => setTableCodeInput(e.target.value.toUpperCase())}
+                maxLength={8}
+                className="flex-1 rounded-full border border-white/10 bg-surface-2 px-5 py-3 text-xs text-text uppercase tracking-widest font-mono placeholder:text-muted/50 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-colors"
+              />
+              <Button type="submit" size="md" className="font-semibold px-6">
+                Open Menu
+              </Button>
+            </form>
+          </div>
+        </motion.section>
+
+        {/* Hairline Divider */}
+        <div className="hairline-divider" />
+
+        {/* Bento Grid Feature Section */}
+        <motion.section
+          id="features"
+          variants={sectionVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: '-100px' }}
+          className="space-y-12"
+        >
+          <div className="text-center space-y-3 max-w-xl mx-auto">
+            <h3 className="h2-cinematic text-text">
               Everything Your Restaurant Needs in One OS
             </h3>
-            <p className="text-xs text-stone-400 mt-1">
+            <p className="text-xs sm:text-sm text-muted font-mono uppercase tracking-wider">
               Built from the ground up for high-volume dining operations
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {features.map((f, idx) => {
-              const Icon = f.icon;
-              return (
-                <div
-                  key={idx}
-                  className="p-6 rounded-3xl bg-stone-900/60 border border-stone-800 hover:border-stone-700 hover:bg-stone-900/90 transition-all space-y-3 shadow-md"
-                >
-                  <div className={`h-10 w-10 rounded-2xl flex items-center justify-center ${f.color}`}>
-                    <Icon className="h-5 w-5" />
-                  </div>
-                  <h4 className="text-sm font-bold text-white">{f.title}</h4>
-                  <p className="text-xs text-stone-400 leading-relaxed">{f.description}</p>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5">
+            {features.map((f, idx) => (
+              <BentoCard key={idx} feature={f} index={idx} />
+            ))}
           </div>
-        </div>
+        </motion.section>
+
+        {/* Hairline Divider */}
+        <div className="hairline-divider" />
+
+        {/* Dining & Kitchen Dispatch Process Timeline */}
+        <ProcessTimeline />
+
+        {/* Hairline Divider */}
+        <div className="hairline-divider" />
+
+        {/* Featured Projects & Deployments Showcase */}
+        <ProjectsSection />
+
+        {/* Hairline Divider */}
+        <div className="hairline-divider" />
+
+        {/* Transparent Pricing Plans */}
+        <PricingSection />
+
+        {/* Hairline Divider */}
+        <div className="hairline-divider" />
+
+        {/* Operator Testimonials */}
+        <TestimonialsSection />
+
+        {/* Hairline Divider */}
+        <div className="hairline-divider" />
+
+        {/* About & Engineering Leadership */}
+        <AboutSection />
+
+        {/* Hairline Divider */}
+        <div className="hairline-divider" />
+
+        {/* Direct Contact & Deployments Form */}
+        <ContactSection />
+
+        {/* Hairline Divider */}
+        <div className="hairline-divider" />
+
+        {/* Final Conversion CTA Panel */}
+        <FinalCtaSection />
       </main>
 
       {/* Footer */}
-      <footer className="max-w-6xl mx-auto w-full px-6 py-8 border-t border-stone-900 text-center text-xs text-stone-500 z-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p>TableSuite &copy; {new Date().getFullYear()} &bull; All rights reserved.</p>
-        <div className="flex items-center gap-4 text-xs">
-          <Link to="/login" className="hover:text-white transition-colors">
-            Staff Portal
-          </Link>
-          <span className="text-stone-700">&bull;</span>
-          <span className="text-stone-400">Enterprise PostgreSQL RLS</span>
+      <footer className="border-t border-white/[0.08] relative z-10 w-full bg-surface">
+        <div className="max-w-7xl mx-auto px-6 md:px-10 py-10 flex flex-col sm:flex-row items-center justify-between gap-5 text-xs text-muted font-mono">
+          <p>TableSuite &copy; {new Date().getFullYear()} &bull; All rights reserved.</p>
+          <div className="flex items-center gap-5">
+            <Link to="/login" className="hover:text-text transition-colors">
+              Staff Portal
+            </Link>
+            <span className="text-white/20">&bull;</span>
+            <span className="text-text/70">Enterprise PostgreSQL RLS</span>
+          </div>
         </div>
       </footer>
     </div>

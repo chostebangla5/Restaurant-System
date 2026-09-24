@@ -23,14 +23,14 @@ import {
   toggleItemBestseller,
 } from '../api/menuApi';
 import {
-  PlusIcon,
-  MagnifyingGlassIcon,
-  BookOpenIcon,
-  Bars3BottomLeftIcon,
-  PencilIcon,
-  TrashIcon,
-  EyeSlashIcon,
-} from '@heroicons/react/24/outline';
+  Plus,
+  Search,
+  BookOpen,
+  Menu,
+  Pencil,
+  Trash2,
+  EyeOff,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
@@ -258,38 +258,40 @@ export function StaffMenuScreen() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-stone-900 dark:text-white">Menu & Catalog Studio</h2>
-          <p className="text-xs text-stone-500">
+          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Menu & Catalog Studio</h2>
+          <p className="text-xs text-[#8A8F9C] mt-1 font-mono">
             {categories.length} categories · {items.length} items
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           <Button
             size="sm"
-            variant="secondary"
+            variant="outline"
+            className="rounded-full border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25]"
             onClick={() => {
               setEditingCategory(null);
               setCategoryModalOpen(true);
             }}
           >
-            <PlusIcon className="h-4 w-4" /> Category
+            <Plus className="h-3.5 w-3.5 mr-1" strokeWidth={1.5} /> Category
           </Button>
           <Button
             size="sm"
+            className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold"
             onClick={() => {
               setEditingItem(null);
               setItemFormOpen(true);
             }}
           >
-            <PlusIcon className="h-4 w-4" /> New Item
+            <Plus className="h-3.5 w-3.5 mr-1" strokeWidth={1.5} /> New Item
           </Button>
         </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
         {/* ─── Category Sidebar ─── */}
-        <div className="lg:w-56 shrink-0 space-y-2">
-          <p className="text-[11px] uppercase tracking-wider font-bold text-stone-400 dark:text-stone-500 px-1">
+        <div className="lg:w-60 shrink-0 space-y-2">
+          <p className="text-[10px] uppercase tracking-wider font-mono text-[#8A8F9C] px-1">
             Categories (drag to reorder)
           </p>
 
@@ -298,10 +300,10 @@ export function StaffMenuScreen() {
             type="button"
             onClick={() => setSelectedCategoryId(null)}
             className={cn(
-              'w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all',
+              'w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all',
               !selectedCategoryId
-                ? 'bg-brand-primary text-white shadow-sm'
-                : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800'
+                ? 'bg-[#C6FF3D] text-[#07080B] font-semibold shadow-sm'
+                : 'text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.04]'
             )}
           >
             <span>All Items</span>
@@ -319,10 +321,10 @@ export function StaffMenuScreen() {
               onDragOver={handleCatDragOver(index)}
               onDragEnd={handleCatDragEnd}
               className={cn(
-                'group flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all cursor-grab active:cursor-grabbing',
+                'group flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all cursor-grab active:cursor-grabbing border',
                 selectedCategoryId === cat.id
-                  ? 'bg-brand-primary text-white shadow-sm'
-                  : 'text-stone-600 dark:text-stone-400 hover:bg-stone-100 dark:hover:bg-stone-800',
+                  ? 'bg-[#141721] text-[#F4F5F7] border-[#C6FF3D]/40'
+                  : 'text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.03] border-transparent',
                 dragIndex === index && 'opacity-50'
               )}
             >
@@ -331,7 +333,7 @@ export function StaffMenuScreen() {
                 onClick={() => setSelectedCategoryId(cat.id)}
                 className="flex items-center gap-2 flex-1 min-w-0 text-left"
               >
-                <Bars3BottomLeftIcon className="h-3.5 w-3.5 opacity-40 shrink-0" />
+                <Menu className="h-3.5 w-3.5 opacity-40 shrink-0" strokeWidth={1.5} />
                 <span className="truncate">{cat.name}</span>
               </button>
               <div className="flex items-center gap-1">
@@ -348,10 +350,10 @@ export function StaffMenuScreen() {
                     setEditingCategory(cat);
                     setCategoryModalOpen(true);
                   }}
-                  className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-white/20 transition-all"
+                  className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-white/10 text-[#8A8F9C] hover:text-[#F4F5F7] transition-all"
                   title="Edit category"
                 >
-                  <PencilIcon className="h-3 w-3" />
+                  <Pencil className="h-3 w-3" strokeWidth={1.5} />
                 </button>
                 <button
                   type="button"
@@ -359,17 +361,17 @@ export function StaffMenuScreen() {
                     e.stopPropagation();
                     handleDeleteCategory(cat);
                   }}
-                  className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-white/20 transition-all"
+                  className="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-rose-500/10 text-[#8A8F9C] hover:text-rose-400 transition-all"
                   title="Delete category"
                 >
-                  <TrashIcon className="h-3 w-3" />
+                  <Trash2 className="h-3 w-3" strokeWidth={1.5} />
                 </button>
               </div>
             </div>
           ))}
 
           {categories.length === 0 && !isLoadingCats && (
-            <div className="p-4 text-center text-xs text-stone-500">
+            <div className="p-4 text-center text-xs font-mono text-[#8A8F9C]">
               No categories yet. Create one to start adding menu items.
             </div>
           )}
@@ -380,13 +382,13 @@ export function StaffMenuScreen() {
           {/* Toolbar */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="relative flex-1 max-w-sm">
-              <MagnifyingGlassIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-stone-400" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#8A8F9C]" strokeWidth={1.5} />
               <input
                 type="text"
                 placeholder="Search menu items..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-stone-200 bg-white pl-10 pr-4 py-2.5 text-xs text-stone-900 placeholder:text-stone-400 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20 dark:border-stone-800 dark:bg-stone-900 dark:text-stone-100"
+                className="w-full rounded-full border border-white/[0.08] bg-[#0E1016] pl-9 pr-4 py-2 text-xs text-[#F4F5F7] placeholder:text-[#8A8F9C] focus:border-[#C6FF3D] focus:outline-none transition-colors"
               />
             </div>
             <div className="flex items-center gap-3">
@@ -396,7 +398,7 @@ export function StaffMenuScreen() {
                 size="sm"
                 label="Show 86'd"
               />
-              <span className="text-xs text-stone-400">
+              <span className="text-xs font-mono text-[#8A8F9C]">
                 {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}
               </span>
             </div>
@@ -421,7 +423,7 @@ export function StaffMenuScreen() {
             </div>
           ) : (
             <EmptyState
-              icon={BookOpenIcon}
+              icon={BookOpen}
               title={searchQuery ? 'No items match your search' : 'No menu items yet'}
               description={
                 searchQuery
@@ -432,12 +434,13 @@ export function StaffMenuScreen() {
                 !searchQuery && (
                   <Button
                     size="sm"
+                    className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold"
                     onClick={() => {
                       setEditingItem(null);
                       setItemFormOpen(true);
                     }}
                   >
-                    <PlusIcon className="h-4 w-4" /> Add First Item
+                    <Plus className="h-4 w-4 mr-1" strokeWidth={1.5} /> Add First Item
                   </Button>
                 )
               }

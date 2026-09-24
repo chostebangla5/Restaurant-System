@@ -9,24 +9,24 @@ export function Badge({
   ...props
 }) {
   const variants = {
-    default: 'bg-stone-100 text-stone-700 dark:bg-stone-800 dark:text-stone-300',
-    primary: 'bg-brand-primary/10 text-brand-primary border border-brand-primary/20',
-    success: 'bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800',
-    warning: 'bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800',
-    danger: 'bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800',
-    accent: 'bg-amber-400/20 text-amber-900 dark:text-amber-300 font-semibold',
+    default: 'bg-white/[0.04] text-text border border-white/10',
+    primary: 'bg-accent/10 text-accent border border-accent/20',
+    success: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20',
+    warning: 'bg-amber-500/10 text-amber-400 border border-amber-500/20',
+    danger: 'bg-rose-500/10 text-rose-400 border border-rose-500/20',
+    accent: 'bg-accent text-bg font-semibold',
   };
 
   const sizes = {
-    sm: 'text-[10px] px-2 py-0.5 rounded-full font-medium',
-    md: 'text-xs px-2.5 py-1 rounded-full font-semibold',
-    lg: 'text-sm px-3 py-1.5 rounded-full font-semibold',
+    sm: 'text-[10px] px-2.5 py-0.5 rounded-full font-mono uppercase tracking-wider',
+    md: 'text-xs px-3 py-1 rounded-full font-medium',
+    lg: 'text-xs px-4 py-1.5 rounded-full font-medium',
   };
 
   return (
     <span
       className={cn(
-        'inline-flex items-center justify-center gap-1 font-sans transition-colors',
+        'inline-flex items-center justify-center gap-1.5 transition-colors',
         variants[variant],
         sizes[size],
         className

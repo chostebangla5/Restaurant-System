@@ -11,13 +11,13 @@ import {
 } from '@/features/shared/orders/api/ordersApi';
 import toast from 'react-hot-toast';
 import {
-  BanknotesIcon,
-  CreditCardIcon,
-  PrinterIcon,
-  CheckCircleIcon,
-  DocumentTextIcon,
-  ClockIcon,
-} from '@heroicons/react/24/outline';
+  Banknote,
+  CreditCard,
+  Printer,
+  CheckCircle2,
+  FileText,
+  Clock,
+} from 'lucide-react';
 
 export function StaffBillingScreen() {
   const { venue } = useAuth();
@@ -77,24 +77,24 @@ export function StaffBillingScreen() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-stone-900 dark:text-white">
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">
             POS Billing & Settlement
           </h1>
-          <p className="text-xs text-stone-500 mt-0.5">
+          <p className="text-xs text-[#8A8F9C] mt-1">
             Process guest table bills, accept counter cash, and print tax receipts
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="px-4 py-2 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-right">
-            <span className="text-[10px] font-bold text-amber-600 block uppercase">Pending Due</span>
-            <span className="text-base font-black text-amber-600">
+          <div className="px-4 py-2 rounded-xl bg-[#0E1016] border border-amber-400/25 text-right">
+            <span className="text-[10px] font-mono font-medium text-amber-400 block uppercase tracking-wider">Pending Due</span>
+            <span className="text-base font-mono font-bold text-amber-300">
               {formatCurrency(totalPendingDue)}
             </span>
           </div>
-          <div className="px-4 py-2 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-right">
-            <span className="text-[10px] font-bold text-emerald-600 block uppercase">Settled Today</span>
-            <span className="text-base font-black text-emerald-600">
+          <div className="px-4 py-2 rounded-xl bg-[#0E1016] border border-[#C6FF3D]/25 text-right">
+            <span className="text-[10px] font-mono font-medium text-[#C6FF3D] block uppercase tracking-wider">Settled Today</span>
+            <span className="text-base font-mono font-bold text-[#C6FF3D]">
               {formatCurrency(totalSettledToday)}
             </span>
           </div>
@@ -112,10 +112,10 @@ export function StaffBillingScreen() {
             key={tab.id}
             type="button"
             onClick={() => setFilter(tab.id)}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
               filter === tab.id
-                ? 'bg-brand-primary text-white shadow-sm shadow-brand-primary/20'
-                : 'bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-300 border border-stone-200 dark:border-stone-700'
+                ? 'bg-[#C6FF3D] text-[#07080B] font-semibold shadow-sm'
+                : 'bg-[#0E1016] text-[#8A8F9C] hover:text-[#F4F5F7] border border-white/[0.08]'
             }`}
           >
             {tab.label}
@@ -124,10 +124,10 @@ export function StaffBillingScreen() {
       </div>
 
       {/* Billing Records Table */}
-      <div className="rounded-3xl bg-white dark:bg-stone-900 border border-stone-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
+      <div className="rounded-card bg-[#0E1016] border border-white/[0.08] overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-stone-50 dark:bg-stone-800/60 border-b border-stone-200/80 dark:border-stone-800 text-stone-400 font-bold uppercase tracking-wider text-[10px]">
+            <thead className="bg-[#141721] border-b border-white/[0.08] text-[#8A8F9C] font-mono font-medium uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="px-5 py-3.5">Invoice / Table</th>
                 <th className="px-5 py-3.5">Items Ordered</th>
@@ -138,10 +138,10 @@ export function StaffBillingScreen() {
                 <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-stone-100 dark:divide-stone-800/80 font-medium">
+            <tbody className="divide-y divide-white/[0.06] font-medium">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-stone-400">
+                  <td colSpan={7} className="px-5 py-12 text-center text-[#8A8F9C] font-mono text-xs">
                     No billing records found.
                   </td>
                 </tr>
@@ -152,42 +152,42 @@ export function StaffBillingScreen() {
                   return (
                     <tr
                       key={o.id}
-                      className="hover:bg-stone-50/70 dark:hover:bg-stone-800/40 transition-colors"
+                      className="hover:bg-white/[0.02] transition-colors"
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-2.5">
-                          <span className="h-8 w-8 rounded-lg bg-brand-primary text-white font-black text-xs flex items-center justify-center">
+                          <span className="h-8 w-8 rounded-full bg-[#141721] border border-white/[0.08] text-[#C6FF3D] font-mono font-bold text-xs flex items-center justify-center">
                             T-{o.table_number}
                           </span>
                           <div>
-                            <span className="font-extrabold text-stone-900 dark:text-white block">
+                            <span className="font-mono text-xs font-semibold text-[#F4F5F7] block">
                               {o.id}
                             </span>
-                            <span className="text-[10px] text-stone-400">
+                            <span className="text-[10px] font-mono text-[#8A8F9C]">
                               Round #{o.round_number} &bull; {new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 max-w-xs truncate text-stone-600 dark:text-stone-300">
+                      <td className="px-5 py-4 max-w-xs truncate text-[#8A8F9C]">
                         {(o.items || []).map((it) => `${it.qty}x ${it.name}`).join(', ')}
                       </td>
-                      <td className="px-5 py-4 text-stone-500">
+                      <td className="px-5 py-4 font-mono text-[#8A8F9C]">
                         {formatCurrency(o.subtotal)}
                       </td>
-                      <td className="px-5 py-4 text-stone-500">
+                      <td className="px-5 py-4 font-mono text-[#8A8F9C]">
                         {formatCurrency(o.tax)}
                       </td>
-                      <td className="px-5 py-4 font-black text-stone-900 dark:text-white text-sm">
+                      <td className="px-5 py-4 font-mono font-bold text-[#F4F5F7] text-sm">
                         {formatCurrency(o.total)}
                       </td>
                       <td className="px-5 py-4">
                         {isPaid ? (
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">
+                          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                             ✓ Paid ({o.payment_method || 'counter'})
                           </span>
                         ) : (
-                          <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 border border-amber-500/20">
+                          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30">
                             Pending Counter Settle
                           </span>
                         )}
@@ -198,15 +198,15 @@ export function StaffBillingScreen() {
                             size="sm"
                             variant="outline"
                             onClick={() => setSelectedReceiptOrder(o)}
-                            className="h-8 text-xs font-bold"
+                            className="h-8 text-xs font-medium rounded-full border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25]"
                           >
-                            <DocumentTextIcon className="h-3.5 w-3.5 mr-1" /> View Receipt
+                            <FileText className="h-3.5 w-3.5 mr-1" strokeWidth={1.5} /> View Receipt
                           </Button>
                           {!isPaid && (
                             <Button
                               size="sm"
                               onClick={() => handleSettle(o.id, 'counter')}
-                              className="h-8 text-xs font-bold"
+                              className="h-8 text-xs font-medium rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e]"
                             >
                               Settle (Cash)
                             </Button>
@@ -232,13 +232,13 @@ export function StaffBillingScreen() {
         {selectedReceiptOrder && (
           <div className="space-y-4 py-2 font-mono text-xs">
             {/* Printable Receipt Paper Card */}
-            <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-800 border border-dashed border-stone-300 dark:border-stone-700 space-y-3">
-              <div className="text-center border-b border-dashed border-stone-300 dark:border-stone-700 pb-3">
-                <h3 className="font-black text-sm text-stone-900 dark:text-white uppercase tracking-wider font-sans">
+            <div className="p-5 rounded-card bg-[#141721] border border-dashed border-white/[0.15] space-y-3 text-[#F4F5F7]">
+              <div className="text-center border-b border-dashed border-white/[0.12] pb-3">
+                <h3 className="font-heading font-bold text-sm text-[#F4F5F7] uppercase tracking-wider">
                   {venue?.name || 'TableSuite Restaurant'}
                 </h3>
-                <p className="text-[11px] text-stone-500">GSTIN: 19AAACC1206D1ZM</p>
-                <p className="text-[10px] text-stone-400">
+                <p className="text-[11px] text-[#8A8F9C]">GSTIN: 19AAACC1206D1ZM</p>
+                <p className="text-[10px] text-[#8A8F9C] mt-0.5">
                   Invoice #{selectedReceiptOrder.id} &bull; Table T-{selectedReceiptOrder.table_number}
                 </p>
               </div>
@@ -248,32 +248,32 @@ export function StaffBillingScreen() {
                 {(selectedReceiptOrder.items || []).map((it, idx) => (
                   <div key={idx} className="flex justify-between">
                     <span>{it.qty}x {it.name}</span>
-                    <span>{formatCurrency(it.price * it.qty)}</span>
+                    <span className="text-[#8A8F9C]">{formatCurrency(it.price * it.qty)}</span>
                   </div>
                 ))}
               </div>
 
               {/* Totals */}
-              <div className="border-t border-dashed border-stone-300 dark:border-stone-700 pt-2 space-y-1 text-[11px]">
-                <div className="flex justify-between text-stone-500">
+              <div className="border-t border-dashed border-white/[0.12] pt-2 space-y-1 text-[11px]">
+                <div className="flex justify-between text-[#8A8F9C]">
                   <span>Subtotal</span>
                   <span>{formatCurrency(selectedReceiptOrder.subtotal)}</span>
                 </div>
-                <div className="flex justify-between text-stone-500">
+                <div className="flex justify-between text-[#8A8F9C]">
                   <span>CGST (2.5%)</span>
                   <span>{formatCurrency(selectedReceiptOrder.tax / 2)}</span>
                 </div>
-                <div className="flex justify-between text-stone-500">
+                <div className="flex justify-between text-[#8A8F9C]">
                   <span>SGST (2.5%)</span>
                   <span>{formatCurrency(selectedReceiptOrder.tax / 2)}</span>
                 </div>
-                <div className="border-t border-stone-200 dark:border-stone-700 pt-1.5 flex justify-between font-black text-sm text-stone-900 dark:text-white font-sans">
+                <div className="border-t border-white/[0.12] pt-2 flex justify-between font-bold text-sm text-[#F4F5F7]">
                   <span>GRAND TOTAL</span>
-                  <span className="text-brand-primary">{formatCurrency(selectedReceiptOrder.total)}</span>
+                  <span className="text-[#C6FF3D]">{formatCurrency(selectedReceiptOrder.total)}</span>
                 </div>
               </div>
 
-              <div className="text-center pt-2 border-t border-dashed border-stone-300 dark:border-stone-700 text-[10px] text-stone-400">
+              <div className="text-center pt-2 border-t border-dashed border-white/[0.12] text-[10px] text-[#8A8F9C]">
                 Payment: {selectedReceiptOrder.payment_status === 'paid' ? `PAID VIA ${selectedReceiptOrder.payment_method?.toUpperCase()}` : 'PENDING COUNTER SETTLEMENT'}
                 <br />Thank you for visiting!
               </div>
@@ -284,17 +284,17 @@ export function StaffBillingScreen() {
               <Button
                 size="md"
                 variant="outline"
-                className="flex-1 font-bold"
+                className="flex-1 font-medium rounded-full border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25]"
                 onClick={() => {
                   window.print();
                 }}
               >
-                <PrinterIcon className="h-4 w-4 mr-1.5" /> Print Receipt
+                <Printer className="h-4 w-4 mr-1.5" strokeWidth={1.5} /> Print Receipt
               </Button>
               {selectedReceiptOrder.payment_status !== 'paid' && selectedReceiptOrder.status !== 'completed' && (
                 <Button
                   size="md"
-                  className="flex-1 font-bold"
+                  className="flex-1 font-semibold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e]"
                   onClick={() => handleSettle(selectedReceiptOrder.id, 'cash')}
                 >
                   Mark as Paid

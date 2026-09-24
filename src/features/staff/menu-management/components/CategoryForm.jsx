@@ -79,10 +79,10 @@ export function CategoryForm({
         />
 
         <div className="flex justify-end gap-3 pt-2">
-          <Button variant="ghost" onClick={onClose} type="button">
+          <Button variant="ghost" onClick={onClose} type="button" className="rounded-full text-[#8A8F9C] hover:text-[#F4F5F7]">
             Cancel
           </Button>
-          <Button type="submit" isLoading={isLoading}>
+          <Button type="submit" isLoading={isLoading} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
             {isEdit ? 'Save Changes' : 'Create Category'}
           </Button>
         </div>

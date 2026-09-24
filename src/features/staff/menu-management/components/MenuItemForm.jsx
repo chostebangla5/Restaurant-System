@@ -101,29 +101,29 @@ export function MenuItemForm({
     >
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Live Preview Card */}
-        <div className="p-4 rounded-2xl bg-stone-50 dark:bg-stone-800/50 border border-stone-200/80 dark:border-stone-800 flex items-center justify-between gap-4">
+        <div className="p-4 rounded-card bg-[#141721] border border-white/[0.08] flex items-center justify-between gap-4">
           <div className="space-y-1 min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               {formData.dietaryTags.includes('veg') ? (
-                <span className="h-3 w-3 rounded-sm border border-emerald-600 flex items-center justify-center p-0.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
+                <span className="h-3 w-3 rounded-sm border border-emerald-500 flex items-center justify-center p-0.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
                 </span>
               ) : formData.dietaryTags.includes('non-veg') ? (
-                <span className="h-3 w-3 rounded-sm border border-rose-600 flex items-center justify-center p-0.5">
-                  <span className="h-1.5 w-1.5 rounded-full bg-rose-600" />
+                <span className="h-3 w-3 rounded-sm border border-rose-500 flex items-center justify-center p-0.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
                 </span>
               ) : null}
-              <span className="font-bold text-sm text-stone-900 dark:text-white truncate">
+              <span className="font-heading font-semibold text-sm text-[#F4F5F7] truncate">
                 {formData.name || 'Item Name'}
               </span>
               {formData.isBestseller && (
                 <Badge variant="warning" size="sm">Must Try</Badge>
               )}
             </div>
-            <p className="text-xs text-stone-500 line-clamp-1">
+            <p className="text-xs text-[#8A8F9C] line-clamp-1">
               {formData.description || 'Item description...'}
             </p>
-            <div className="text-sm font-bold text-stone-900 dark:text-white">
+            <div className="text-sm font-mono font-bold text-[#F4F5F7]">
               {formatCurrency(previewPrice)}
             </div>
           </div>
@@ -131,7 +131,7 @@ export function MenuItemForm({
             <img
               src={formData.imageUrl}
               alt=""
-              className="h-16 w-16 rounded-xl object-cover shrink-0"
+              className="h-16 w-16 rounded-xl object-cover shrink-0 border border-white/[0.08]"
               onError={(e) => { e.target.style.display = 'none'; }}
             />
           )}
@@ -192,7 +192,7 @@ export function MenuItemForm({
 
         {/* Dietary Tags */}
         <div>
-          <label className="block text-xs font-semibold text-stone-700 dark:text-stone-300 mb-2">
+          <label className="block text-xs font-mono uppercase tracking-wider text-[#8A8F9C] mb-2">
             Dietary Tags
           </label>
           <div className="flex flex-wrap gap-2">
@@ -203,10 +203,10 @@ export function MenuItemForm({
                   key={tag.value}
                   type="button"
                   onClick={() => toggleTag(tag.value)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
                     isActive
-                      ? 'bg-brand-primary text-white border-brand-primary shadow-sm'
-                      : 'bg-stone-100 text-stone-600 border-stone-200 hover:border-stone-300 dark:bg-stone-800 dark:text-stone-400 dark:border-stone-700'
+                      ? 'bg-[#C6FF3D] text-[#07080B] border-[#C6FF3D] font-semibold shadow-sm'
+                      : 'bg-[#141721] text-[#8A8F9C] border-white/[0.08] hover:text-[#F4F5F7] hover:border-white/[0.2]'
                   }`}
                 >
                   {tag.label}
@@ -237,11 +237,11 @@ export function MenuItemForm({
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 pt-3 border-t border-stone-100 dark:border-stone-800">
-          <Button variant="ghost" onClick={onClose} type="button">
+        <div className="flex justify-end gap-3 pt-3 border-t border-white/[0.06]">
+          <Button variant="ghost" onClick={onClose} type="button" className="rounded-full text-[#8A8F9C] hover:text-[#F4F5F7]">
             Cancel
           </Button>
-          <Button type="submit" isLoading={isLoading}>
+          <Button type="submit" isLoading={isLoading} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
             {isEdit ? 'Save Changes' : 'Add to Menu'}
           </Button>
         </div>
