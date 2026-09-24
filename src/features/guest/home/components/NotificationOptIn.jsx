@@ -107,13 +107,13 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
     return (
       <AnimatePresence>
         <motion.div
-          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 12 }}
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : -20 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: shouldReduceMotion ? 0 : 12 }}
+          exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -20 }}
           transition={{ duration: shouldReduceMotion ? DURATION_REDUCED : DURATION_MODAL, ease: TRANSITION_EASE }}
-          className="fixed bottom-6 left-4 right-4 z-50 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-sm pb-[env(safe-area-inset-bottom)]"
+          className="fixed top-4 left-3 right-3 sm:left-auto sm:right-6 sm:top-5 sm:max-w-sm z-50"
         >
-          <div className="flex items-center gap-2.5 rounded-full bg-[#0E1016] px-4 py-3 text-[#C6FF3D] shadow-2xl border border-[#C6FF3D]/30 font-sans">
+          <div className="flex items-center gap-2.5 rounded-full bg-[#0E1016]/95 backdrop-blur-md px-4 py-3 text-[#C6FF3D] shadow-2xl border border-[#C6FF3D]/30 font-sans">
             <BellRing className="h-4 w-4 flex-shrink-0 text-[#C6FF3D]" strokeWidth={1.5} />
             <span className="text-xs font-semibold">Notifications enabled! You'll get the best deals.</span>
           </div>
@@ -126,29 +126,29 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
     <AnimatePresence>
       {isVisible && !isDismissed && (
         <motion.div
-          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }}
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -24, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: 12, scale: 0.98 }}
+          exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -24, scale: 0.96 }}
           transition={{ duration: shouldReduceMotion ? DURATION_REDUCED : DURATION_MODAL, ease: TRANSITION_EASE }}
-          className="fixed bottom-6 left-4 right-4 z-50 sm:left-auto sm:right-6 sm:bottom-6 sm:max-w-sm pb-[env(safe-area-inset-bottom)]"
+          className="fixed top-4 left-3 right-3 sm:left-auto sm:right-6 sm:top-5 sm:max-w-sm z-50"
         >
-          <div className="relative overflow-hidden rounded-card bg-[#0E1016] p-5 shadow-2xl border border-white/[0.08]">
+          <div className="relative overflow-hidden rounded-2xl bg-[#0E1016]/98 backdrop-blur-xl p-4 sm:p-5 shadow-2xl border border-white/10 ring-1 ring-white/5">
             {/* Dismiss button */}
             <button
               onClick={handleDismiss}
               aria-label="Dismiss notification prompt"
-              className="absolute top-2.5 right-2.5 p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.06] transition-colors"
+              className="absolute top-2.5 right-2.5 p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-full text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.06] transition-colors"
             >
               <X className="h-4 w-4" strokeWidth={1.5} />
             </button>
 
             {/* Content */}
-            <div className="flex items-start gap-3.5">
-              <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-full bg-[#141721] border border-white/[0.08] text-[#C6FF3D]">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-[#141721] border border-white/[0.08] text-[#C6FF3D] shadow-sm">
                 <Tag className="h-4 w-4" strokeWidth={1.5} />
               </div>
-              <div className="flex-1 pr-4">
-                <h4 className="text-sm font-heading font-semibold text-[#F4F5F7] mb-1">
+              <div className="flex-1 pr-5">
+                <h4 className="text-sm font-heading font-semibold text-[#F4F5F7] mb-0.5">
                   Get exclusive deals
                 </h4>
                 <p className="text-xs text-[#8A8F9C] leading-relaxed">
@@ -159,26 +159,26 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
 
             {/* Action */}
             {isIOSPrompt ? (
-              <div className="flex flex-col gap-2.5 mt-4">
-                <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/10 text-[11px] text-[#F4F5F7]">
+              <div className="flex flex-col gap-2 mt-3.5">
+                <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-[11px] text-[#F4F5F7]">
                   <Share className="h-4 w-4 text-[#C6FF3D] shrink-0" strokeWidth={1.75} />
                   <span>Tap <strong>Share</strong>, then <strong>Add to Home Screen</strong> to unlock live offers on iPhone.</span>
                 </div>
                 <button
                   type="button"
                   onClick={handleDismiss}
-                  className="w-full flex items-center justify-center rounded-full bg-[#C6FF3D] hover:bg-[#b8f52e] px-4 py-2.5 min-h-[44px] text-xs font-semibold text-[#07080B] transition-all"
+                  className="w-full flex items-center justify-center rounded-full bg-[#C6FF3D] hover:bg-[#b8f52e] px-4 py-2.5 min-h-[40px] text-xs font-semibold text-[#07080B] transition-all shadow-sm"
                 >
                   Got it
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 mt-4">
+              <div className="flex items-center gap-2 mt-3.5">
                 <button
                   type="button"
                   onClick={handleSubscribe}
                   disabled={isLoading}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-full bg-[#C6FF3D] hover:bg-[#b8f52e] px-4 py-2.5 min-h-[44px] text-xs font-semibold text-[#07080B] transition-all disabled:opacity-60"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-full bg-[#C6FF3D] hover:bg-[#b8f52e] px-4 py-2.5 min-h-[40px] text-xs font-semibold text-[#07080B] transition-all disabled:opacity-60 shadow-sm"
                 >
                   {isLoading ? (
                     <div className="h-3.5 w-3.5 border-2 border-[#07080B]/30 border-t-[#07080B] rounded-full animate-spin" />
@@ -190,7 +190,7 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
                 <button
                   type="button"
                   onClick={handleDismiss}
-                  className="rounded-full px-3.5 py-2.5 min-h-[44px] text-xs font-medium text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.04] transition-colors"
+                  className="rounded-full px-3 py-2 min-h-[40px] text-xs font-medium text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.04] transition-colors"
                 >
                   Not now
                 </button>
