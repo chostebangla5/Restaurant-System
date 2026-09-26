@@ -1,6 +1,6 @@
 // @ts-nocheck
 // ============================================================================
-// Supabase Edge Function — Send Push Notifications (RFC 8291 compliant via web-push)
+// Supabase Edge Function — Send Push Notifications with Custom Venue Branding
 // ============================================================================
 
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
@@ -58,6 +58,29 @@ serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Fetch venue details for custom branding & logo
+    const { data: venue } = await supabase
+      .from("venues")
+      .select("name, logo_url")
+      .eq("id", venue_id)
+      .maybeSingle();
+
+    const venueName = venue?.name || "TableSuite";
+    const venueIcon =
+      venue?.logo_url && venue.logo_url.startsWith("http")
+        ? venue.logo_url
+        : "https://ditoech.in/icons/icon-192.png";
+    const badgeIcon = "https://ditoech.in/icons/badge-72.png";
+    const promoBanner = "https://ditoech.in/icons/banner-promo.png";
+
+    // Format notification title with restaurant brand name
+    const finalTitle =
+      venueName &&
+      venueName !== "TableSuite" &&
+      !title.toLowerCase().includes(venueName.toLowerCase())
+        ? `${venueName} • ${title}`
+        : title;
+
     // Fetch all active subscriptions for this venue
     const { data: subscriptions, error: fetchError } = await supabase
       .from("push_subscriptions")
@@ -74,15 +97,17 @@ serve(async (req: Request) => {
     let failed = 0;
     const errors: string[] = [];
 
-    // Prepare push payload
+    // Prepare push payload with full branding, icon, badge, and promo banner
     const pushPayload = JSON.stringify({
-      title,
+      title: finalTitle,
       body: message || title,
-      icon: "/icons/icon-192.png",
-      badge: "/icons/badge-72.png",
+      icon: venueIcon,
+      badge: badgeIcon,
+      image: promoBanner,
       tag: `offer-${offer_id || Date.now()}`,
       url: "/",
       offerId: offer_id,
+      timestamp: Date.now(),
     });
 
     const staleEndpoints: string[] = [];
@@ -146,7 +171,7 @@ serve(async (req: Request) => {
       offer_id: offer_id || null,
       venue_id,
       sent_by: sentBy,
-      title,
+      title: finalTitle,
       message: message || null,
       devices_targeted: total,
       devices_delivered: sent,

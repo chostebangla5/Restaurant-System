@@ -1,8 +1,8 @@
 // ============================================================================
-// TableSuite Service Worker — Push Notifications
+// TableSuite Service Worker — Push Notifications (v2 with Rich Branding)
 // ============================================================================
 
-const CACHE_NAME = 'tablesuite-v1';
+const CACHE_NAME = 'tablesuite-v2';
 
 // Install event
 self.addEventListener('install', (event) => {
@@ -14,13 +14,14 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(self.clients.claim());
 });
 
-// Push event — display notification
+// Push event — display rich branded notification
 self.addEventListener('push', (event) => {
   let data = {
-    title: 'New Offer!',
-    body: 'Check out the latest deal from your restaurant.',
+    title: 'TableSuite • Special Offer',
+    body: 'Check out the latest dining discount right at your table.',
     icon: '/icons/icon-192.png',
     badge: '/icons/badge-72.png',
+    image: '/icons/banner-promo.png',
     tag: 'offer-notification',
     url: '/',
   };
@@ -31,18 +32,32 @@ self.addEventListener('push', (event) => {
       data = { ...data, ...payload };
     }
   } catch (e) {
-    // If JSON parse fails, try as text
     if (event.data) {
       data.body = event.data.text();
     }
   }
 
+  // Resolve absolute URLs for Android notification engine
+  const origin = self.location.origin;
+  const iconUrl = data.icon?.startsWith('http')
+    ? data.icon
+    : `${origin}${data.icon || '/icons/icon-192.png'}`;
+  const badgeUrl = data.badge?.startsWith('http')
+    ? data.badge
+    : `${origin}${data.badge || '/icons/badge-72.png'}`;
+  const imageUrl = data.image?.startsWith('http')
+    ? data.image
+    : `${origin}${data.image || '/icons/banner-promo.png'}`;
+
   const options = {
     body: data.body,
-    icon: data.icon || '/icons/icon-192.png',
-    badge: data.badge || '/icons/badge-72.png',
+    icon: iconUrl,
+    badge: badgeUrl,
+    image: imageUrl,
     tag: data.tag || 'offer-' + Date.now(),
-    vibrate: [200, 100, 200],
+    vibrate: [250, 100, 250, 100, 250],
+    timestamp: data.timestamp || Date.now(),
+    renotify: true,
     requireInteraction: false,
     data: {
       url: data.url || '/',
@@ -51,7 +66,7 @@ self.addEventListener('push', (event) => {
     actions: [
       {
         action: 'view',
-        title: 'View Offer',
+        title: '🎁 View Offer',
       },
     ],
   };
