@@ -198,6 +198,24 @@ export function GuestOrderStatusScreen() {
       }
       toast.success('Bill settled! Thank you for dining with us.');
       setIsSettleModalOpen(false);
+
+      // Save settled orders to local order history so they are preserved in Account -> Previous Orders
+      try {
+        if (typeof window !== 'undefined') {
+          const hist = JSON.parse(localStorage.getItem('tablesuite_order_history') || '[]');
+          orders.forEach((ord) => {
+            if (!hist.some((h) => h.id === ord.id)) {
+              hist.unshift({ ...ord, status: 'completed', payment_status: 'paid', is_settled: true });
+            }
+          });
+          localStorage.setItem('tablesuite_order_history', JSON.stringify(hist.slice(0, 30)));
+          // Clear active session pointer so table is ready and isolated for fresh orders
+          localStorage.removeItem('tablesuite_my_session_id');
+        }
+      } catch (e) {
+        // ignore storage errors
+      }
+
       const updated = await fetchOrdersForTable(shortCode);
       setOrders(updated);
     } catch (err) {

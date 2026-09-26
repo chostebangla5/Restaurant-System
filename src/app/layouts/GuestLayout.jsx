@@ -10,6 +10,7 @@ import {
   UtensilsCrossed,
   RotateCw,
   Bell,
+  User,
 } from 'lucide-react';
 import { CartProvider, useCart } from '@/features/guest/cart/context/CartContext';
 import { NotificationOptIn } from '@/features/guest/home/components/NotificationOptIn';
@@ -44,6 +45,7 @@ function GuestShell({ shortCode, tableData }) {
   const isMenu = location.pathname === `/t/${shortCode}`;
   const isOrders = location.pathname === `/t/${shortCode}/orders`;
   const isCart = location.pathname === `/t/${shortCode}/cart`;
+  const isAccount = location.pathname === `/t/${shortCode}/account`;
 
   return (
     <div className="guest-light min-h-screen flex flex-col font-sans">
@@ -180,18 +182,22 @@ function GuestShell({ shortCode, tableData }) {
             </span>
           </Link>
 
-          {/* Call Staff Button */}
-          <button
-            type="button"
-            onClick={() => setIsCallStaffOpen(true)}
+          {/* Account Tab */}
+          <Link
+            to={`/t/${shortCode}/account`}
             className="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all cursor-pointer"
-            style={{ color: 'var(--g-text-muted)' }}
+            style={{
+              color: isAccount ? 'var(--g-accent)' : 'var(--g-text-muted)',
+            }}
           >
-            <Bell className="h-5 w-5" strokeWidth={1.75} />
-            <span className="text-[11px] font-semibold mt-0.5">
-              Call Staff
+            <User className="h-5 w-5" strokeWidth={isAccount ? 2.25 : 1.75} />
+            <span
+              className="text-[11px] font-semibold mt-0.5"
+              style={{ color: isAccount ? 'var(--g-accent)' : undefined }}
+            >
+              Account
             </span>
-          </button>
+          </Link>
         </div>
       </nav>
 

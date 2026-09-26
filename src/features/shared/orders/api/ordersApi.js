@@ -215,7 +215,7 @@ export async function fetchOrdersForTable(shortCode) {
 
     const { data: session } = await supabase
       .from('table_sessions')
-      .select('id, subtotal, tax_amount, discount_amount, total_amount, status, created_at')
+      .select('id, subtotal, tax_amount, discount_amount, total_amount, status, created_at, customer_name, customer_phone')
       .eq('table_id', tableData.id)
       .order('created_at', { ascending: false })
       .limit(1)
@@ -223,10 +223,48 @@ export async function fetchOrdersForTable(shortCode) {
 
     if (!session) return [];
 
-    // If session is settled and older than 6 hours, return empty for new session
+    // Local device session & ownership identifiers
+    const localMyOrderIds = typeof window !== 'undefined'
+      ? JSON.parse(localStorage.getItem('tablesuite_my_order_ids') || '[]')
+      : [];
+    const localMySessionId = typeof window !== 'undefined'
+      ? localStorage.getItem('tablesuite_my_session_id') || ''
+      : '';
+    const localPhone = typeof window !== 'undefined'
+      ? (localStorage.getItem('tablesuite_guest_phone') || '').replace(/\D/g, '').slice(-10)
+      : '';
+    const sessionPhone = (session.customer_phone || '').replace(/\D/g, '').slice(-10);
+
+    // ── ISOLATION RULE 1: SETTLED SESSIONS ──
+    // If the latest session is settled, NEVER leak it to a new customer scanning the table QR!
+    // Only return it if it truly belongs to THIS customer's device or phone, AND was settled recently (< 30m).
     if (session.status === 'settled') {
+      const isMyDeviceSession = Boolean(localMySessionId && localMySessionId === session.id);
+      const phoneMatches = Boolean(localPhone && sessionPhone && localPhone === sessionPhone);
+
+      if (!isMyDeviceSession && !phoneMatches) {
+        // Different customer / new party at this table: Clean empty state!
+        return [];
+      }
+
+      // If it belongs to this device, only keep active view for up to 30 mins after settlement
+      const ageMinutes = (Date.now() - new Date(session.created_at).getTime()) / (1000 * 60);
+      if (ageMinutes > 30) {
+        return [];
+      }
+    }
+
+    // ── ISOLATION RULE 2: STALE OPEN SESSIONS FROM PAST DINERS ──
+    // If a previous diner left without settling and the session is over 2.5 hours old,
+    // do not show it to an unassociated new device.
+    if (session.status === 'open') {
       const ageHours = (Date.now() - new Date(session.created_at).getTime()) / (1000 * 60 * 60);
-      if (ageHours > 6) return [];
+      const isMyDeviceSession = Boolean(localMySessionId && localMySessionId === session.id);
+      const phoneMatches = Boolean(localPhone && sessionPhone && localPhone === sessionPhone);
+
+      if (ageHours > 2.5 && !isMyDeviceSession && !phoneMatches && localMyOrderIds.length === 0) {
+        return [];
+      }
     }
 
     const { data: orders, error } = await supabase
@@ -363,12 +401,28 @@ export async function createOrder({
   // 2. Get or create open table session
   let { data: session } = await supabase
     .from('table_sessions')
-    .select('id, org_id, venue_id, guest_id')
+    .select('id, org_id, venue_id, guest_id, customer_phone, customer_name, created_at')
     .eq('table_id', targetTableId)
     .eq('status', 'open')
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  // ISOLATION: Check if open session belongs to another customer who vacated earlier
+  if (session) {
+    const existingPhone = (session.customer_phone || '').replace(/\D/g, '').slice(-10);
+    const newOrderPhone = cleanPhone.replace(/\D/g, '').slice(-10);
+    const sessionAgeHours = (Date.now() - new Date(session.created_at).getTime()) / (1000 * 60 * 60);
+
+    // If phones conflict or session was created > 2.5 hours ago, close the old session
+    if ((existingPhone && newOrderPhone && existingPhone !== newOrderPhone) || sessionAgeHours > 2.5) {
+      await supabase
+        .from('table_sessions')
+        .update({ status: 'settled', closed_at: new Date().toISOString() })
+        .eq('id', session.id);
+      session = null;
+    }
+  }
 
   if (!session) {
     const { data: newSession, error: sessErr } = await supabase
@@ -643,6 +697,117 @@ export async function createOrder({
     guest_notes: finalGuestNotes,
     created_at: createdOrder.created_at,
   };
+
+  // Record ownership on guest device for user isolation and account history
+  try {
+    if (typeof window !== 'undefined') {
+      const existingIds = JSON.parse(localStorage.getItem('tablesuite_my_order_ids') || '[]');
+      if (!existingIds.includes(createdOrder.id)) {
+        existingIds.unshift(createdOrder.id);
+        localStorage.setItem('tablesuite_my_order_ids', JSON.stringify(existingIds.slice(0, 50)));
+      }
+      if (session?.id) {
+        localStorage.setItem('tablesuite_my_session_id', session.id);
+      }
+      if (cleanPhone) {
+        localStorage.setItem('tablesuite_guest_phone', cleanPhone);
+      }
+      if (cleanName && cleanName !== 'Guest') {
+        localStorage.setItem('tablesuite_guest_name', cleanName);
+      }
+    }
+  } catch (storageErr) {
+    console.warn('Storage sync notice:', storageErr);
+  }
+
+  return returnedResult;
+}
+
+/**
+ * Fetch a guest customer's previous orders across dining visits.
+ * Prioritizes mobile number over name.
+ */
+export async function fetchGuestPreviousOrders({ phone = '', name = '' }) {
+  if (!isSupabaseConfigured()) {
+    // If not configured, fall back to locally saved order history
+    try {
+      return JSON.parse(localStorage.getItem('tablesuite_order_history') || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  const cleanPhone = (phone || '').replace(/[^\d]/g, '');
+  const tenDigits = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : '';
+  const cleanName = (name || '').trim().replace(/[<>]/g, '');
+
+  try {
+    let query = supabase
+      .from('orders')
+      .select(`
+        *,
+        order_items(*),
+        table_sessions(*, tables(*))
+      `)
+      .order('created_at', { ascending: false });
+
+    // PRIORITY #1: Look up by Mobile Number
+    if (tenDigits) {
+      query = query.or(`customer_phone.ilike.%${tenDigits}%,notes.ilike.%${tenDigits}%`);
+    } else if (cleanName && cleanName.toLowerCase() !== 'guest') {
+      // Secondary fallback: Look up by Name only if no phone
+      query = query.ilike('customer_name', `%${cleanName}%`);
+    } else {
+      // Fallback to local order history IDs if neither phone nor name
+      const localOrderIds = typeof window !== 'undefined'
+        ? JSON.parse(localStorage.getItem('tablesuite_my_order_ids') || '[]')
+        : [];
+      if (localOrderIds.length > 0) {
+        query = query.in('id', localOrderIds);
+      } else {
+        return [];
+      }
+    }
+
+    const { data: orders, error } = await query.limit(30);
+
+    if (error || !orders) {
+      console.warn('Error fetching guest previous orders:', error);
+      return [];
+    }
+
+    return orders.map((o) => {
+      const isSettled = (o.status === 'completed' || o.table_sessions?.status === 'settled') && o.status !== 'cancelled';
+      const roundSubtotal = Number(o.subtotal) || 0;
+      const payInfo = parsePaymentDetails(o.notes);
+      const guestInfo = parseGuestInfo(o.notes);
+      const tableName = o.table_sessions?.tables?.table_number || o.table_number || 'Dining';
+
+      return {
+        id: o.id,
+        round_number: o.round_number || 1,
+        table_number: tableName,
+        created_at: o.created_at,
+        status: o.status,
+        is_settled: isSettled,
+        payment_method: payInfo.summary || 'Counter',
+        payment_status: isSettled ? 'paid' : (o.status === 'cancelled' ? 'cancelled' : 'pending'),
+        customer_name: o.customer_name || guestInfo.name || cleanName || 'Guest',
+        customer_phone: o.customer_phone || guestInfo.phone || cleanPhone || '',
+        items: (o.order_items || []).map((it) => ({
+          id: it.id,
+          name: it.item_name || 'Dish',
+          price: Number(it.price_at_order ?? it.unit_price) || 0,
+          qty: it.quantity || 1,
+        })),
+        total: roundSubtotal,
+        subtotal: roundSubtotal,
+      };
+    });
+  } catch (err) {
+    console.error('Failed to fetch previous orders:', err);
+    return [];
+  }
 }
 
 /**

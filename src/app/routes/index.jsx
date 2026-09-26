@@ -28,6 +28,11 @@ const loadGuestOrderStatusScreen = () =>
     default: m.GuestOrderStatusScreen,
   }));
 
+const loadGuestAccountScreen = () =>
+  import('@/features/guest/account/components/GuestAccountScreen').then((m) => ({
+    default: m.GuestAccountScreen,
+  }));
+
 const loadStaffLoginScreen = () =>
   import('@/features/shared/auth/components/StaffLoginScreen').then((m) => ({
     default: m.StaffLoginScreen,
@@ -122,6 +127,7 @@ const HomeScreen = lazyWithRetry(loadHomeScreen, 'HomeScreen');
 const GuestMenuScreen = lazyWithRetry(loadGuestMenuScreen, 'GuestMenuScreen');
 const GuestCartScreen = lazyWithRetry(loadGuestCartScreen, 'GuestCartScreen');
 const GuestOrderStatusScreen = lazyWithRetry(loadGuestOrderStatusScreen, 'GuestOrderStatusScreen');
+const GuestAccountScreen = lazyWithRetry(loadGuestAccountScreen, 'GuestAccountScreen');
 const StaffLoginScreen = lazyWithRetry(loadStaffLoginScreen, 'StaffLoginScreen');
 const StaffDashboardScreen = lazyWithRetry(loadStaffDashboardScreen, 'StaffDashboardScreen');
 const StaffLiveOrdersScreen = lazyWithRetry(loadStaffLiveOrdersScreen, 'StaffLiveOrdersScreen');
@@ -195,6 +201,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<SuspenseFallback />}>
                 <GuestOrderStatusScreen />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'account',
+            element: (
+              <Suspense fallback={<SuspenseFallback />}>
+                <GuestAccountScreen />
               </Suspense>
             ),
           },
