@@ -188,7 +188,7 @@ export function GuestCartScreen() {
     const cleaned = val.replace(/[^\d+]/g, '').slice(0, 15);
     setGuestPhone(cleaned);
     const digitsOnly = cleaned.replace(/\D/g, '');
-    if (phoneError && digitsOnly.length >= 10) {
+    if (phoneError && (digitsOnly.length === 0 || digitsOnly.length >= 10)) {
       setPhoneError('');
     }
     try {
@@ -208,7 +208,8 @@ export function GuestCartScreen() {
       setNameError('');
     }
 
-    if (!digitsOnly || digitsOnly.length < 10) {
+    // Mobile number is optional. Only validate if user provided one
+    if (digitsOnly.length > 0 && digitsOnly.length < 10) {
       setPhoneError('Please enter a valid 10-digit mobile number');
       isValid = false;
     } else {
@@ -271,7 +272,7 @@ export function GuestCartScreen() {
 
   const handleOrderSubmission = async () => {
     if (!validateGuestDetails()) {
-      toast.error('Please fill in your Name and Mobile Number to place your order');
+      toast.error('Please enter your name for the kitchen to place your order');
       return;
     }
 
@@ -552,7 +553,7 @@ export function GuestCartScreen() {
           <div className="space-y-1">
             <div className="flex justify-between items-center">
               <label className="block text-xs font-semibold" style={{ color: 'var(--g-text-secondary)' }}>
-                Mobile number <span style={{ color: 'var(--g-accent)' }}>*</span>
+                Mobile number <span className="text-[11px] font-normal" style={{ color: 'var(--g-text-muted)' }}>(optional)</span>
               </label>
               {phoneError ? (
                 <span className="text-[10px] font-medium" style={{ color: 'var(--g-accent)' }}>

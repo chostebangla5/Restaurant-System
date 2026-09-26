@@ -437,56 +437,60 @@ export async function createOrder({
 
   // 2b. Securely register or link guest in Admin CRM & loyalty system
   let linkedGuestId = session?.guest_id || null;
-  if (cleanPhone && cleanPhone.length >= 10 && (session.org_id || targetOrgId)) {
-    const orgForGuest = session.org_id || targetOrgId;
+  const orgForGuest = session?.org_id || targetOrgId;
+
+  if (orgForGuest) {
     try {
-      // Attempt secure RPC call first (00007 migration)
+      // Attempt secure RPC call (00007 migration)
       const { data: rpcRes, error: rpcErr } = await supabase.rpc('register_or_link_guest_order', {
         p_org_id: orgForGuest,
         p_session_id: session.id,
         p_name: cleanName,
-        p_phone: cleanPhone,
+        p_phone: cleanPhone || '',
       });
 
       if (!rpcErr && rpcRes?.guest_id) {
         linkedGuestId = rpcRes.guest_id;
       } else {
-        // Resilient client fallback
-        const { data: existingGuest } = await supabase
-          .from('guests')
-          .select('id, name')
-          .eq('org_id', orgForGuest)
-          .eq('phone', cleanPhone)
-          .maybeSingle();
-
-        if (existingGuest) {
-          linkedGuestId = existingGuest.id;
-          if ((!existingGuest.name || existingGuest.name === 'Guest') && cleanName !== 'Guest') {
-            await supabase.from('guests').update({ name: cleanName }).eq('id', existingGuest.id);
-          }
-        } else {
-          const { data: newGuest } = await supabase
+        // Fallback: if phone provided, upsert guest record
+        if (cleanPhone && cleanPhone.length >= 10) {
+          const { data: existingGuest } = await supabase
             .from('guests')
-            .insert({
-              org_id: orgForGuest,
-              phone: cleanPhone,
-              name: cleanName,
-              loyalty_points: 10,
-              loyalty_tier: 'bronze',
-            })
-            .select('id')
-            .single();
-          if (newGuest) linkedGuestId = newGuest.id;
+            .select('id, name')
+            .eq('org_id', orgForGuest)
+            .eq('phone', cleanPhone)
+            .maybeSingle();
+
+          if (existingGuest) {
+            linkedGuestId = existingGuest.id;
+            if ((!existingGuest.name || existingGuest.name === 'Guest') && cleanName !== 'Guest') {
+              await supabase.from('guests').update({ name: cleanName }).eq('id', existingGuest.id);
+            }
+          } else {
+            const { data: newGuest } = await supabase
+              .from('guests')
+              .insert({
+                org_id: orgForGuest,
+                phone: cleanPhone,
+                name: cleanName,
+                loyalty_points: 10,
+                loyalty_tier: 'bronze',
+              })
+              .select('id')
+              .single();
+            if (newGuest) linkedGuestId = newGuest.id;
+          }
         }
 
-        if (linkedGuestId && session?.id) {
+        // Always update customer_name and customer_phone on table_sessions
+        if (session?.id) {
+          const sessCustUpdate = { customer_name: cleanName };
+          if (linkedGuestId) sessCustUpdate.guest_id = linkedGuestId;
+          if (cleanPhone) sessCustUpdate.customer_phone = cleanPhone;
+
           await supabase
             .from('table_sessions')
-            .update({
-              guest_id: linkedGuestId,
-              customer_name: cleanName,
-              customer_phone: cleanPhone,
-            })
+            .update(sessCustUpdate)
             .eq('id', session.id);
         }
       }
@@ -504,7 +508,11 @@ export async function createOrder({
   const nextRoundNumber = (count || 0) + 1;
 
   // Format notes to include guest, coupon, and split/payment info if applied
-  const guestTag = cleanName !== 'Guest' || cleanPhone ? `[Guest: ${cleanName} | ${cleanPhone}]` : '';
+  const guestTag = cleanPhone
+    ? `[Guest: ${cleanName} | ${cleanPhone}]`
+    : cleanName && cleanName !== 'Guest'
+    ? `[Guest: ${cleanName}]`
+    : '';
   const couponTag = couponCode ? `[Coupon: ${couponCode.toUpperCase()} (-₹${discountAmount})]` : '';
   let paymentTag = '';
   if (paymentMethod === 'split' && splitDetails) {
