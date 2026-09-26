@@ -59,6 +59,9 @@ export function StaffDashboardScreen() {
   const { venueId, venue } = useAuth();
   const [stats, setStats] = useState({
     todayGrossSales: 0,
+    monthGrossSales: 0,
+    allTimeGrossSales: 0,
+    todayOrdersCount: 0,
     activeOrdersCount: 0,
     occupiedTablesCount: 0,
     totalTablesCount: 6,
@@ -132,9 +135,13 @@ export function StaffDashboardScreen() {
     {
       title: "Today's Gross Sales",
       value: formatCurrency(stats.todayGrossSales),
-      trend: 'Real-time billing total',
-      icon: Coins,
+      trend: stats.allTimeGrossSales > 0
+        ? `Month: ${formatCurrency(stats.monthGrossSales || 0)} • All-Time: ${formatCurrency(stats.allTimeGrossSales)}`
+        : 'Daily billing total in IST',
+      icon: TrendingUp,
       color: 'text-[#C6FF3D] bg-[#C6FF3D]/10 border border-[#C6FF3D]/25',
+      link: '/staff/sales?period=today',
+      actionLabel: 'Open Sales Board →',
     },
     {
       title: 'Active Orders',
@@ -142,6 +149,8 @@ export function StaffDashboardScreen() {
       trend: `${stats.activeOrdersCount} in Kitchen queue`,
       icon: Flame,
       color: 'text-amber-400 bg-amber-400/10 border border-amber-400/25',
+      link: '/staff/live-orders',
+      actionLabel: 'Live Feed →',
     },
     {
       title: 'Occupied Tables',
@@ -149,6 +158,8 @@ export function StaffDashboardScreen() {
       trend: `${Math.round((stats.occupiedTablesCount / stats.totalTablesCount) * 100) || 0}% Dining Capacity`,
       icon: Grid,
       color: 'text-sky-400 bg-sky-400/10 border border-sky-400/25',
+      link: '/staff/tables',
+      actionLabel: 'View Tables →',
     },
     {
       title: 'Avg. Kitchen Turnaround',
@@ -156,6 +167,8 @@ export function StaffDashboardScreen() {
       trend: stats.turnaroundTrend || 'Live speed metric',
       icon: ShoppingBag,
       color: 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/25',
+      link: '/staff/kitchen',
+      actionLabel: 'Open KDS →',
     },
   ];
 
@@ -184,6 +197,12 @@ export function StaffDashboardScreen() {
               Open KDS Display
             </Button>
           </Link>
+          <Link to="/staff/sales">
+            <Button size="md" variant="outline" className="border-emerald-500/30 text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/[0.06]">
+              <TrendingUp className="h-4 w-4 mr-1.5" strokeWidth={1.5} />
+              Sales Dashboard
+            </Button>
+          </Link>
           <Link to="/staff/live-orders">
             <Button size="md" className="bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
               Live Orders Feed
@@ -196,11 +215,8 @@ export function StaffDashboardScreen() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat, i) => {
           const Icon = stat.icon;
-          return (
-            <div
-              key={i}
-              className="p-5 rounded-card bg-[#0E1016] border border-white/[0.08] space-y-3 hover:border-white/[0.18] hover:-translate-y-0.5 transition-all duration-300"
-            >
+          const CardContent = (
+            <div className="p-5 rounded-card bg-[#0E1016] border border-white/[0.08] space-y-3 hover:border-white/[0.18] hover:-translate-y-0.5 transition-all duration-300 relative group h-full">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono uppercase tracking-wider text-[#8A8F9C]">
                   {stat.title}
@@ -215,10 +231,23 @@ export function StaffDashboardScreen() {
                 </h3>
                 <p className="text-xs text-[#8A8F9C] flex items-center gap-1.5 mt-1 font-sans">
                   <TrendingUp className="h-3 w-3 text-[#C6FF3D] shrink-0" strokeWidth={1.5} />
-                  {stat.trend}
+                  <span className="truncate">{stat.trend}</span>
                 </p>
               </div>
+              {stat.actionLabel && (
+                <div className="pt-1 flex items-center text-[11px] font-mono text-[#C6FF3D] group-hover:underline">
+                  {stat.actionLabel}
+                </div>
+              )}
             </div>
+          );
+
+          return stat.link ? (
+            <Link key={i} to={stat.link} className="block cursor-pointer">
+              {CardContent}
+            </Link>
+          ) : (
+            <div key={i}>{CardContent}</div>
           );
         })}
       </div>

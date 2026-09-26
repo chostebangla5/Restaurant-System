@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
@@ -18,12 +19,18 @@ import {
   FileText,
   Clock,
   Check,
+  TrendingUp,
+  Calendar,
+  CalendarDays,
+  Filter,
 } from 'lucide-react';
 
 export function StaffBillingScreen() {
   const { venue } = useAuth();
   const [orders, setOrders] = useState([]);
-  const [filter, setFilter] = useState('all'); // all | pending | paid
+  const [statusFilter, setStatusFilter] = useState('all'); // all | pending | paid
+  const [dateFilter, setDateFilter] = useState('today');   // today | yesterday | week | month | all | custom
+  const [customDate, setCustomDate] = useState('');
   const [selectedReceiptOrder, setSelectedReceiptOrder] = useState(null);
 
   const loadData = async () => {
@@ -59,26 +66,84 @@ export function StaffBillingScreen() {
 
   const ordersList = orders || [];
 
-  const filteredOrders = ordersList.filter((o) => {
-    if (filter === 'pending') return o.payment_status === 'pending';
-    if (filter === 'paid') return o.payment_status === 'paid' || o.status === 'completed';
-    return true;
-  });
+  // IST offset helper (UTC + 5:30)
+  const istOffsetMs = 5.5 * 60 * 60 * 1000;
+  const nowIST = useMemo(() => new Date(Date.now() + istOffsetMs), []);
+  const todayStrIST = nowIST.toISOString().slice(0, 10);
+  const yestIST = new Date(nowIST.getTime() - 24 * 60 * 60 * 1000);
+  const yestStrIST = yestIST.toISOString().slice(0, 10);
+  const currMonthStrIST = todayStrIST.slice(0, 7);
 
-  const totalPendingDue = ordersList
-    .filter((o) => o.payment_status === 'pending')
-    .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  const getOrderDateIST = (createdAt) => {
+    if (!createdAt) return '';
+    return new Date(new Date(createdAt).getTime() + istOffsetMs).toISOString().slice(0, 10);
+  };
 
-  const totalSettledToday = ordersList
-    .filter((o) => o.payment_status === 'paid' || o.status === 'completed')
-    .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  // 1. Filter by Date
+  const dateFilteredOrders = useMemo(() => {
+    return ordersList.filter((o) => {
+      const oDate = getOrderDateIST(o.created_at);
+      if (dateFilter === 'today') return oDate === todayStrIST;
+      if (dateFilter === 'yesterday') return oDate === yestStrIST;
+      if (dateFilter === 'week') {
+        const sevenDaysAgo = new Date(nowIST.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        return oDate >= sevenDaysAgo;
+      }
+      if (dateFilter === 'month') return oDate.startsWith(currMonthStrIST);
+      if (dateFilter === 'custom' && customDate) return oDate === customDate;
+      return true; // 'all'
+    });
+  }, [ordersList, dateFilter, customDate, todayStrIST, yestStrIST, currMonthStrIST, nowIST]);
+
+  // 2. Filter by Payment/Settlement Status
+  const filteredOrders = useMemo(() => {
+    return dateFilteredOrders.filter((o) => {
+      if (statusFilter === 'pending') return o.payment_status === 'pending';
+      if (statusFilter === 'paid') return o.payment_status === 'paid' || o.status === 'completed';
+      return true;
+    });
+  }, [dateFilteredOrders, statusFilter]);
+
+  // Accurate Metrics:
+  // Today's Settled (strictly orders from TODAY in IST)
+  const totalSettledToday = useMemo(() => {
+    return ordersList
+      .filter((o) => (o.payment_status === 'paid' || o.status === 'completed') && getOrderDateIST(o.created_at) === todayStrIST)
+      .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  }, [ordersList, todayStrIST]);
+
+  // Today's Pending Due (strictly orders from TODAY in IST)
+  const totalPendingToday = useMemo(() => {
+    return ordersList
+      .filter((o) => o.payment_status === 'pending' && getOrderDateIST(o.created_at) === todayStrIST)
+      .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  }, [ordersList, todayStrIST]);
+
+  // Filtered range totals
+  const totalPendingFiltered = useMemo(() => {
+    return dateFilteredOrders
+      .filter((o) => o.payment_status === 'pending')
+      .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  }, [dateFilteredOrders]);
+
+  const totalSettledFiltered = useMemo(() => {
+    return dateFilteredOrders
+      .filter((o) => o.payment_status === 'paid' || o.status === 'completed')
+      .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+  }, [dateFilteredOrders]);
 
   return (
     <div className="space-y-6">
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-[#C6FF3D] animate-pulse" />
+            <span className="text-[10px] font-mono text-[#8A8F9C] uppercase tracking-wider">
+              Live POS Terminal
+            </span>
+          </div>
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7] mt-0.5">
             POS Billing & Settlement
           </h1>
           <p className="text-xs text-[#8A8F9C] mt-1">
@@ -86,42 +151,96 @@ export function StaffBillingScreen() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <Link to="/staff/sales">
+            <Button size="sm" variant="outline" className="border-emerald-500/30 text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/[0.06] text-xs">
+              <TrendingUp className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} />
+              Sales & Reports
+            </Button>
+          </Link>
+
           <div className="px-4 py-2 rounded-xl bg-[#0E1016] border border-amber-400/25 text-right">
-            <span className="text-[10px] font-mono font-medium text-amber-400 block uppercase tracking-wider">Pending Due</span>
+            <span className="text-[10px] font-mono font-medium text-amber-400 block uppercase tracking-wider">
+              {dateFilter === 'today' ? 'Today Pending' : 'Pending Due'}
+            </span>
             <span className="text-base font-mono font-bold text-amber-300">
-              {formatCurrency(totalPendingDue)}
+              {formatCurrency(dateFilter === 'today' ? totalPendingToday : totalPendingFiltered)}
             </span>
           </div>
+
           <div className="px-4 py-2 rounded-xl bg-[#0E1016] border border-[#C6FF3D]/25 text-right">
-            <span className="text-[10px] font-mono font-medium text-[#C6FF3D] block uppercase tracking-wider">Settled Today</span>
+            <span className="text-[10px] font-mono font-medium text-[#C6FF3D] block uppercase tracking-wider">
+              {dateFilter === 'today' ? 'Settled Today' : 'Settled Total'}
+            </span>
             <span className="text-base font-mono font-bold text-[#C6FF3D]">
-              {formatCurrency(totalSettledToday)}
+              {formatCurrency(dateFilter === 'today' ? totalSettledToday : totalSettledFiltered)}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-2">
-        {[
-          { id: 'all', label: 'All Transactions' },
-          { id: 'pending', label: 'Pending Settlement' },
-          { id: 'paid', label: 'Settled & Paid' },
-        ].map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setFilter(tab.id)}
-            className={`px-4 py-2 min-h-[38px] rounded-full text-xs font-medium touch-manipulation transition-all flex items-center justify-center ${
-              filter === tab.id
-                ? 'bg-[#C6FF3D] text-[#07080B] font-semibold shadow-sm'
-                : 'bg-[#0E1016] text-[#8A8F9C] hover:text-[#F4F5F7] border border-white/[0.08]'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Date Filter & Status Filters */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-[#0E1016] border border-white/[0.08]">
+        {/* Date Filter Tabs */}
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-[10px] font-mono text-[#8A8F9C] uppercase tracking-wider mr-1 flex items-center gap-1">
+            <Calendar className="h-3 w-3" /> Date:
+          </span>
+          {[
+            { id: 'today', label: 'Today' },
+            { id: 'yesterday', label: 'Yesterday' },
+            { id: 'week', label: '7 Days' },
+            { id: 'month', label: 'This Month' },
+            { id: 'all', label: 'All Time' },
+            { id: 'custom', label: 'Pick Date' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setDateFilter(tab.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                dateFilter === tab.id
+                  ? 'bg-[#C6FF3D] text-[#07080B] font-semibold'
+                  : 'bg-white/[0.04] text-[#8A8F9C] hover:text-[#F4F5F7] border border-white/[0.06]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+          {dateFilter === 'custom' && (
+            <input
+              type="date"
+              value={customDate}
+              onChange={(e) => setCustomDate(e.target.value)}
+              className="px-2.5 py-1 rounded-lg bg-[#141721] border border-white/[0.12] text-xs text-[#F4F5F7] font-mono outline-none"
+            />
+          )}
+        </div>
+
+        {/* Status Filter Tabs */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[10px] font-mono text-[#8A8F9C] uppercase tracking-wider mr-1 flex items-center gap-1">
+            <Filter className="h-3 w-3" /> Status:
+          </span>
+          {[
+            { id: 'all', label: 'All' },
+            { id: 'pending', label: 'Pending' },
+            { id: 'paid', label: 'Settled' },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setStatusFilter(tab.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                statusFilter === tab.id
+                  ? 'bg-white/[0.15] text-[#F4F5F7] font-semibold border border-white/[0.25]'
+                  : 'bg-transparent text-[#8A8F9C] hover:text-[#F4F5F7]'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Billing Records Table */}
@@ -165,7 +284,7 @@ export function StaffBillingScreen() {
                               {o.id}
                             </span>
                             <span className="text-[10px] font-mono text-[#8A8F9C]">
-                              Round #{o.round_number} &bull; {new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              Round #{o.round_number} &bull; {new Date(o.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, {new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
                           </div>
                         </div>

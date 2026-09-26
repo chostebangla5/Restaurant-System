@@ -98,6 +98,11 @@ const loadStaffFeedbackScreen = () =>
     default: m.StaffFeedbackScreen,
   }));
 
+const loadStaffSalesScreen = () =>
+  import('@/features/staff/sales/components/StaffSalesScreen').then((m) => ({
+    default: m.StaffSalesScreen,
+  }));
+
 // Preload critical flows into browser memory
 export function preloadGuestFlow() {
   preloadRoute(loadGuestMenuScreen);
@@ -131,6 +136,7 @@ const StaffSettingsScreen = lazyWithRetry(loadStaffSettingsScreen, 'StaffSetting
 const StaffTeamScreen = lazyWithRetry(loadStaffTeamScreen, 'StaffTeamScreen');
 const StaffInvoicesScreen = lazyWithRetry(loadStaffInvoicesScreen, 'StaffInvoicesScreen');
 const StaffFeedbackScreen = lazyWithRetry(loadStaffFeedbackScreen, 'StaffFeedbackScreen');
+const StaffSalesScreen = lazyWithRetry(loadStaffSalesScreen, 'StaffSalesScreen');
 
 function SuspenseFallback() {
   return (
@@ -297,6 +303,14 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<SuspenseFallback />}>
                 <StaffFeedbackScreen />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'sales',
+            element: (
+              <Suspense fallback={<SuspenseFallback />}>
+                <StaffSalesScreen />
               </Suspense>
             ),
           },

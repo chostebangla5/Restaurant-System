@@ -23,6 +23,7 @@ import {
   FileText,
   MessageSquare,
   Sparkles,
+  TrendingUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { preloadStaffFlow } from '@/app/routes';
@@ -67,6 +68,7 @@ export function StaffLayout() {
     { label: 'Tables', path: '/staff/tables', icon: Grid },
     { label: 'Menu Items', path: '/staff/menu', icon: BookOpen },
     { label: 'Billing & POS', path: '/staff/billing', icon: Receipt },
+    { label: 'Sales & Analytics', path: '/staff/sales', icon: TrendingUp, badge: 'New' },
     { label: 'Staff', path: '/staff/team', icon: Users },
     { label: 'QR Generator', path: '/staff/qr-codes', icon: QrCode },
     { label: 'Offers & Coupons', path: '/staff/offers', icon: Tag },

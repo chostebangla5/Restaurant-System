@@ -649,12 +649,424 @@ export async function settleOrder(orderId, paymentMethod = 'counter') {
 }
 
 /**
+ * Fetch comprehensive sales analytics for a venue with date-range support.
+ * Queries Supabase directly for accuracy, calculates GST (CGST+SGST @2.5% each per Indian govt rules),
+ * payment method splits, top-selling items, hourly revenue distribution, and table-wise performance.
+ *
+ * @param {string} venueId
+ * @param {'today'|'week'|'month'|'year'|'custom'} period
+ * @param {string|null} customStart - ISO date string for custom range start
+ * @param {string|null} customEnd - ISO date string for custom range end
+ * @returns {Promise<Object>}
+ */
+export async function getSalesAnalytics(venueId, period = 'today', customStart = null, customEnd = null) {
+  if (!isSupabaseConfigured() || !venueId) {
+    return {
+      period,
+      dateRange: { start: null, end: null },
+      totalOrders: 0,
+      completedOrders: 0,
+      cancelledOrders: 0,
+      grossRevenue: 0,
+      netRevenue: 0,
+      totalDiscount: 0,
+      gst: { cgst: 0, sgst: 0, total: 0, rate: 5 },
+      avgOrderValue: 0,
+      paymentSplit: { cash: 0, online: 0, pending: 0 },
+      paymentSplitCount: { cash: 0, online: 0, pending: 0 },
+      topItems: [],
+      hourlyRevenue: [],
+      tablePerformance: [],
+      dailyRevenue: [],
+    };
+  }
+
+  // Compute date range boundaries (IST-aware: UTC+05:30)
+  const now = new Date();
+  const istOffset = 5.5 * 60 * 60 * 1000;
+  const istNow = new Date(now.getTime() + istOffset);
+
+  let startDate, endDate;
+
+  switch (period) {
+    case 'today': {
+      const todayIST = new Date(istNow);
+      todayIST.setUTCHours(0, 0, 0, 0);
+      startDate = new Date(todayIST.getTime() - istOffset);
+      endDate = now;
+      break;
+    }
+    case 'yesterday': {
+      const yestIST = new Date(istNow);
+      yestIST.setUTCDate(yestIST.getUTCDate() - 1);
+      yestIST.setUTCHours(0, 0, 0, 0);
+      startDate = new Date(yestIST.getTime() - istOffset);
+
+      const yestEndIST = new Date(yestIST);
+      yestEndIST.setUTCHours(23, 59, 59, 999);
+      endDate = new Date(yestEndIST.getTime() - istOffset);
+      break;
+    }
+    case 'week': {
+      const weekAgo = new Date(istNow);
+      weekAgo.setUTCDate(weekAgo.getUTCDate() - 7);
+      weekAgo.setUTCHours(0, 0, 0, 0);
+      startDate = new Date(weekAgo.getTime() - istOffset);
+      endDate = now;
+      break;
+    }
+    case 'month': {
+      if (customStart && /^\d{4}-\d{2}$/.test(customStart)) {
+        // Specific Month (e.g., '2026-09')
+        const [yr, mo] = customStart.split('-').map(Number);
+        const mStart = new Date(Date.UTC(yr, mo - 1, 1, 0, 0, 0));
+        startDate = new Date(mStart.getTime() - istOffset);
+        const mEnd = new Date(Date.UTC(yr, mo, 0, 23, 59, 59, 999));
+        endDate = new Date(mEnd.getTime() - istOffset);
+      } else {
+        const monthStart = new Date(istNow);
+        monthStart.setUTCDate(1);
+        monthStart.setUTCHours(0, 0, 0, 0);
+        startDate = new Date(monthStart.getTime() - istOffset);
+        endDate = now;
+      }
+      break;
+    }
+    case 'financial_year': {
+      // Indian Financial Year: 1st April to 31st March
+      const currYear = istNow.getUTCFullYear();
+      const currMonth = istNow.getUTCMonth(); // 0-indexed (3 = April)
+      const fyStartYear = currMonth >= 3 ? currYear : currYear - 1;
+      const fyStart = new Date(Date.UTC(fyStartYear, 3, 1, 0, 0, 0)); // April 1
+      startDate = new Date(fyStart.getTime() - istOffset);
+      endDate = now;
+      break;
+    }
+    case 'year': {
+      if (customStart && /^\d{4}$/.test(customStart)) {
+        const yr = Number(customStart);
+        const yStart = new Date(Date.UTC(yr, 0, 1, 0, 0, 0));
+        startDate = new Date(yStart.getTime() - istOffset);
+        const yEnd = new Date(Date.UTC(yr, 11, 31, 23, 59, 59, 999));
+        endDate = new Date(yEnd.getTime() - istOffset);
+      } else {
+        const yearStart = new Date(istNow);
+        yearStart.setUTCMonth(0, 1);
+        yearStart.setUTCHours(0, 0, 0, 0);
+        startDate = new Date(yearStart.getTime() - istOffset);
+        endDate = now;
+      }
+      break;
+    }
+    case 'all': {
+      startDate = null; // Unbounded beginning
+      endDate = now;
+      break;
+    }
+    case 'custom': {
+      startDate = customStart ? new Date(`${customStart}T00:00:00+05:30`) : new Date(now.getTime() - 30 * 86400000);
+      endDate = customEnd ? new Date(`${customEnd}T23:59:59+05:30`) : now;
+      break;
+    }
+    default: {
+      const tIST = new Date(istNow);
+      tIST.setUTCHours(0, 0, 0, 0);
+      startDate = new Date(tIST.getTime() - istOffset);
+      endDate = now;
+    }
+  }
+
+  try {
+    // Build query for orders in date range
+    let query = supabase
+      .from('orders')
+      .select(`
+        id,
+        status,
+        subtotal,
+        notes,
+        created_at,
+        round_number,
+        table_session_id,
+        order_items(id, item_name, quantity, price_at_order, station),
+        table_sessions(id, tables(id, table_number, short_code))
+      `)
+      .eq('venue_id', venueId)
+      .order('created_at', { ascending: false });
+
+    if (startDate) {
+      query = query.gte('created_at', startDate.toISOString());
+    }
+    if (endDate) {
+      query = query.lte('created_at', endDate.toISOString());
+    }
+
+    const { data: rawOrders, error: ordersErr } = await query;
+
+    if (ordersErr) {
+      console.error('getSalesAnalytics: Error fetching orders:', ordersErr);
+      return null;
+    }
+
+    const orders = rawOrders || [];
+
+    // --- Core Metrics ---
+    const totalOrders = orders.length;
+    const completedOrders = orders.filter(
+      (o) => o.status === 'completed' || o.status === 'served'
+    ).length;
+    const cancelledOrders = orders.filter((o) => o.status === 'cancelled').length;
+    const activeOrders = orders.filter((o) => o.status !== 'cancelled');
+
+    // Gross revenue = sum of subtotals of all non-cancelled orders
+    const grossRevenue = activeOrders.reduce(
+      (sum, o) => sum + (Number(o.subtotal) || 0),
+      0
+    );
+
+    // GST calculation per Indian government rules:
+    // Standalone Restaurant Services: 5% GST (2.5% CGST + 2.5% SGST) without ITC (SAC 996331)
+    const GST_RATE = 5; // percent total
+    const gstAmount = Math.round((grossRevenue * GST_RATE) / 100 * 100) / 100;
+    const cgst = Math.round(gstAmount / 2 * 100) / 100;
+    const sgst = Math.round(gstAmount / 2 * 100) / 100;
+
+    // Total discount (extract from notes if coupon was used)
+    let totalDiscount = 0;
+    for (const o of activeOrders) {
+      const couponMatch = o.notes?.match(/Coupon:.*?\(-₹([\d,.]+)\)/i);
+      if (couponMatch) {
+        totalDiscount += parseFloat(couponMatch[1].replace(',', '')) || 0;
+      }
+    }
+
+    const netRevenue = Math.round((grossRevenue + gstAmount - totalDiscount) * 100) / 100;
+    const avgOrderValue = activeOrders.length > 0 ? Math.round((grossRevenue / activeOrders.length) * 100) / 100 : 0;
+
+    // --- Payment Method Split ---
+    const paidOrders = orders.filter(
+      (o) => o.status === 'completed' || o.status === 'served'
+    );
+    const pendingOrders = orders.filter(
+      (o) =>
+        o.status !== 'cancelled' &&
+        o.status !== 'completed' &&
+        o.status !== 'served'
+    );
+
+    let cashRevenue = 0,
+      onlineRevenue = 0,
+      pendingRevenue = 0;
+    let cashCount = 0,
+      onlineCount = 0,
+      pendingCount = 0;
+
+    for (const o of paidOrders) {
+      const amt = Number(o.subtotal) || 0;
+      const isOnline =
+        o.notes?.toLowerCase().includes('online') ||
+        o.notes?.toLowerCase().includes('upi') ||
+        o.notes?.toLowerCase().includes('card');
+      if (isOnline) {
+        onlineRevenue += amt;
+        onlineCount++;
+      } else {
+        cashRevenue += amt;
+        cashCount++;
+      }
+    }
+    for (const o of pendingOrders) {
+      pendingRevenue += Number(o.subtotal) || 0;
+      pendingCount++;
+    }
+
+    // --- Top Selling Items ---
+    const itemMap = new Map();
+    for (const o of activeOrders) {
+      for (const it of o.order_items || []) {
+        const key = it.item_name || 'Unknown Item';
+        const existing = itemMap.get(key) || { name: key, qty: 0, revenue: 0 };
+        existing.qty += it.quantity || 1;
+        existing.revenue += (Number(it.price_at_order) || 0) * (it.quantity || 1);
+        itemMap.set(key, existing);
+      }
+    }
+    const topItems = Array.from(itemMap.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
+
+    // --- Hourly Revenue Distribution (Peak Hours in IST) ---
+    const hourlyMap = {};
+    for (let h = 0; h < 24; h++) {
+      hourlyMap[h] = { hour: h, orders: 0, revenue: 0 };
+    }
+    for (const o of activeOrders) {
+      const orderDate = new Date(o.created_at);
+      const istHour = new Date(orderDate.getTime() + istOffset).getUTCHours();
+      hourlyMap[istHour].orders++;
+      hourlyMap[istHour].revenue += Number(o.subtotal) || 0;
+    }
+    const hourlyRevenue = Object.values(hourlyMap).filter(
+      (h) => h.orders > 0 || (h.hour >= 8 && h.hour <= 23)
+    );
+
+    // --- Table Performance ---
+    const tableMap = new Map();
+    for (const o of activeOrders) {
+      const tblNum = o.table_sessions?.tables?.table_number || '??';
+      const existing = tableMap.get(tblNum) || {
+        table: tblNum,
+        orders: 0,
+        revenue: 0,
+      };
+      existing.orders++;
+      existing.revenue += Number(o.subtotal) || 0;
+      tableMap.set(tblNum, existing);
+    }
+    const tablePerformance = Array.from(tableMap.values()).sort(
+      (a, b) => b.revenue - a.revenue
+    );
+
+    // --- Date-Wise Daily Sales Ledger & Audit Store ---
+    const dailyMap = new Map();
+    for (const o of orders) {
+      const isCancelled = o.status === 'cancelled';
+      const isCompleted = o.status === 'completed' || o.status === 'served';
+      const d = new Date(o.created_at);
+      const istD = new Date(d.getTime() + istOffset);
+      const dateKey = `${istD.getUTCFullYear()}-${String(istD.getUTCMonth() + 1).padStart(2, '0')}-${String(istD.getUTCDate()).padStart(2, '0')}`;
+
+      const existing = dailyMap.get(dateKey) || {
+        date: dateKey,
+        totalOrders: 0,
+        completedOrders: 0,
+        cancelledOrders: 0,
+        grossRevenue: 0,
+        cashRevenue: 0,
+        onlineRevenue: 0,
+      };
+
+      existing.totalOrders++;
+      if (isCancelled) {
+        existing.cancelledOrders++;
+      } else {
+        const amt = Number(o.subtotal) || 0;
+        existing.grossRevenue += amt;
+        if (isCompleted) {
+          existing.completedOrders++;
+        }
+        const isOnline =
+          o.notes?.toLowerCase().includes('online') ||
+          o.notes?.toLowerCase().includes('upi') ||
+          o.notes?.toLowerCase().includes('card');
+        if (isOnline) {
+          existing.onlineRevenue += amt;
+        } else {
+          existing.cashRevenue += amt;
+        }
+      }
+      dailyMap.set(dateKey, existing);
+    }
+
+    const dailyRevenue = Array.from(dailyMap.values())
+      .map((day) => {
+        const gst = Math.round((day.grossRevenue * GST_RATE) / 100 * 100) / 100;
+        const cgstDay = Math.round(gst / 2 * 100) / 100;
+        const sgstDay = Math.round(gst / 2 * 100) / 100;
+        const net = Math.round((day.grossRevenue + gst) * 100) / 100;
+        const activeCount = day.totalOrders - day.cancelledOrders;
+        return {
+          ...day,
+          revenue: day.grossRevenue, // for backwards-compatibility
+          orders: day.totalOrders,   // for backwards-compatibility
+          gstAmount: gst,
+          cgst: cgstDay,
+          sgst: sgstDay,
+          netRevenue: net,
+          avgOrderValue: activeCount > 0 ? Math.round((day.grossRevenue / activeCount) * 100) / 100 : 0,
+        };
+      })
+      .sort((a, b) => b.date.localeCompare(a.date)); // Newest first
+
+    // Detailed order entries for CSV/Excel export
+    const exportOrders = orders.map((o) => {
+      const orderDate = new Date(o.created_at);
+      const istD = new Date(orderDate.getTime() + istOffset);
+      const dateStr = `${istD.getUTCFullYear()}-${String(istD.getUTCMonth() + 1).padStart(2, '0')}-${String(istD.getUTCDate()).padStart(2, '0')}`;
+      const timeStr = `${String(istD.getUTCHours()).padStart(2, '0')}:${String(istD.getUTCMinutes()).padStart(2, '0')}`;
+      const subtotal = Number(o.subtotal) || 0;
+      const tax = Math.round((subtotal * GST_RATE) / 100 * 100) / 100;
+      const total = Math.round((subtotal + tax) * 100) / 100;
+      return {
+        id: o.id,
+        date: dateStr,
+        time: timeStr,
+        table: o.table_sessions?.tables?.table_number || 'Takeaway',
+        round: o.round_number || 1,
+        status: o.status,
+        itemsCount: (o.order_items || []).reduce((s, it) => s + (it.quantity || 1), 0),
+        itemsSummary: (o.order_items || []).map((it) => `${it.item_name} x${it.quantity}`).join('; '),
+        subtotal,
+        cgst: Math.round(tax / 2 * 100) / 100,
+        sgst: Math.round(tax / 2 * 100) / 100,
+        gstTotal: tax,
+        netTotal: total,
+        paymentMode: o.notes?.toLowerCase().includes('online') || o.notes?.toLowerCase().includes('upi') ? 'Online/UPI' : 'Cash',
+      };
+    });
+
+    return {
+      period,
+      dateRange: {
+        start: startDate ? startDate.toISOString() : null,
+        end: endDate ? endDate.toISOString() : now.toISOString(),
+      },
+      totalOrders,
+      completedOrders,
+      cancelledOrders,
+      grossRevenue,
+      netRevenue,
+      totalDiscount: Math.round(totalDiscount * 100) / 100,
+      gst: {
+        cgst,
+        sgst,
+        total: gstAmount,
+        rate: GST_RATE,
+      },
+      avgOrderValue,
+      paymentSplit: {
+        cash: cashRevenue,
+        online: onlineRevenue,
+        pending: pendingRevenue,
+      },
+      paymentSplitCount: {
+        cash: cashCount,
+        online: onlineCount,
+        pending: pendingCount,
+      },
+      topItems,
+      hourlyRevenue,
+      tablePerformance,
+      dailyRevenue,
+      exportOrders,
+    };
+  } catch (err) {
+    console.error('getSalesAnalytics: Unexpected error:', err);
+    return null;
+  }
+}
+
+/**
  * Compute real-time dashboard analytics from Supabase
+ * Strictly filters today's gross sales in Indian Standard Time (IST: UTC+05:30)
  */
 export async function getDashboardStats(venueId) {
   if (!isSupabaseConfigured() || !venueId) {
     return {
       todayGrossSales: 0,
+      monthGrossSales: 0,
+      allTimeGrossSales: 0,
+      todayOrdersCount: 0,
       activeOrdersCount: 0,
       occupiedTablesCount: 0,
       totalTablesCount: 0,
@@ -675,8 +1087,44 @@ export async function getDashboardStats(venueId) {
 
   const allTables = tables || [];
 
-  // 1. Gross sales from all non-cancelled orders today
-  const todayGrossSales = orders
+  // IST offset calculation
+  const istOffsetMs = 5.5 * 60 * 60 * 1000;
+  const nowIST = new Date(Date.now() + istOffsetMs);
+  const todayDateStrIST = nowIST.toISOString().slice(0, 10); // 'YYYY-MM-DD'
+  const currentMonthStrIST = todayDateStrIST.slice(0, 7);    // 'YYYY-MM'
+
+  const isTodayOrder = (createdAt) => {
+    if (!createdAt) return false;
+    const itemIST = new Date(new Date(createdAt).getTime() + istOffsetMs);
+    return itemIST.toISOString().slice(0, 10) === todayDateStrIST;
+  };
+
+  const isMonthOrder = (createdAt) => {
+    if (!createdAt) return false;
+    const itemIST = new Date(new Date(createdAt).getTime() + istOffsetMs);
+    return itemIST.toISOString().slice(0, 7) === currentMonthStrIST;
+  };
+
+  // 1. Gross sales from non-cancelled orders TODAY (IST)
+  const todayOrders = orders.filter(
+    (o) => o.status !== 'cancelled' && isTodayOrder(o.created_at)
+  );
+  const todayGrossSales = todayOrders.reduce(
+    (sum, o) => sum + (Number(o.subtotal) || 0),
+    0
+  );
+
+  // Month-to-date gross sales
+  const monthOrders = orders.filter(
+    (o) => o.status !== 'cancelled' && isMonthOrder(o.created_at)
+  );
+  const monthGrossSales = monthOrders.reduce(
+    (sum, o) => sum + (Number(o.subtotal) || 0),
+    0
+  );
+
+  // All-time gross sales
+  const allTimeGrossSales = orders
     .filter((o) => o.status !== 'cancelled')
     .reduce((sum, o) => sum + (Number(o.subtotal) || 0), 0);
 
@@ -737,6 +1185,9 @@ export async function getDashboardStats(venueId) {
 
   return {
     todayGrossSales,
+    monthGrossSales,
+    allTimeGrossSales,
+    todayOrdersCount: todayOrders.length,
     activeOrdersCount: activeOrders.length,
     occupiedTablesCount: occupiedTables,
     totalTablesCount: allTables.length || 6,
