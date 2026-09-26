@@ -1,121 +1,208 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Bell, BellRing, X, Tag, Share } from 'lucide-react';
+import {
+  Bell,
+  BellRing,
+  X,
+  Tag,
+  Share,
+  Sparkles,
+  CheckCircle2,
+  AlertCircle,
+  ExternalLink,
+  Copy,
+  Check,
+} from 'lucide-react';
 import {
   isPushSupported,
   getPermissionStatus,
   subscribeToPush,
   getExistingSubscription,
+  hasUserEnabledNotifications,
+  markNotificationsEnabled,
+  isInAppBrowser,
+  isIOSDevice,
+  isStandalonePWA,
 } from '@/lib/pushSubscription';
 import { TRANSITION_EASE, DURATION_MODAL, DURATION_REDUCED } from '@/lib/motion';
 
 /**
- * Guest-side notification opt-in banner — Tech Studio themed.
- * Shows a subtle, attractive prompt for guests to enable push notifications.
- *
- * Usage: <NotificationOptIn venueId="..." venueName="..." />
+ * Redesigned High-Converting Notification Opt-In Card.
+ * 
+ * Rules:
+ * - If dismissed or ignored: DO NOT store permanent/session suppression.
+ *   On page reload or re-scanning the QR code, the popup loops and shows again every time.
+ * - If user enables notifications: Stores persistent enabled flag & PushManager subscription.
+ *   Stops showing completely once enabled.
+ * - Works reliably across Android Chrome, iOS Safari, PWA standalone, and In-App browsers.
  */
-export function NotificationOptIn({ venueId, venueName = 'this restaurant', guestId = null }) {
+export function NotificationOptIn({
+  venueId,
+  venueName = 'this restaurant',
+  guestId = null,
+}) {
   const [isVisible, setIsVisible] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isDismissed, setIsDismissed] = useState(false);
+  const [isDismissedThisView, setIsDismissedThisView] = useState(false);
+  const [permissionBlocked, setPermissionBlocked] = useState(false);
+  const [showInAppNotice, setShowInAppNotice] = useState(false);
+  const [showIOSGuide, setShowIOSGuide] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
   const shouldReduceMotion = useReducedMotion();
 
-  const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-  const isStandalone = typeof window !== 'undefined' && (window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches);
-  const [isIOSPrompt, setIsIOSPrompt] = useState(false);
+  const isIOS = isIOSDevice();
+  const isPWA = isStandalonePWA();
+  const inAppBrowser = isInAppBrowser();
 
   useEffect(() => {
-    // Check if dismissed this session (or forced via ?notif=1 for testing)
-    const forceShow = typeof window !== 'undefined' && window.location.search.includes('notif=1');
-    const dismissed = sessionStorage.getItem(`notif_dismissed_${venueId}`);
-    if (dismissed && !forceShow) return;
-
-    // On iOS Safari outside standalone PWA mode, Web Push is only supported if installed to Home Screen
-    if (isIOS && !isStandalone) {
-      const timer = setTimeout(() => {
-        setIsIOSPrompt(true);
-        setIsVisible(true);
-      }, 2500);
-      return () => clearTimeout(timer);
+    // 1. If already enabled/subscribed for this venue, stop showing permanently
+    if (hasUserEnabledNotifications(venueId)) {
+      return;
     }
 
-    // Don't show if push not supported at all and not iOS
-    if (!isPushSupported()) return;
-
-    // Check if already subscribed
+    let isMounted = true;
     let timerId;
-    const checkSubscription = async () => {
+
+    async function checkExisting() {
       try {
-        const existing = await getExistingSubscription();
-        if (existing) {
-          setIsSubscribed(true);
+        // Check PushManager subscription
+        const existingSub = await getExistingSubscription();
+        if (existingSub) {
+          markNotificationsEnabled(venueId);
+          if (isMounted) setIsSubscribed(true);
           return;
         }
 
-        const permission = getPermissionStatus();
-        if (permission === 'denied' && !forceShow) return; // User blocked it
-        if (permission === 'granted') {
-          // Already granted but not subscribed — auto-subscribe
+        // Check if native permission was already granted
+        const perm = getPermissionStatus();
+        if (perm === 'granted') {
+          // Attempt silent auto-link
           try {
             await subscribeToPush(venueId, guestId);
-            setIsSubscribed(true);
+            if (isMounted) {
+              setIsSubscribed(true);
+              markNotificationsEnabled(venueId);
+            }
             return;
           } catch {
-            // Show prompt anyway
+            // Fall through to show prompt
           }
+        } else if (perm === 'denied') {
+          if (isMounted) setPermissionBlocked(true);
         }
 
-        // Show the opt-in after a slight delay
-        timerId = setTimeout(() => setIsVisible(true), 2500);
+        // Show the prompt after 1.5s delay on initial load/scan
+        timerId = setTimeout(() => {
+          if (isMounted && !isDismissedThisView) {
+            setIsVisible(true);
+          }
+        }, 1500);
       } catch (err) {
-        console.warn('Subscription check error:', err);
+        console.warn('Notification opt-in init check:', err);
+        // Still show prompt if supported
+        timerId = setTimeout(() => {
+          if (isMounted && !isDismissedThisView) {
+            setIsVisible(true);
+          }
+        }, 1500);
       }
-    };
+    }
 
-    checkSubscription();
+    checkExisting();
+
     return () => {
+      isMounted = false;
       if (timerId) clearTimeout(timerId);
     };
-  }, [venueId, guestId, isIOS, isStandalone]);
+  }, [venueId, guestId, isDismissedThisView]);
 
-  const handleSubscribe = async () => {
+  // Handle Enable click
+  const handleEnable = async () => {
+    // If in-app browser (e.g. Instagram/WhatsApp built-in webview)
+    if (inAppBrowser) {
+      setShowInAppNotice(true);
+      return;
+    }
+
+    // If iOS Safari outside standalone PWA, guide user to Add to Home Screen
+    if (isIOS && !isPWA) {
+      setShowIOSGuide(true);
+      return;
+    }
+
     try {
       setIsLoading(true);
+      setPermissionBlocked(false);
       await subscribeToPush(venueId, guestId);
+      markNotificationsEnabled(venueId);
       setIsSubscribed(true);
-      setIsVisible(false);
-    } catch (err) {
-      console.error('Failed to subscribe:', err);
-      if (err.message?.includes('denied')) {
+      // Auto-hide success pill after 2.8s
+      setTimeout(() => {
         setIsVisible(false);
+      }, 2800);
+    } catch (err) {
+      console.warn('Subscription attempt message:', err?.message);
+      if (
+        err?.message?.includes('denied') ||
+        err?.message?.includes('blocked') ||
+        getPermissionStatus() === 'denied'
+      ) {
+        setPermissionBlocked(true);
+      } else if (isIOS && !isPWA) {
+        setShowIOSGuide(true);
       }
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Dismiss for current view only — DOES NOT suppress on next page reload or QR scan
   const handleDismiss = () => {
-    setIsDismissed(true);
+    setIsDismissedThisView(true);
     setIsVisible(false);
-    sessionStorage.setItem(`notif_dismissed_${venueId}`, 'true');
+    setShowIOSGuide(false);
+    setShowInAppNotice(false);
   };
 
-  // If subscribed, show a brief success indicator
-  if (isSubscribed) {
+  // Copy current URL for in-app browser opening
+  const handleCopyLink = () => {
+    try {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(window.location.href);
+        setCopiedLink(true);
+        setTimeout(() => setCopiedLink(false), 2000);
+      }
+    } catch {}
+  };
+
+  // If already subscribed, render temporary success badge
+  if (isSubscribed && isVisible) {
     return (
       <AnimatePresence>
         <motion.div
-          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -20 }}
-          transition={{ duration: shouldReduceMotion ? DURATION_REDUCED : DURATION_MODAL, ease: TRANSITION_EASE }}
-          className="fixed top-4 left-3 right-3 sm:left-auto sm:right-6 sm:top-5 sm:max-w-sm z-50"
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : -20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -20, scale: 0.95 }}
+          transition={{
+            duration: shouldReduceMotion ? DURATION_REDUCED : DURATION_MODAL,
+            ease: TRANSITION_EASE,
+          }}
+          className="fixed top-4 left-3 right-3 sm:left-auto sm:right-6 sm:top-5 sm:max-w-md z-50 pointer-events-auto"
         >
-          <div className="flex items-center gap-2.5 rounded-full bg-[#0E1016]/95 backdrop-blur-md px-4 py-3 text-[#C6FF3D] shadow-2xl border border-[#C6FF3D]/30 font-sans">
-            <BellRing className="h-4 w-4 flex-shrink-0 text-[#C6FF3D]" strokeWidth={1.5} />
-            <span className="text-xs font-semibold">Notifications enabled! You'll get the best deals.</span>
+          <div className="flex items-center gap-3 rounded-2xl bg-[#0E1016]/98 backdrop-blur-xl p-3.5 text-[#F4F5F7] shadow-2xl border border-[#C6FF3D]/40 ring-1 ring-[#C6FF3D]/20">
+            <div className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-[#C6FF3D]/15 text-[#C6FF3D]">
+              <CheckCircle2 className="h-5 w-5" strokeWidth={2} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-heading font-bold text-[#F4F5F7]">
+                Table Offers Activated!
+              </p>
+              <p className="text-[11px] text-[#8A8F9C] truncate">
+                You will receive instant discounts &amp; specials from {venueName}.
+              </p>
+            </div>
           </div>
         </motion.div>
       </AnimatePresence>
@@ -124,75 +211,183 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
 
   return (
     <AnimatePresence>
-      {isVisible && !isDismissed && (
+      {isVisible && !isDismissedThisView && !hasUserEnabledNotifications(venueId) && (
         <motion.div
-          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -24, scale: 0.96 }}
+          initial={
+            shouldReduceMotion
+              ? { opacity: 0 }
+              : { opacity: 0, y: -24, scale: 0.96 }
+          }
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -24, scale: 0.96 }}
-          transition={{ duration: shouldReduceMotion ? DURATION_REDUCED : DURATION_MODAL, ease: TRANSITION_EASE }}
-          className="fixed top-4 left-3 right-3 sm:left-auto sm:right-6 sm:top-5 sm:max-w-sm z-50"
+          exit={
+            shouldReduceMotion
+              ? { opacity: 0 }
+              : { opacity: 0, y: -24, scale: 0.96 }
+          }
+          transition={{
+            duration: shouldReduceMotion ? DURATION_REDUCED : DURATION_MODAL,
+            ease: TRANSITION_EASE,
+          }}
+          className="fixed top-4 left-3 right-3 sm:left-auto sm:right-6 sm:top-5 sm:max-w-md z-50 pointer-events-auto"
         >
-          <div className="relative overflow-hidden rounded-2xl bg-[#0E1016]/98 backdrop-blur-xl p-4 sm:p-5 shadow-2xl border border-white/10 ring-1 ring-white/5">
-            {/* Dismiss button */}
+          <div className="relative overflow-hidden rounded-3xl bg-[#0C0E14]/98 backdrop-blur-2xl p-4 sm:p-5 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.85)] border border-white/[0.12] ring-1 ring-white/5 transition-all">
+            {/* Ambient Background Glow */}
+            <div className="absolute -top-12 -right-12 h-36 w-36 rounded-full bg-[#C6FF3D]/10 blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 h-28 w-28 rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" />
+
+            {/* Close Button */}
             <button
               onClick={handleDismiss}
-              aria-label="Dismiss notification prompt"
-              className="absolute top-2.5 right-2.5 p-2 min-h-[38px] min-w-[38px] flex items-center justify-center rounded-full text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.06] transition-colors"
+              aria-label="Close notification prompt"
+              className="absolute top-3 right-3 p-2 min-h-[36px] min-w-[36px] flex items-center justify-center rounded-full text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.08] transition-colors z-10 cursor-pointer"
             >
-              <X className="h-4 w-4" strokeWidth={1.5} />
+              <X className="h-4 w-4" strokeWidth={1.75} />
             </button>
 
-            {/* Content */}
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 flex h-9 w-9 items-center justify-center rounded-xl bg-[#141721] border border-white/[0.08] text-[#C6FF3D] shadow-sm">
-                <Tag className="h-4 w-4" strokeWidth={1.5} />
+            {/* Header Perk Badge */}
+            <div className="flex items-center gap-1.5 mb-2.5">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#C6FF3D]/10 border border-[#C6FF3D]/25 text-[#C6FF3D] font-mono text-[10px] font-semibold tracking-wide uppercase">
+                <span className="h-1.5 w-1.5 rounded-full bg-[#C6FF3D] animate-ping" />
+                Table Perk &bull; Live Offers
+              </span>
+            </div>
+
+            {/* Content Section */}
+            <div className="flex items-start gap-3.5 pr-6">
+              <div className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-[#1A1E29] to-[#12151E] border border-white/10 text-[#C6FF3D] shadow-inner">
+                <Sparkles className="h-5 w-5" strokeWidth={1.75} />
               </div>
-              <div className="flex-1 pr-5">
-                <h4 className="text-sm font-heading font-semibold text-[#F4F5F7] mb-0.5">
-                  Get exclusive deals
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm sm:text-base font-heading font-bold text-[#F4F5F7] leading-snug">
+                  Unlock Secret Table Discounts
                 </h4>
-                <p className="text-xs text-[#8A8F9C] leading-relaxed">
-                  Enable notifications for offers &amp; discounts from {venueName}
+                <p className="text-xs text-[#8A8F9C] mt-1 leading-relaxed">
+                  Get notified when {venueName} drops flash bill discounts, promo coupons, and chef specials.
                 </p>
               </div>
             </div>
 
-            {/* Action */}
-            {isIOSPrompt ? (
-              <div className="flex flex-col gap-2 mt-3.5">
-                <div className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-white/[0.04] border border-white/10 text-[11px] text-[#F4F5F7]">
-                  <Share className="h-4 w-4 text-[#C6FF3D] shrink-0" strokeWidth={1.75} />
-                  <span>Tap <strong>Share</strong>, then <strong>Add to Home Screen</strong> to unlock live offers on iPhone.</span>
+            {/* Feature Highlights Pills */}
+            <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-2 border-t border-white/[0.06]">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-[10px] text-[#A2A7B5] font-mono">
+                <Tag className="h-3 w-3 text-[#C6FF3D]" strokeWidth={1.5} />
+                Instant Coupons
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-[10px] text-[#A2A7B5] font-mono">
+                <Bell className="h-3 w-3 text-[#C6FF3D]" strokeWidth={1.5} />
+                Flash Deals
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/[0.06] text-[10px] text-[#A2A7B5] font-mono">
+                ✨ Zero Spam
+              </span>
+            </div>
+
+            {/* State A: Permission Blocked Instructions */}
+            {permissionBlocked ? (
+              <div className="mt-3.5 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 space-y-2">
+                <div className="flex items-start gap-2 text-amber-300">
+                  <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" strokeWidth={1.75} />
+                  <div className="text-[11px] leading-relaxed">
+                    <strong className="block font-semibold">Notifications are blocked in your browser</strong>
+                    Tap the <strong>lock icon 🔒</strong> in your address bar, tap <strong>Site Settings</strong> &rarr; <strong>Notifications</strong> &rarr; choose <strong>Allow</strong>.
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={handleEnable}
+                    className="flex-1 py-1.5 rounded-full bg-[#C6FF3D] text-[#07080B] text-xs font-semibold hover:bg-[#b8f52e] transition-colors"
+                  >
+                    I Allowed It &bull; Retry
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDismiss}
+                    className="px-3 py-1.5 text-xs text-[#8A8F9C] hover:text-[#F4F5F7] transition-colors"
+                  >
+                    Not Now
+                  </button>
+                </div>
+              </div>
+            ) : showInAppNotice ? (
+              /* State B: In-App Browser (WhatsApp / Instagram / FB WebView) */
+              <div className="mt-3.5 p-3 rounded-2xl bg-[#141721] border border-white/10 space-y-2.5">
+                <p className="text-[11px] text-[#F4F5F7] leading-relaxed">
+                  You are viewing this inside an in-app browser. Open in <strong>Chrome</strong> or <strong>Safari</strong> to enable table offers!
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCopyLink}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-full bg-[#C6FF3D] text-[#07080B] text-xs font-semibold hover:bg-[#b8f52e] transition-colors"
+                  >
+                    {copiedLink ? (
+                      <>
+                        <Check className="h-3.5 w-3.5" /> Link Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3.5 w-3.5" /> Copy Link &amp; Open Chrome
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleDismiss}
+                    className="px-3 py-2 text-xs text-[#8A8F9C] hover:text-[#F4F5F7] transition-colors"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            ) : showIOSGuide ? (
+              /* State C: iOS Safari Add-To-Home-Screen Walkthrough */
+              <div className="mt-3.5 p-3 rounded-2xl bg-[#141721] border border-white/10 space-y-2.5">
+                <div className="text-[11px] text-[#F4F5F7] space-y-1.5">
+                  <p className="font-semibold text-[#C6FF3D]">On iPhone / iPad:</p>
+                  <div className="flex items-center gap-2 text-xs text-[#8A8F9C]">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-white font-mono text-[10px]">1</span>
+                    <span>Tap Safari's <strong className="text-white">Share</strong> button (<Share className="inline h-3.5 w-3.5 text-[#C6FF3D]" strokeWidth={2} />)</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-[#8A8F9C]">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-white font-mono text-[10px]">2</span>
+                    <span>Select <strong className="text-white">Add to Home Screen</strong></span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-[#8A8F9C]">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-white font-mono text-[10px]">3</span>
+                    <span>Open from Home Screen to receive live offer alerts!</span>
+                  </div>
                 </div>
                 <button
                   type="button"
                   onClick={handleDismiss}
-                  className="w-full flex items-center justify-center rounded-full bg-[#C6FF3D] hover:bg-[#b8f52e] px-4 py-2.5 min-h-[40px] text-xs font-semibold text-[#07080B] transition-all shadow-sm"
+                  className="w-full py-2 rounded-full bg-[#C6FF3D] text-[#07080B] text-xs font-semibold hover:bg-[#b8f52e] transition-colors"
                 >
-                  Got it
+                  Got It
                 </button>
               </div>
             ) : (
-              <div className="flex items-center gap-2 mt-3.5">
+              /* State D: Normal Standard Opt-In Buttons */
+              <div className="flex items-center gap-2.5 mt-4">
                 <button
                   type="button"
-                  onClick={handleSubscribe}
+                  onClick={handleEnable}
                   disabled={isLoading}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-full bg-[#C6FF3D] hover:bg-[#b8f52e] px-4 py-2.5 min-h-[40px] text-xs font-semibold text-[#07080B] transition-all disabled:opacity-60 shadow-sm"
+                  className="flex-1 flex items-center justify-center gap-2 rounded-full bg-[#C6FF3D] hover:bg-[#b8f52e] active:scale-[0.98] px-4 py-2.5 min-h-[42px] text-xs font-semibold text-[#07080B] transition-all shadow-[0_4px_16px_rgba(198,255,61,0.25)] hover:shadow-[0_4px_20px_rgba(198,255,61,0.4)] disabled:opacity-60 cursor-pointer"
                 >
                   {isLoading ? (
                     <div className="h-3.5 w-3.5 border-2 border-[#07080B]/30 border-t-[#07080B] rounded-full animate-spin" />
                   ) : (
-                    <Bell className="h-3.5 w-3.5" strokeWidth={1.5} />
+                    <Bell className="h-3.5 w-3.5" strokeWidth={2} />
                   )}
-                  {isLoading ? 'Enabling...' : 'Enable Offers'}
+                  <span>{isLoading ? 'Enabling Offers...' : 'Enable Table Offers'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleDismiss}
-                  className="rounded-full px-3 py-2 min-h-[40px] text-xs font-medium text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.04] transition-colors"
+                  className="rounded-full px-3.5 py-2.5 min-h-[42px] text-xs font-medium text-[#8A8F9C] hover:text-[#F4F5F7] hover:bg-white/[0.05] transition-colors cursor-pointer"
                 >
-                  Not now
+                  Maybe Later
                 </button>
               </div>
             )}
@@ -202,3 +397,5 @@ export function NotificationOptIn({ venueId, venueName = 'this restaurant', gues
     </AnimatePresence>
   );
 }
+
+export default NotificationOptIn;

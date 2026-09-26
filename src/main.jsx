@@ -20,6 +20,15 @@ window.addEventListener('vite:preloadError', (event) => {
   }
 });
 
+// Pre-register service worker for instant push notifications readiness across all mobile devices
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((err) => {
+      console.warn('[TableSuite] Service worker background registration notice:', err);
+    });
+  });
+}
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />
