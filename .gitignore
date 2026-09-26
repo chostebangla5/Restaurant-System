@@ -16,3 +16,4 @@ build/
 # Logs & temp
 *.log
 .DS_Store
+supabase/.temp/
