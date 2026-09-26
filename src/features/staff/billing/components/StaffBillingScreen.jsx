@@ -634,6 +634,11 @@ export function StaffBillingScreen() {
                 <p className="text-[10px] text-[#8A8F9C] mt-0.5">
                   Invoice #{selectedReceiptOrder.id} &bull; Table T-{selectedReceiptOrder.table_number}
                 </p>
+                {selectedReceiptOrder.customer_name && (
+                  <p className="text-[11px] font-semibold text-[#F4F5F7] mt-1 pt-1 border-t border-dashed border-white/[0.08]">
+                    Guest: {selectedReceiptOrder.customer_name} {selectedReceiptOrder.customer_phone ? `(${selectedReceiptOrder.customer_phone})` : ''}
+                  </p>
+                )}
               </div>
 
               {/* Items */}

@@ -162,9 +162,16 @@ export function StaffKitchenScreen() {
                         T-{ticket.table_number}
                       </span>
                       <div>
-                        <span className="font-mono font-semibold text-xs text-[#F4F5F7] block">
-                          Round #{ticket.round_number}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono font-semibold text-xs text-[#F4F5F7]">
+                            Round #{ticket.round_number}
+                          </span>
+                          {ticket.customer_name && (
+                            <span className="text-[11px] font-semibold text-[#C6FF3D] bg-[#C6FF3D]/10 px-2 py-0.5 rounded-full border border-[#C6FF3D]/25">
+                              👤 {ticket.customer_name}
+                            </span>
+                          )}
+                        </div>
                         <span className="text-[11px] text-[#8A8F9C] font-mono">
                           {ticket.id}
                         </span>

@@ -274,3 +274,13 @@
   border-radius: 20px !important;
   box-shadow: var(--g-shadow-float) !important;
 }
+
+/* ─── Scrollbar helpers ─── */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+

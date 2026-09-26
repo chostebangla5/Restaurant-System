@@ -190,6 +190,8 @@ export function CartProvider({ children }) {
     guestNotes = '',
     tableNumber = shortCode.replace(/[^0-9]/g, '') || '01',
     splitDetails = null,
+    guestName = '',
+    guestPhone = '',
   }) => {
     if (items.length === 0) {
       toast.error('Your cart is empty');
@@ -211,6 +213,8 @@ export function CartProvider({ children }) {
         paymentStatus,
         splitDetails,
         guestNotes,
+        guestName,
+        guestPhone,
       });
 
       clearCart();

@@ -3,6 +3,8 @@ import { useParams, Link } from 'react-router-dom';
 import { Modal } from '@/components/ui/Modal';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { useCart } from '../context/CartContext';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import toast from 'react-hot-toast';
 import {
   ArrowLeft,
   Trash2,
@@ -18,6 +20,12 @@ import {
   Check,
   Coins,
   ArrowRightLeft,
+  User,
+  Phone,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Lock,
 } from 'lucide-react';
 
 /* ─── Quantity with pop animation ─── */
@@ -40,10 +48,21 @@ function QtyPop({ qty }) {
   );
 }
 
+const DEFAULT_RECOMMENDATIONS = [
+  { id: 'rec-1', name: 'Kadhai Paneer', price: 250, station: 'hot', tags: ['veg'] },
+  { id: 'rec-2', name: 'Cream of Tomato Soup', price: 120, station: 'hot', tags: ['veg'] },
+  { id: 'rec-3', name: 'Hot & Sour Soup', price: 100, station: 'hot', tags: ['veg'] },
+  { id: 'rec-4', name: 'Sweet Corn Soup', price: 120, station: 'hot', tags: ['veg'] },
+  { id: 'rec-5', name: 'Butter Naan', price: 45, station: 'hot', tags: ['veg'] },
+  { id: 'rec-6', name: 'Fresh Lime Soda', price: 60, station: 'bar', tags: ['veg'] },
+  { id: 'rec-7', name: 'Gulab Jamun (2 Pcs)', price: 80, station: 'cold', tags: ['veg'] },
+];
+
 export function GuestCartScreen() {
   const { shortCode } = useParams();
   const {
     items,
+    addToCart,
     updateQty,
     removeFromCart,
     clearCart,
@@ -69,6 +88,139 @@ export function GuestCartScreen() {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [selectedUpiApp, setSelectedUpiApp] = useState('gpay');
+
+  // Customer Details for Kitchen Ticket & CRM System
+  const [guestName, setGuestName] = useState(() => {
+    try {
+      return localStorage.getItem('tablesuite_guest_name') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+
+  const [guestPhone, setGuestPhone] = useState(() => {
+    try {
+      return localStorage.getItem('tablesuite_guest_phone') || '';
+    } catch (e) {
+      return '';
+    }
+  });
+
+  const [nameError, setNameError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  const detailsSectionRef = useRef(null);
+
+  // Recommendations ("Goes Well With Your Order")
+  const [recommendedItems, setRecommendedItems] = useState(DEFAULT_RECOMMENDATIONS);
+  const [isLoadingRecs, setIsLoadingRecs] = useState(false);
+  const recsScrollRef = useRef(null);
+
+  // Load recommendations from venue menu
+  useEffect(() => {
+    async function loadRecommendations() {
+      if (!shortCode) return;
+      try {
+        setIsLoadingRecs(true);
+        if (isSupabaseConfigured()) {
+          const { data: tableData } = await supabase
+            .from('tables')
+            .select('venue_id')
+            .ilike('short_code', shortCode.trim())
+            .maybeSingle();
+
+          if (tableData?.venue_id) {
+            const { data: menuList } = await supabase
+              .from('menu_items')
+              .select('id, name, price, station, tags, is_available, is_deleted')
+              .eq('venue_id', tableData.venue_id)
+              .eq('is_available', true)
+              .eq('is_deleted', false)
+              .limit(16);
+
+            if (menuList && menuList.length > 0) {
+              setRecommendedItems(
+                menuList.map((m) => ({
+                  id: m.id,
+                  name: m.name,
+                  price: Number(m.price) || 0,
+                  station: m.station || 'hot',
+                  tags: m.tags || ['veg'],
+                }))
+              );
+              return;
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('Could not load menu recommendations:', err);
+      } finally {
+        setIsLoadingRecs(false);
+      }
+    }
+    loadRecommendations();
+  }, [shortCode]);
+
+  const scrollRecs = (direction) => {
+    if (recsScrollRef.current) {
+      const scrollAmount = direction === 'left' ? -220 : 220;
+      recsScrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+  };
+
+  const pool = recommendedItems && recommendedItems.length > 0 ? recommendedItems : DEFAULT_RECOMMENDATIONS;
+  const filteredRecs = pool.filter(
+    (rec) => !items.some((cartItem) => cartItem.id === rec.id || cartItem.name.toLowerCase() === rec.name.toLowerCase())
+  );
+  const visibleRecommendations = filteredRecs.length > 0 ? filteredRecs : DEFAULT_RECOMMENDATIONS;
+
+  const handleNameChange = (val) => {
+    const sanitized = val.replace(/[<>]/g, '').slice(0, 50);
+    setGuestName(sanitized);
+    if (nameError && sanitized.trim().length >= 2) {
+      setNameError('');
+    }
+    try {
+      localStorage.setItem('tablesuite_guest_name', sanitized);
+    } catch (e) {}
+  };
+
+  const handlePhoneChange = (val) => {
+    const cleaned = val.replace(/[^\d+]/g, '').slice(0, 15);
+    setGuestPhone(cleaned);
+    const digitsOnly = cleaned.replace(/\D/g, '');
+    if (phoneError && digitsOnly.length >= 10) {
+      setPhoneError('');
+    }
+    try {
+      localStorage.setItem('tablesuite_guest_phone', cleaned);
+    } catch (e) {}
+  };
+
+  const validateGuestDetails = () => {
+    let isValid = true;
+    const trimmedName = guestName.trim();
+    const digitsOnly = guestPhone.replace(/\D/g, '');
+
+    if (!trimmedName || trimmedName.length < 2) {
+      setNameError('Please enter your name (min. 2 characters)');
+      isValid = false;
+    } else {
+      setNameError('');
+    }
+
+    if (!digitsOnly || digitsOnly.length < 10) {
+      setPhoneError('Please enter a valid 10-digit mobile number');
+      isValid = false;
+    } else {
+      setPhoneError('');
+    }
+
+    if (!isValid && detailsSectionRef.current) {
+      detailsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    return isValid;
+  };
 
   // Keep split online amount aligned whenever cart grand total updates
   useEffect(() => {
@@ -118,18 +270,32 @@ export function GuestCartScreen() {
   }
 
   const handleOrderSubmission = async () => {
+    if (!validateGuestDetails()) {
+      toast.error('Please fill in your Name and Mobile Number to place your order');
+      return;
+    }
+
     if (paymentChoice === 'online' || paymentChoice === 'split') {
       setIsPaymentModalOpen(true);
       return;
     }
+
     await submitOrder({
       paymentMethod: 'counter',
       paymentStatus: 'pending',
       guestNotes,
+      guestName: guestName.trim(),
+      guestPhone: guestPhone.trim(),
     });
   };
 
   const handleCompleteOnlinePayment = async () => {
+    if (!validateGuestDetails()) {
+      setIsPaymentModalOpen(false);
+      toast.error('Please enter your Name and Mobile Number');
+      return;
+    }
+
     setPaymentProcessing(true);
     setTimeout(async () => {
       try {
@@ -142,12 +308,16 @@ export function GuestCartScreen() {
               cashAmount: effectiveCashAmount,
             },
             guestNotes,
+            guestName: guestName.trim(),
+            guestPhone: guestPhone.trim(),
           });
         } else {
           await submitOrder({
             paymentMethod: 'online',
             paymentStatus: 'paid',
             guestNotes,
+            guestName: guestName.trim(),
+            guestPhone: guestPhone.trim(),
           });
         }
         setIsPaymentModalOpen(false);
@@ -243,6 +413,176 @@ export function GuestCartScreen() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ─── GOES WELL WITH YOUR ORDER ─── */}
+      {visibleRecommendations.length > 0 && (
+        <div className="space-y-2.5 pt-1">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-1.5">
+              <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--g-accent)' }} />
+              <h3 className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--g-text)' }}>
+                Goes Well With Your Order
+              </h3>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => scrollRecs('left')}
+                className="h-7 w-7 rounded-full flex items-center justify-center transition-all cursor-pointer"
+                style={{ background: 'var(--g-surface)', border: '1px solid var(--g-border)', color: 'var(--g-text-secondary)' }}
+                aria-label="Scroll left"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => scrollRecs('right')}
+                className="h-7 w-7 rounded-full flex items-center justify-center transition-all cursor-pointer"
+                style={{ background: 'var(--g-surface)', border: '1px solid var(--g-border)', color: 'var(--g-text-secondary)' }}
+                aria-label="Scroll right"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Horizontal Scroll Cards */}
+          <div
+            ref={recsScrollRef}
+            className="flex gap-3 overflow-x-auto pb-2 scroll-smooth no-scrollbar"
+            style={{ scrollSnapType: 'x mandatory' }}
+          >
+            {visibleRecommendations.map((rec) => (
+              <div
+                key={rec.id}
+                className="g-card p-3.5 flex flex-col justify-between shrink-0 transition-all hover:scale-[1.01]"
+                style={{ width: '160px', scrollSnapAlign: 'start', borderRadius: '16px' }}
+              >
+                <div className="space-y-1">
+                  <h4 className="font-semibold text-xs leading-snug line-clamp-2" style={{ color: 'var(--g-text)' }}>
+                    {rec.name}
+                  </h4>
+                  <p className="text-xs font-bold" style={{ color: 'var(--g-text)' }}>
+                    {formatCurrency(rec.price)}
+                  </p>
+                </div>
+
+                <div className="pt-3">
+                  <button
+                    type="button"
+                    onClick={() => addToCart(rec)}
+                    className="w-full py-1.5 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer active:scale-95"
+                    style={{
+                      background: 'var(--g-surface-2)',
+                      border: '1px solid var(--g-border)',
+                      color: 'var(--g-accent)',
+                    }}
+                  >
+                    <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                    <span>Add</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ─── YOUR DETAILS • REQUIRED ─── */}
+      <div
+        ref={detailsSectionRef}
+        className="g-card p-4 space-y-3.5 transition-all"
+        style={{
+          border: nameError || phoneError ? '1.5px solid var(--g-accent)' : '1px solid var(--g-border)',
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--g-text)' }}>
+              Your Details &bull; Required
+            </span>
+          </div>
+          <span
+            className="text-[10px] font-semibold px-2 py-0.5 rounded-full flex items-center gap-1"
+            style={{ background: 'var(--g-green-light)', color: 'var(--g-green)', border: '1px solid rgba(27,166,114,0.15)' }}
+          >
+            <ShieldCheck className="h-3 w-3" strokeWidth={1.5} />
+            <span>Secure &amp; Private</span>
+          </span>
+        </div>
+
+        <p className="text-xs leading-relaxed" style={{ color: 'var(--g-text-muted)' }}>
+          The order goes to the kitchen under this name, so the restaurant knows whose it is.
+        </p>
+
+        <div className="space-y-3 pt-0.5">
+          {/* Name Input */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-semibold" style={{ color: 'var(--g-text-secondary)' }}>
+                Name <span style={{ color: 'var(--g-accent)' }}>*</span>
+              </label>
+              {nameError && (
+                <span className="text-[10px] font-medium" style={{ color: 'var(--g-accent)' }}>
+                  {nameError}
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--g-text-muted)' }}>
+                <User className="h-4 w-4" strokeWidth={1.5} />
+              </div>
+              <input
+                type="text"
+                value={guestName}
+                onChange={(e) => handleNameChange(e.target.value)}
+                placeholder="e.g. Rahul Sharma"
+                autoComplete="name"
+                className="g-input w-full pl-10 pr-3.5 py-2.5 text-sm font-medium"
+                style={{
+                  borderRadius: '12px',
+                  border: nameError ? '1.5px solid var(--g-accent)' : undefined,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Mobile Number Input */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center">
+              <label className="block text-xs font-semibold" style={{ color: 'var(--g-text-secondary)' }}>
+                Mobile number <span style={{ color: 'var(--g-accent)' }}>*</span>
+              </label>
+              {phoneError ? (
+                <span className="text-[10px] font-medium" style={{ color: 'var(--g-accent)' }}>
+                  {phoneError}
+                </span>
+              ) : guestPhone.replace(/\D/g, '').length >= 10 ? (
+                <span className="text-[10px] font-semibold flex items-center gap-0.5" style={{ color: 'var(--g-green)' }}>
+                  <Check className="h-3 w-3" strokeWidth={2.5} /> Valid
+                </span>
+              ) : null}
+            </div>
+            <div className="relative">
+              <div className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--g-text-muted)' }}>
+                <Phone className="h-4 w-4" strokeWidth={1.5} />
+              </div>
+              <input
+                type="tel"
+                value={guestPhone}
+                onChange={(e) => handlePhoneChange(e.target.value)}
+                placeholder="e.g. 98765 43210"
+                autoComplete="tel"
+                className="g-input w-full pl-10 pr-3.5 py-2.5 text-sm font-medium"
+                style={{
+                  borderRadius: '12px',
+                  border: phoneError ? '1.5px solid var(--g-accent)' : undefined,
+                }}
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ─── Kitchen Notes ─── */}

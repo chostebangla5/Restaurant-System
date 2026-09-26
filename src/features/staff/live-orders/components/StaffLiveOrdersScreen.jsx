@@ -252,6 +252,11 @@ export function StaffLiveOrdersScreen() {
                     <span className="text-xs font-mono font-semibold text-[#F4F5F7]">
                       Round #{order.round_number}
                     </span>
+                    {order.customer_name && (
+                      <span className="text-[11px] font-semibold text-[#C6FF3D] bg-[#C6FF3D]/10 px-2 py-0.5 rounded-full border border-[#C6FF3D]/25">
+                        👤 {order.customer_name}
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] font-mono text-[#8A8F9C] flex items-center gap-1">

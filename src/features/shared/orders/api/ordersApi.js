@@ -81,6 +81,30 @@ export function parsePaymentDetails(notes) {
 }
 
 /**
+ * Helper to parse guest name and phone number from order notes or metadata
+ */
+export function parseGuestInfo(notes) {
+  if (!notes) return { name: '', phone: '' };
+  const match = notes.match(/\[Guest:\s*([^|\]]+)(?:\s*\|\s*([^\]]+))?\]/i);
+  return {
+    name: match ? match[1].trim() : '',
+    phone: match && match[2] ? match[2].trim() : '',
+  };
+}
+
+/**
+ * Clean special instruction tags out of guest notes so chefs see pure cooking requests
+ */
+export function cleanGuestInstructions(notes) {
+  if (!notes) return '';
+  return notes
+    .replace(/\[Guest:[^\]]*\]/gi, '')
+    .replace(/\[Payment:[^\]]*\]/gi, '')
+    .replace(/\[Coupon:[^\]]*\]/gi, '')
+    .trim();
+}
+
+/**
  * Fetch all orders for a venue from Supabase
  * @param {string} venueId
  * @returns {Promise<Array>}
@@ -96,7 +120,7 @@ export async function fetchOrders(venueId) {
       .select(`
         *,
         order_items(*),
-        table_sessions(*, tables(*))
+        table_sessions(*, tables(*), guests(*))
       `)
       .eq('venue_id', venueId)
       .order('created_at', { ascending: false });
@@ -110,6 +134,23 @@ export async function fetchOrders(venueId) {
       const isSettled = (o.status === 'completed' || o.table_sessions?.status === 'settled') && o.status !== 'cancelled';
       const roundSubtotal = Number(o.subtotal) || 0;
       const payInfo = parsePaymentDetails(o.notes);
+      const guestInfo = parseGuestInfo(o.notes);
+
+      const customerName =
+        o.customer_name ||
+        o.table_sessions?.customer_name ||
+        o.table_sessions?.guests?.name ||
+        guestInfo.name ||
+        '';
+
+      const customerPhone =
+        o.customer_phone ||
+        o.table_sessions?.customer_phone ||
+        o.table_sessions?.guests?.phone ||
+        guestInfo.phone ||
+        '';
+
+      const cleanNotes = cleanGuestInstructions(o.notes);
 
       let paymentStatus = o.status === 'cancelled' ? 'cancelled' : (isSettled ? 'paid' : 'pending');
       // If split payment and not fully settled yet, mark as partially_paid
@@ -137,7 +178,10 @@ export async function fetchOrders(venueId) {
         payment_status: paymentStatus,
         payment_method: payInfo.method,
         split_details: payInfo.isSplit ? { online: payInfo.onlineAmount, cash: payInfo.cashAmount } : null,
-        guest_notes: o.notes || '',
+        guest_notes: cleanNotes || o.notes || '',
+        raw_notes: o.notes || '',
+        customer_name: customerName,
+        customer_phone: customerPhone,
         placed_at: o.placed_at,
         cooking_at: o.cooking_at,
         ready_at: o.ready_at,
@@ -201,6 +245,10 @@ export async function fetchOrdersForTable(shortCode) {
       const isSettled = (isSessionSettled || o.status === 'completed') && o.status !== 'cancelled';
       const roundSubtotal = Number(o.subtotal) || 0;
       const payInfo = parsePaymentDetails(o.notes);
+      const guestInfo = parseGuestInfo(o.notes);
+      const customerName = o.customer_name || guestInfo.name || '';
+      const customerPhone = o.customer_phone || guestInfo.phone || '';
+      const cleanNotes = cleanGuestInstructions(o.notes);
 
       let paymentStatus = o.status === 'cancelled' ? 'cancelled' : (isSettled ? 'paid' : 'pending');
       if (payInfo.isSplit && !isSettled && o.status !== 'cancelled') {
@@ -227,7 +275,10 @@ export async function fetchOrdersForTable(shortCode) {
         payment_status: paymentStatus,
         payment_method: payInfo.method,
         split_details: payInfo.isSplit ? { online: payInfo.onlineAmount, cash: payInfo.cashAmount } : null,
-        guest_notes: o.notes || '',
+        guest_notes: cleanNotes || o.notes || '',
+        raw_notes: o.notes || '',
+        customer_name: customerName,
+        customer_phone: customerPhone,
         created_at: o.created_at,
       };
     });
@@ -253,11 +304,17 @@ export async function createOrder({
   paymentStatus = 'pending',
   splitDetails = null,
   guestNotes = '',
+  guestName = '',
+  guestPhone = '',
   venueId,
 }) {
   if (!isSupabaseConfigured()) {
     throw new Error('Supabase database is not configured.');
   }
+
+  // Sanitize guest customer details for CRM
+  const cleanName = (guestName || '').trim().replace(/[<>]/g, '').slice(0, 100) || 'Guest';
+  const cleanPhone = (guestPhone || '').trim().replace(/[^\d+]/g, '').slice(0, 20);
 
   // 1. Resolve table
   let targetVenueId = venueId;
@@ -305,7 +362,7 @@ export async function createOrder({
   // 2. Get or create open table session
   let { data: session } = await supabase
     .from('table_sessions')
-    .select('id, org_id, venue_id')
+    .select('id, org_id, venue_id, guest_id')
     .eq('table_id', targetTableId)
     .eq('status', 'open')
     .order('created_at', { ascending: false })
@@ -324,12 +381,33 @@ export async function createOrder({
         tax_amount: Number(tax) || 0,
         discount_amount: Number(discountAmount) || 0,
         total_amount: Number(total) || 0,
+        customer_name: cleanName,
+        customer_phone: cleanPhone,
       })
       .select()
       .single();
 
-    if (sessErr) throw sessErr;
-    session = newSession;
+    if (sessErr) {
+      // Fallback without customer columns if not yet migrated
+      const { data: fallbackSess, error: fbErr } = await supabase
+        .from('table_sessions')
+        .insert({
+          org_id: targetOrgId,
+          table_id: targetTableId,
+          venue_id: targetVenueId,
+          status: 'open',
+          subtotal: Number(subtotal) || 0,
+          tax_amount: Number(tax) || 0,
+          discount_amount: Number(discountAmount) || 0,
+          total_amount: Number(total) || 0,
+        })
+        .select()
+        .single();
+      if (fbErr) throw fbErr;
+      session = fallbackSess;
+    } else {
+      session = newSession;
+    }
 
     // Update table status to in_service
     await supabase
@@ -337,19 +415,83 @@ export async function createOrder({
       .update({ status: 'in_service' })
       .eq('id', targetTableId);
   } else {
-    // Update session financial totals
+    // Update session financial totals and customer details if provided
     try {
+      const sessUpdate = {
+        subtotal: Number(subtotal) || 0,
+        tax_amount: Number(tax) || 0,
+        discount_amount: Number(discountAmount) || 0,
+        total_amount: Number(total) || 0,
+      };
+      if (cleanName && cleanName !== 'Guest') sessUpdate.customer_name = cleanName;
+      if (cleanPhone) sessUpdate.customer_phone = cleanPhone;
+
       await supabase
         .from('table_sessions')
-        .update({
-          subtotal: Number(subtotal) || 0,
-          tax_amount: Number(tax) || 0,
-          discount_amount: Number(discountAmount) || 0,
-          total_amount: Number(total) || 0,
-        })
+        .update(sessUpdate)
         .eq('id', session.id);
     } catch (sessUpdateErr) {
       console.warn('Could not update table session totals:', sessUpdateErr);
+    }
+  }
+
+  // 2b. Securely register or link guest in Admin CRM & loyalty system
+  let linkedGuestId = session?.guest_id || null;
+  if (cleanPhone && cleanPhone.length >= 10 && (session.org_id || targetOrgId)) {
+    const orgForGuest = session.org_id || targetOrgId;
+    try {
+      // Attempt secure RPC call first (00007 migration)
+      const { data: rpcRes, error: rpcErr } = await supabase.rpc('register_or_link_guest_order', {
+        p_org_id: orgForGuest,
+        p_session_id: session.id,
+        p_name: cleanName,
+        p_phone: cleanPhone,
+      });
+
+      if (!rpcErr && rpcRes?.guest_id) {
+        linkedGuestId = rpcRes.guest_id;
+      } else {
+        // Resilient client fallback
+        const { data: existingGuest } = await supabase
+          .from('guests')
+          .select('id, name')
+          .eq('org_id', orgForGuest)
+          .eq('phone', cleanPhone)
+          .maybeSingle();
+
+        if (existingGuest) {
+          linkedGuestId = existingGuest.id;
+          if ((!existingGuest.name || existingGuest.name === 'Guest') && cleanName !== 'Guest') {
+            await supabase.from('guests').update({ name: cleanName }).eq('id', existingGuest.id);
+          }
+        } else {
+          const { data: newGuest } = await supabase
+            .from('guests')
+            .insert({
+              org_id: orgForGuest,
+              phone: cleanPhone,
+              name: cleanName,
+              loyalty_points: 10,
+              loyalty_tier: 'bronze',
+            })
+            .select('id')
+            .single();
+          if (newGuest) linkedGuestId = newGuest.id;
+        }
+
+        if (linkedGuestId && session?.id) {
+          await supabase
+            .from('table_sessions')
+            .update({
+              guest_id: linkedGuestId,
+              customer_name: cleanName,
+              customer_phone: cleanPhone,
+            })
+            .eq('id', session.id);
+        }
+      }
+    } catch (guestCrmErr) {
+      console.warn('Guest CRM record registration notice:', guestCrmErr);
     }
   }
 
@@ -361,7 +503,8 @@ export async function createOrder({
 
   const nextRoundNumber = (count || 0) + 1;
 
-  // Format notes to include coupon and split/payment info if applied
+  // Format notes to include guest, coupon, and split/payment info if applied
+  const guestTag = cleanName !== 'Guest' || cleanPhone ? `[Guest: ${cleanName} | ${cleanPhone}]` : '';
   const couponTag = couponCode ? `[Coupon: ${couponCode.toUpperCase()} (-₹${discountAmount})]` : '';
   let paymentTag = '';
   if (paymentMethod === 'split' && splitDetails) {
@@ -372,27 +515,46 @@ export async function createOrder({
     paymentTag = `[Payment: Cash]`;
   }
 
-  const finalGuestNotes = [couponTag, paymentTag, guestNotes].filter(Boolean).join(' ').trim();
+  const finalGuestNotes = [guestTag, couponTag, paymentTag, guestNotes].filter(Boolean).join(' ').trim();
 
   // Determine effective status
   const effectivePaymentStatus = paymentMethod === 'split' ? 'partially_paid' : paymentStatus;
 
-  // 4. Insert order
-  const { data: createdOrder, error: orderErr } = await supabase
-    .from('orders')
-    .insert({
-      org_id: session.org_id || targetOrgId,
-      venue_id: targetVenueId,
-      table_session_id: session.id,
-      round_number: nextRoundNumber,
-      status: 'placed',
-      notes: finalGuestNotes,
-      subtotal: Number(subtotal) || 0,
-    })
-    .select()
-    .single();
+  // 4. Insert order with fallback resilience
+  const baseOrderInsert = {
+    org_id: session.org_id || targetOrgId,
+    venue_id: targetVenueId,
+    table_session_id: session.id,
+    round_number: nextRoundNumber,
+    status: 'placed',
+    notes: finalGuestNotes,
+    subtotal: Number(subtotal) || 0,
+  };
 
-  if (orderErr) throw orderErr;
+  let createdOrder = null;
+  try {
+    const { data: oWithCust, error: oErr1 } = await supabase
+      .from('orders')
+      .insert({
+        ...baseOrderInsert,
+        customer_name: cleanName,
+        customer_phone: cleanPhone,
+      })
+      .select()
+      .single();
+
+    if (oErr1) throw oErr1;
+    createdOrder = oWithCust;
+  } catch (errCol) {
+    const { data: oFallback, error: oErr2 } = await supabase
+      .from('orders')
+      .insert(baseOrderInsert)
+      .select()
+      .single();
+
+    if (oErr2) throw oErr2;
+    createdOrder = oFallback;
+  }
 
   // 4a. If split payment, record online portion in payments table
   if (paymentMethod === 'split' && splitDetails?.onlineAmount > 0) {
