@@ -11,7 +11,9 @@ import {
   Search,
   X,
   UtensilsCrossed,
+  Star,
 } from 'lucide-react';
+import { getFoodImage } from '@/utils/foodImageMap';
 
 /* ─── Quantity with pop animation ─── */
 function QtyDisplay({ qty }) {
@@ -245,17 +247,18 @@ export function GuestMenuScreen() {
           </div>
 
           <div className="flex items-start gap-4">
-            {chefSpecialItem.image_url && (
+            <div className="h-24 w-24 rounded-2xl overflow-hidden shrink-0 border shadow-xs" style={{ borderColor: 'var(--g-border)' }}>
               <img
-                src={chefSpecialItem.image_url}
+                src={getFoodImage(chefSpecialItem)}
                 alt={chefSpecialItem.name}
-                className="h-24 w-24 rounded-2xl object-cover shrink-0"
-                style={{ border: '1px solid var(--g-border)' }}
+                className="h-full w-full object-cover"
                 loading="lazy"
                 decoding="async"
-                onError={(e) => { e.target.style.display = 'none'; }}
+                onError={(e) => {
+                  e.target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&auto=format&fit=crop&q=80';
+                }}
               />
-            )}
+            </div>
             <div className="flex-1 min-w-0">
               {/* Veg/Non-veg indicator */}
               <div className="flex items-center gap-1.5 mb-1">
@@ -368,35 +371,48 @@ export function GuestMenuScreen() {
                 >
                   {/* Text content */}
                   <div className="flex-1 min-w-0">
-                    {/* Veg/Non-veg + Bestseller badges */}
-                    <div className="flex items-center gap-2 mb-1.5">
+                    {/* Badges row: Veg/Non-veg + Bestseller / Best deal */}
+                    <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
                       <span
-                        className="h-3.5 w-3.5 rounded-sm border-2 flex items-center justify-center p-0.5"
+                        className="h-3.5 w-3.5 rounded-sm border-2 flex items-center justify-center p-0.5 shrink-0"
                         style={{ borderColor: item.is_veg ? 'var(--g-green)' : 'var(--g-accent)' }}
                         title={item.is_veg ? 'Vegetarian' : 'Non-Vegetarian'}
                       >
                         <span className="h-1.5 w-1.5 rounded-full"
                           style={{ background: item.is_veg ? 'var(--g-green)' : 'var(--g-accent)' }} />
                       </span>
-                      {item.is_bestseller && (
-                        <span className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                          style={{ background: 'rgba(245,158,11,0.08)', color: '#D97706', border: '1px solid rgba(245,158,11,0.15)' }}>
-                          <Flame className="h-2.5 w-2.5" strokeWidth={2} />
+
+                      {item.is_bestseller ? (
+                        <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md"
+                          style={{ background: 'rgba(226,55,68,0.08)', color: 'var(--g-accent)', border: '1px solid rgba(226,55,68,0.18)' }}>
+                          <Flame className="h-2.5 w-2.5" strokeWidth={2.5} />
                           Bestseller
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md"
+                          style={{ background: 'rgba(16,185,129,0.08)', color: '#059669', border: '1px solid rgba(16,185,129,0.18)' }}>
+                          Best deal
                         </span>
                       )}
                     </div>
 
-                    <h3 className="font-semibold text-sm leading-snug tracking-tight" style={{ color: 'var(--g-text)' }}>
+                    <h3 className="font-bold text-sm leading-snug tracking-tight" style={{ color: 'var(--g-text)' }}>
                       {item.name}
                     </h3>
 
-                    <span className="text-sm font-bold mt-1 block" style={{ color: 'var(--g-text)' }}>
-                      {formatCurrency(item.price)}
-                    </span>
+                    {/* Price and Rating */}
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-sm font-extrabold" style={{ color: 'var(--g-text)' }}>
+                        {formatCurrency(item.price)}
+                      </span>
+                      <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200/60">
+                        <Star className="h-3 w-3 fill-emerald-600 text-emerald-600" />
+                        5.0
+                      </span>
+                    </div>
 
                     {item.description && (
-                      <p className="text-xs line-clamp-2 mt-1 leading-relaxed" style={{ color: 'var(--g-text-muted)' }}>
+                      <p className="text-xs line-clamp-2 mt-1.5 leading-relaxed" style={{ color: 'var(--g-text-muted)' }}>
                         {item.description}
                       </p>
                     )}
@@ -404,57 +420,58 @@ export function GuestMenuScreen() {
 
                   {/* Image + Add Button Column */}
                   <div className="flex flex-col items-center gap-2 shrink-0">
-                    {item.image_url && (
+                    <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-2xl overflow-hidden border shadow-xs" style={{ borderColor: 'var(--g-border)' }}>
                       <img
-                        src={item.image_url}
+                        src={getFoodImage(item)}
                         alt={item.name}
-                        className="h-[100px] w-[100px] rounded-xl object-cover"
-                        style={{ border: '1px solid var(--g-border)' }}
+                        className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
                         loading="lazy"
                         decoding="async"
-                        onError={(e) => { e.target.style.display = 'none'; }}
+                        onError={(e) => {
+                          e.target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&auto=format&fit=crop&q=80';
+                        }}
                       />
-                    )}
+                    </div>
 
                     {qty === 0 ? (
                       <button
                         type="button"
                         onClick={() => handleAdd(item)}
-                        className="h-9 px-5 min-w-[90px] rounded-lg text-xs font-bold cursor-pointer flex items-center justify-center gap-1 transition-all active:scale-95"
+                        className="h-8.5 px-4 w-24 sm:w-28 rounded-xl text-xs font-bold cursor-pointer flex items-center justify-center gap-1 transition-all active:scale-95 shadow-sm"
                         style={{
-                          background: 'var(--g-surface)',
-                          color: 'var(--g-accent)',
-                          border: '1px solid rgba(226,55,68,0.25)',
-                          boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                          background: 'linear-gradient(135deg, var(--g-accent) 0%, #C41E2D 100%)',
+                          color: '#fff',
                         }}
                       >
-                        ADD
-                        <Plus className="h-3 w-3" strokeWidth={2.5} />
+                        <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+                        <span>Add</span>
                       </button>
                     ) : (
-                      <div className="flex items-center gap-0 rounded-lg overflow-hidden"
+                      <div
+                        className="h-8.5 w-24 sm:w-28 flex items-center justify-between rounded-xl overflow-hidden shadow-sm px-1"
                         style={{
-                          background: 'var(--g-accent)',
-                          boxShadow: '0 2px 8px rgba(226,55,68,0.2)',
-                        }}>
+                          background: 'linear-gradient(135deg, var(--g-accent) 0%, #C41E2D 100%)',
+                          color: '#fff',
+                        }}
+                      >
                         <button
                           type="button"
                           onClick={() => updateQty(item.id, qty - 1)}
                           aria-label={`Decrease quantity of ${item.name}`}
-                          className="h-9 w-9 flex items-center justify-center text-white hover:bg-white/10 transition-colors cursor-pointer"
+                          className="h-7 w-7 flex items-center justify-center text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
                         >
-                          <Minus className="h-3.5 w-3.5" strokeWidth={2} />
+                          <Minus className="h-3.5 w-3.5" strokeWidth={2.5} />
                         </button>
-                        <span className="w-7 text-center text-sm font-bold text-white select-none">
+                        <span className="text-xs font-extrabold text-white select-none">
                           {qty}
                         </span>
                         <button
                           type="button"
                           onClick={() => updateQty(item.id, qty + 1)}
                           aria-label={`Increase quantity of ${item.name}`}
-                          className="h-9 w-9 flex items-center justify-center text-white hover:bg-white/10 transition-colors cursor-pointer"
+                          className="h-7 w-7 flex items-center justify-center text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
                         >
-                          <Plus className="h-3.5 w-3.5" strokeWidth={2} />
+                          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
                         </button>
                       </div>
                     )}
@@ -466,25 +483,32 @@ export function GuestMenuScreen() {
         )}
       </div>
 
-      {/* ─── Floating View Cart Bar ─── */}
+      {/* ─── Floating View Cart Bar (Floats above Bottom Nav Bar) ─── */}
       {totalItemCount > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 max-w-lg w-full px-4 z-40">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 max-w-lg w-full px-4 z-30">
           <Link
             to={`/t/${shortCode}/cart`}
-            className="g-floating-bar w-full flex items-center justify-between px-5 py-3.5 active:scale-[0.98] transition-all font-sans group"
+            className="w-full flex items-center justify-between px-4 py-3 rounded-2xl shadow-xl active:scale-[0.98] transition-all text-white cursor-pointer"
+            style={{
+              background: 'linear-gradient(135deg, var(--g-accent) 0%, #C41E2D 100%)',
+              boxShadow: '0 8px 24px rgba(226, 55, 68, 0.35)',
+            }}
           >
             <div className="flex items-center gap-3">
-              <span className="h-6 min-w-6 px-1.5 rounded-md text-[11px] font-bold flex items-center justify-center"
-                style={{ background: 'rgba(255,255,255,0.25)', color: '#fff' }}>
-                {totalItemCount}
-              </span>
-              <span className="text-sm font-semibold">
-                View Cart
-              </span>
+              <div className="h-9 w-9 rounded-xl flex items-center justify-center bg-white/20 backdrop-blur-xs shrink-0">
+                <ShoppingBag className="h-5 w-5 text-white" strokeWidth={2} />
+              </div>
+              <div className="text-left">
+                <p className="text-xs font-bold leading-tight">
+                  {totalItemCount} {totalItemCount === 1 ? 'item' : 'items'} in your basket
+                </p>
+                <p className="text-[11px] text-white/80 leading-tight">
+                  Tap to review and send
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2 font-bold text-sm">
-              <span>{formatCurrency(grandTotal)}</span>
-              <ShoppingBag className="h-4 w-4 transition-transform group-hover:scale-110" strokeWidth={1.75} />
+            <div className="font-extrabold text-base tracking-tight">
+              {formatCurrency(grandTotal)}
             </div>
           </Link>
         </div>

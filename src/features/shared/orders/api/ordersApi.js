@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import toast from 'react-hot-toast';
 
 // BroadcastChannel for instant cross-tab realtime sync
 const syncChannel = typeof window !== 'undefined' && window.BroadcastChannel
@@ -1512,8 +1513,27 @@ export async function getDashboardStats(venueId) {
  * Subscribe to real-time order updates via Supabase Realtime Channel
  */
 export function subscribeToOrders(callback) {
-  const handleEvent = () => {
-    callback();
+  const handleEvent = (event) => {
+    try {
+      const type = event?.data?.type || event?.detail?.type;
+      const payload = event?.data?.payload || event?.detail?.payload;
+      if (type === 'CALL_STAFF' && payload?.tableNumber) {
+        toast(`🔔 Table ${payload.tableNumber}: ${payload.reason || 'Staff requested'}${payload.notes ? ` ("${payload.notes}")` : ''}`, {
+          duration: 8000,
+          icon: '🔔',
+          style: {
+            background: '#18181B',
+            color: '#F4F4F5',
+            fontWeight: '600',
+            fontSize: '13px',
+            borderRadius: '12px',
+          },
+        });
+      }
+    } catch {
+      // ignore
+    }
+    callback(event);
   };
 
   if (syncChannel) {

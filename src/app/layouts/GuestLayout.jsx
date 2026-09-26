@@ -9,15 +9,18 @@ import {
   AlertCircle,
   UtensilsCrossed,
   RotateCw,
+  Bell,
 } from 'lucide-react';
 import { CartProvider, useCart } from '@/features/guest/cart/context/CartContext';
 import { NotificationOptIn } from '@/features/guest/home/components/NotificationOptIn';
 import { preloadGuestFlow } from '@/app/routes';
+import { CallStaffModal } from '@/components/ui/CallStaffModal';
 
 /* ─── Inner shell that reads cart context ─── */
 function GuestShell({ shortCode, tableData }) {
   const { totalItemCount } = useCart();
   const [cartBounce, setCartBounce] = useState(false);
+  const [isCallStaffOpen, setIsCallStaffOpen] = useState(false);
   const location = useLocation();
   const prevCount = React.useRef(totalItemCount);
 
@@ -38,33 +41,9 @@ function GuestShell({ shortCode, tableData }) {
     prevCount.current = totalItemCount;
   }, [totalItemCount]);
 
-  const navTabs = [
-    {
-      id: 'menu',
-      label: 'Menu',
-      mobileLabel: 'Menu',
-      href: `/t/${shortCode}`,
-      icon: UtensilsCrossed,
-      isActive: location.pathname === `/t/${shortCode}`,
-    },
-    {
-      id: 'cart',
-      label: 'Cart',
-      mobileLabel: 'Cart',
-      href: `/t/${shortCode}/cart`,
-      icon: ShoppingBag,
-      badge: totalItemCount > 0 ? totalItemCount : null,
-      isActive: location.pathname === `/t/${shortCode}/cart`,
-    },
-    {
-      id: 'orders',
-      label: 'Orders',
-      mobileLabel: 'Orders',
-      href: `/t/${shortCode}/orders`,
-      icon: Clock,
-      isActive: location.pathname === `/t/${shortCode}/orders`,
-    },
-  ];
+  const isMenu = location.pathname === `/t/${shortCode}`;
+  const isOrders = location.pathname === `/t/${shortCode}/orders`;
+  const isCart = location.pathname === `/t/${shortCode}/cart`;
 
   return (
     <div className="guest-light min-h-screen flex flex-col font-sans">
@@ -96,49 +75,27 @@ function GuestShell({ shortCode, tableData }) {
               </div>
             </div>
 
-            {/* Navigation Tabs */}
-            <nav className="flex items-center gap-1.5 shrink-0">
-              {navTabs.map((tab) => {
-                const Icon = tab.icon;
-                return (
-                  <Link
-                    key={tab.id}
-                    to={tab.href}
-                    title={tab.label}
-                    className="group relative flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs font-medium transition-all duration-200 shrink-0"
-                    style={{
-                      ...(tab.isActive
-                        ? { background: 'var(--g-accent)', color: '#fff', fontWeight: 600, boxShadow: '0 2px 8px rgba(226,55,68,0.2)' }
-                        : { background: 'var(--g-surface-2)', color: 'var(--g-text-muted)', border: '1px solid var(--g-border)' }),
-                    }}
-                  >
-                    <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
-                    <span className={tab.isActive ? 'text-xs inline' : 'hidden sm:inline text-xs'}>
-                      <span className="hidden sm:inline">{tab.label}</span>
-                      <span className="sm:hidden">{tab.mobileLabel}</span>
-                    </span>
-                    {tab.badge && (
-                      <span
-                        className={`h-4 min-w-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${cartBounce ? 'scale-110' : ''} transition-transform`}
-                        style={{
-                          ...(tab.isActive
-                            ? { background: '#fff', color: 'var(--g-accent)' }
-                            : { background: 'var(--g-accent)', color: '#fff' }),
-                        }}
-                      >
-                        {tab.badge}
-                      </span>
-                    )}
-                  </Link>
-                );
-              })}
-            </nav>
+            {/* Top Right: Call Staff Button */}
+            <button
+              type="button"
+              onClick={() => setIsCallStaffOpen(true)}
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-full text-xs font-semibold border transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
+              style={{
+                background: 'var(--g-surface)',
+                borderColor: 'var(--g-border)',
+                color: 'var(--g-text)',
+              }}
+              title="Call a waiter or staff member"
+            >
+              <Bell className="h-3.5 w-3.5" style={{ color: 'var(--g-accent)' }} strokeWidth={2} />
+              <span>Call staff</span>
+            </button>
           </div>
         </div>
       </header>
 
       {/* Dynamic Route Content */}
-      <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-5 sm:py-6 safe-bottom">
+      <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-5 sm:py-6 safe-bottom pb-28">
         <AnimatedOutlet />
       </main>
 
@@ -151,10 +108,100 @@ function GuestShell({ shortCode, tableData }) {
       )}
 
       {/* Minimal Footer */}
-      <footer className="w-full py-5 px-4 text-center text-[11px]"
+      <footer className="w-full pt-5 pb-24 px-4 text-center text-[11px]"
         style={{ color: 'var(--g-text-muted)', borderTop: '1px solid var(--g-border)' }}>
         <p>{tableData.venueName} &bull; Table {tableData.tableNumber} &bull; Digital Menu</p>
       </footer>
+
+      {/* ─── Fixed Bottom Navigation Bar (Menu, Orders, Cart, Call Staff) ─── */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t shadow-[0_-4px_20px_rgba(0,0,0,0.06)]"
+        style={{ borderColor: 'rgba(0,0,0,0.08)' }}
+      >
+        <div className="max-w-2xl mx-auto flex items-center justify-around px-2 py-1.5 safe-bottom">
+          {/* Menu Tab */}
+          <Link
+            to={`/t/${shortCode}`}
+            className="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all cursor-pointer"
+            style={{
+              color: isMenu ? 'var(--g-accent)' : 'var(--g-text-muted)',
+            }}
+          >
+            <UtensilsCrossed className="h-5 w-5" strokeWidth={isMenu ? 2.25 : 1.75} />
+            <span
+              className="text-[11px] font-semibold mt-0.5"
+              style={{ color: isMenu ? 'var(--g-accent)' : undefined }}
+            >
+              Menu
+            </span>
+          </Link>
+
+          {/* Orders Tab */}
+          <Link
+            to={`/t/${shortCode}/orders`}
+            className="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all cursor-pointer"
+            style={{
+              color: isOrders ? 'var(--g-accent)' : 'var(--g-text-muted)',
+            }}
+          >
+            <Clock className="h-5 w-5" strokeWidth={isOrders ? 2.25 : 1.75} />
+            <span
+              className="text-[11px] font-semibold mt-0.5"
+              style={{ color: isOrders ? 'var(--g-accent)' : undefined }}
+            >
+              Orders
+            </span>
+          </Link>
+
+          {/* Cart Tab */}
+          <Link
+            to={`/t/${shortCode}/cart`}
+            className="relative flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all cursor-pointer"
+            style={{
+              color: isCart ? 'var(--g-accent)' : 'var(--g-text-muted)',
+            }}
+          >
+            <div className="relative">
+              <ShoppingBag className="h-5 w-5" strokeWidth={isCart ? 2.25 : 1.75} />
+              {totalItemCount > 0 && (
+                <span
+                  className={`absolute -top-1.5 -right-2.5 h-4 min-w-[16px] px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center ${cartBounce ? 'scale-110' : ''} transition-transform shadow-xs`}
+                  style={{ background: 'var(--g-accent)' }}
+                >
+                  {totalItemCount}
+                </span>
+              )}
+            </div>
+            <span
+              className="text-[11px] font-semibold mt-0.5"
+              style={{ color: isCart ? 'var(--g-accent)' : undefined }}
+            >
+              Cart
+            </span>
+          </Link>
+
+          {/* Call Staff Button */}
+          <button
+            type="button"
+            onClick={() => setIsCallStaffOpen(true)}
+            className="flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all cursor-pointer"
+            style={{ color: 'var(--g-text-muted)' }}
+          >
+            <Bell className="h-5 w-5" strokeWidth={1.75} />
+            <span className="text-[11px] font-semibold mt-0.5">
+              Call Staff
+            </span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Call Staff Modal Dialog */}
+      <CallStaffModal
+        isOpen={isCallStaffOpen}
+        onClose={() => setIsCallStaffOpen(false)}
+        tableData={tableData}
+        shortCode={shortCode}
+      />
     </div>
   );
 }

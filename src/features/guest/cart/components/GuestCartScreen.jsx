@@ -5,6 +5,7 @@ import { formatCurrency } from '@/utils/formatCurrency';
 import { useCart } from '../context/CartContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import toast from 'react-hot-toast';
+import { getFoodImage } from '@/utils/foodImageMap';
 import {
   ArrowLeft,
   Trash2,
@@ -457,16 +458,29 @@ export function GuestCartScreen() {
             {visibleRecommendations.map((rec) => (
               <div
                 key={rec.id}
-                className="g-card p-3.5 flex flex-col justify-between shrink-0 transition-all hover:scale-[1.01]"
-                style={{ width: '160px', scrollSnapAlign: 'start', borderRadius: '16px' }}
+                className="g-card p-3 flex flex-col justify-between shrink-0 transition-all hover:scale-[1.01]"
+                style={{ width: '150px', scrollSnapAlign: 'start', borderRadius: '16px' }}
               >
-                <div className="space-y-1">
-                  <h4 className="font-semibold text-xs leading-snug line-clamp-2" style={{ color: 'var(--g-text)' }}>
-                    {rec.name}
-                  </h4>
-                  <p className="text-xs font-bold" style={{ color: 'var(--g-text)' }}>
-                    {formatCurrency(rec.price)}
-                  </p>
+                <div>
+                  <div className="relative h-20 w-full rounded-xl overflow-hidden mb-2 bg-gray-100 border shadow-2xs" style={{ borderColor: 'var(--g-border)' }}>
+                    <img
+                      src={getFoodImage(rec)}
+                      alt={rec.name}
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                      onError={(e) => {
+                        e.target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&auto=format&fit=crop&q=80';
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-0.5">
+                    <h4 className="font-semibold text-xs leading-snug line-clamp-1" style={{ color: 'var(--g-text)' }}>
+                      {rec.name}
+                    </h4>
+                    <p className="text-xs font-bold" style={{ color: 'var(--g-text)' }}>
+                      {formatCurrency(rec.price)}
+                    </p>
+                  </div>
                 </div>
 
                 <div className="pt-3">
