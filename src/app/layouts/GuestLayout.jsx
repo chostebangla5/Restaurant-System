@@ -42,6 +42,7 @@ function GuestShell({ shortCode, tableData }) {
     {
       id: 'menu',
       label: 'Menu',
+      mobileLabel: 'Menu',
       href: `/t/${shortCode}`,
       icon: UtensilsCrossed,
       isActive: location.pathname === `/t/${shortCode}`,
@@ -49,6 +50,7 @@ function GuestShell({ shortCode, tableData }) {
     {
       id: 'cart',
       label: 'Cart',
+      mobileLabel: 'Cart',
       href: `/t/${shortCode}/cart`,
       icon: ShoppingBag,
       badge: totalItemCount > 0 ? totalItemCount : null,
@@ -57,6 +59,7 @@ function GuestShell({ shortCode, tableData }) {
     {
       id: 'orders',
       label: 'Live Orders',
+      mobileLabel: 'Orders',
       href: `/t/${shortCode}/orders`,
       icon: Clock,
       isActive: location.pathname === `/t/${shortCode}/orders`,
@@ -67,16 +70,19 @@ function GuestShell({ shortCode, tableData }) {
     <div className="min-h-screen bg-[#07080B] text-[#F4F5F7] flex flex-col font-sans selection:bg-accent selection:text-bg">
       {/* ─── Pure Restaurant Dining Header (No TableSuite Branding) ─── */}
       <header className="w-full border-b border-white/[0.08] bg-[#0E1016]/95 backdrop-blur-md sticky top-0 z-30 transition-all shadow-sm">
-        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 md:px-10 py-3 sm:py-3.5">
-          <div className="flex items-center justify-between gap-2.5 sm:gap-4">
-            {/* Restaurant & Table Identity */}
-            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-xl bg-[#141721] border border-white/10 flex items-center justify-center text-accent font-bold text-xs sm:text-sm shrink-0 shadow-sm">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 md:px-10 py-2.5 sm:py-3.5">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            {/* Restaurant & Table Identity — Guaranteed prominence for venue name */}
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-[#141721] border border-white/10 flex items-center justify-center text-accent font-bold text-xs sm:text-sm shrink-0 shadow-sm">
                 <UtensilsCrossed className="h-4 w-4 sm:h-5 sm:w-5 text-accent" strokeWidth={1.75} />
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h1 className="text-sm sm:text-base font-heading font-bold text-[#F4F5F7] tracking-tight truncate">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <h1
+                    title={tableData.venueName}
+                    className="text-sm sm:text-base font-heading font-bold text-[#F4F5F7] tracking-tight truncate leading-tight"
+                  >
                     {tableData.venueName}
                   </h1>
                   <span className="hidden xs:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-accent font-mono text-[10px] font-medium shrink-0">
@@ -84,7 +90,7 @@ function GuestShell({ shortCode, tableData }) {
                     Table {tableData.tableNumber}
                   </span>
                 </div>
-                <p className="text-[11px] font-mono text-[#8A8F9C] flex items-center gap-1.5 truncate">
+                <p className="text-[10px] sm:text-[11px] font-mono text-[#8A8F9C] flex items-center gap-1.5 truncate">
                   <span className="xs:hidden text-accent font-semibold">T-{tableData.tableNumber} &bull;</span>
                   <span>Digital Menu</span>
                   <span className="text-white/20">&bull;</span>
@@ -93,22 +99,26 @@ function GuestShell({ shortCode, tableData }) {
               </div>
             </div>
 
-            {/* Sub-Navigation Tabs */}
-            <nav className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            {/* Sub-Navigation Tabs — Responsive pills (active tab shows text, inactive tabs compact on mobile) */}
+            <nav className="flex items-center gap-1 sm:gap-2 shrink-0">
               {navTabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
                   <Link
                     key={tab.id}
                     to={tab.href}
-                    className={`group relative flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 min-h-[38px] sm:min-h-[42px] rounded-full text-xs font-medium transition-all duration-200 shrink-0 ${
+                    title={tab.label}
+                    className={`group relative flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2.5 min-h-[36px] sm:min-h-[42px] rounded-full text-xs font-medium transition-all duration-200 shrink-0 ${
                       tab.isActive
                         ? 'bg-accent text-bg font-semibold shadow-xs'
                         : 'bg-surface-2 text-muted hover:text-white border border-white/10 hover:border-white/20'
                     }`}
                   >
                     <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
-                    <span className="text-xs">{tab.label}</span>
+                    <span className={tab.isActive ? 'text-xs inline' : 'hidden sm:inline text-xs'}>
+                      <span className="hidden sm:inline">{tab.label}</span>
+                      <span className="sm:hidden">{tab.mobileLabel}</span>
+                    </span>
                     {tab.badge && (
                       <span
                         className={`h-4 min-w-4 px-1 rounded-full text-[10px] font-mono font-bold flex items-center justify-center ${

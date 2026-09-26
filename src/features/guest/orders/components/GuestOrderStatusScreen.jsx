@@ -6,6 +6,7 @@ import {
   fetchOrdersForTable,
   subscribeToOrders,
   settleOrder,
+  cancelOrder,
 } from '@/features/shared/orders/api/ordersApi';
 import toast from 'react-hot-toast';
 import {
@@ -21,10 +22,28 @@ import {
   ShieldCheck,
   Plus,
   Check,
+  XCircle,
+  AlertTriangle,
 } from 'lucide-react';
 
 /* ─── Modern Progress Line with Dot Pulses ─── */
 function OrderProgressLine({ currentStatus }) {
+  if (currentStatus === 'cancelled') {
+    return (
+      <div className="card-surface p-5 rounded-card border border-rose-500/25 bg-rose-500/5 space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-xs font-semibold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+            <XCircle className="h-4 w-4" /> Order Cancelled
+          </span>
+          <span className="font-mono text-[10px] text-muted">Ticket Withdrawn</span>
+        </div>
+        <p className="text-xs text-muted font-sans leading-relaxed">
+          This order was cancelled and removed from the active kitchen prep line.
+        </p>
+      </div>
+    );
+  }
+
   const steps = [
     { key: 'placed', label: 'Received' },
     { key: 'cooking', label: 'Preparing' },
@@ -107,6 +126,8 @@ export function GuestOrderStatusScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSettleModalOpen, setIsSettleModalOpen] = useState(false);
   const [settling, setSettling] = useState(false);
+  const [cancellingOrder, setCancellingOrder] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -170,6 +191,22 @@ export function GuestOrderStatusScreen() {
     }
   };
 
+  const handleConfirmCancel = async () => {
+    if (!cancellingOrder) return;
+    setIsCancelling(true);
+    try {
+      await cancelOrder(cancellingOrder.id, shortCode, 'Cancelled by guest from table app');
+      toast.success(`Round #${cancellingOrder.round_number} cancelled successfully.`);
+      setCancellingOrder(null);
+      const updated = await fetchOrdersForTable(shortCode);
+      setOrders(Array.isArray(updated) ? updated : []);
+    } catch (err) {
+      toast.error(err?.message || 'Failed to cancel order.');
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
   const getStatusText = (status) => {
     const map = {
       placed: 'Placed',
@@ -195,6 +232,8 @@ export function GuestOrderStatusScreen() {
       case 'served':
       case 'completed':
         return 'bg-accent/10 text-accent border-accent/20';
+      case 'cancelled':
+        return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
       default:
         return 'bg-white/5 text-muted border-white/10';
     }
@@ -212,6 +251,8 @@ export function GuestOrderStatusScreen() {
       case 'served':
       case 'completed':
         return { title: 'Courses Served', desc: 'Enjoy your dining! Order additional rounds anytime.', Icon: CheckCircle2 };
+      case 'cancelled':
+        return { title: 'Order Round Cancelled', desc: 'Your ticket was withdrawn from the kitchen. You can order fresh dishes anytime.', Icon: XCircle };
       default:
         return { title: 'Live Kitchen Connection', desc: 'Synchronizing with kitchen display...', Icon: Clock };
     }
@@ -253,7 +294,10 @@ export function GuestOrderStatusScreen() {
     );
   }
 
-  const headline = getHeadline(latestOrder?.status);
+  // Track the most relevant active order, or latest order if all are cancelled
+  const activeOrders = ordersList.filter((o) => o.status !== 'cancelled');
+  const displayOrder = activeOrders[0] || latestOrder;
+  const headline = getHeadline(displayOrder?.status);
   const HeadlineIcon = headline.Icon;
 
   return (
@@ -302,8 +346,8 @@ export function GuestOrderStatusScreen() {
                 <h4 className="font-heading font-bold text-sm sm:text-base text-text truncate">
                   {headline.title}
                 </h4>
-                <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${getStatusColor(latestOrder?.status)}`}>
-                  {getStatusText(latestOrder?.status)}
+                <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${getStatusColor(displayOrder?.status)}`}>
+                  {getStatusText(displayOrder?.status)}
                 </span>
               </div>
               <p className="text-xs text-muted mt-1 leading-relaxed font-sans">
@@ -313,7 +357,7 @@ export function GuestOrderStatusScreen() {
           </div>
 
           {/* Progress Line */}
-          <OrderProgressLine currentStatus={latestOrder?.status} />
+          <OrderProgressLine currentStatus={displayOrder?.status} />
 
           {/* Order Rounds Itemized Breakdown */}
           <div className="space-y-3.5">
@@ -326,63 +370,99 @@ export function GuestOrderStatusScreen() {
               </span>
             </div>
 
-            {orders.map((round) => (
-              <div
-                key={round.id}
-                className="card-surface p-5 rounded-card border border-white/[0.08] hover:border-white/20 space-y-3 transition-all"
-              >
-                <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.08]">
-                  <div className="flex items-center gap-2.5 font-mono">
-                    <span className="font-bold text-xs sm:text-sm text-text">
-                      Round #{round.round_number}
-                    </span>
-                    <span className="text-xs text-muted">
-                      {new Date(round.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {round.payment_status === 'paid' ? (
-                      <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
-                        Paid
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/5 text-muted border border-white/10">
-                        Pay on Exit
-                      </span>
-                    )}
-                    <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${getStatusColor(round.status)}`}>
-                      {getStatusText(round.status)}
-                    </span>
-                  </div>
-                </div>
+            {orders.map((round) => {
+              const isCancelled = round.status === 'cancelled';
+              const canCancel = ['placed', 'acknowledged'].includes(round.status);
 
-                <div className="space-y-2 text-xs font-sans">
-                  {round.items.map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-center text-text/90">
-                      <span className="truncate pr-3">
-                        <span className="font-mono text-accent font-semibold mr-2">{item.qty}x</span> {item.name}
+              return (
+                <div
+                  key={round.id}
+                  className={`card-surface p-5 rounded-card border transition-all space-y-3 ${
+                    isCancelled
+                      ? 'border-white/[0.04] bg-white/[0.01] opacity-75'
+                      : 'border-white/[0.08] hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.08]">
+                    <div className="flex items-center gap-2.5 font-mono">
+                      <span className={`font-bold text-xs sm:text-sm ${isCancelled ? 'text-muted line-through' : 'text-text'}`}>
+                        Round #{round.round_number}
                       </span>
-                      <span className="font-mono text-muted shrink-0">
-                        {formatCurrency(item.price * item.qty)}
+                      <span className="text-xs text-muted">
+                        {new Date(round.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                  ))}
-                </div>
+                    <div className="flex items-center gap-2">
+                      {!isCancelled && (
+                        round.payment_status === 'paid' ? (
+                          <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
+                            Paid
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/5 text-muted border border-white/10">
+                            Pay on Exit
+                          </span>
+                        )
+                      )}
+                      <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${getStatusColor(round.status)}`}>
+                        {getStatusText(round.status)}
+                      </span>
+                    </div>
+                  </div>
 
-                {round.guest_notes && (
-                  <p className="text-[11px] italic text-muted bg-surface-2 p-2.5 rounded-xl border border-white/[0.06] font-sans">
-                    &quot;{round.guest_notes}&quot;
-                  </p>
-                )}
+                  <div className="space-y-2 text-xs font-sans">
+                    {round.items.map((item, idx) => (
+                      <div key={idx} className={`flex justify-between items-center ${isCancelled ? 'text-text/50 line-through' : 'text-text/90'}`}>
+                        <span className="truncate pr-3">
+                          <span className={`font-mono font-semibold mr-2 ${isCancelled ? 'text-muted' : 'text-accent'}`}>{item.qty}x</span> {item.name}
+                        </span>
+                        <span className="font-mono text-muted shrink-0">
+                          {formatCurrency(item.price * item.qty)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
 
-                <div className="pt-2 border-t border-white/[0.08] flex justify-between items-center text-xs font-mono">
-                  <span className="text-muted">Round Subtotal</span>
-                  <span className="font-bold text-accent">
-                    {formatCurrency(round.total)}
-                  </span>
+                  {round.guest_notes && (
+                    <p className="text-[11px] italic text-muted bg-surface-2 p-2.5 rounded-xl border border-white/[0.06] font-sans">
+                      &quot;{round.guest_notes}&quot;
+                    </p>
+                  )}
+
+                  <div className="pt-2 border-t border-white/[0.08] flex justify-between items-center text-xs font-mono">
+                    <span className="text-muted">Round Subtotal</span>
+                    {isCancelled ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted/50 line-through">{formatCurrency(round.total)}</span>
+                        <span className="font-bold text-rose-400">Cancelled (₹0.00)</span>
+                      </div>
+                    ) : (
+                      <span className="font-bold text-accent">
+                        {formatCurrency(round.total)}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Cancel Round Button */}
+                  {canCancel && (
+                    <div className="pt-2.5 border-t border-white/[0.06] flex items-center justify-between gap-3">
+                      <span className="text-[11px] text-muted flex items-center gap-1 font-sans">
+                        <Clock className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                        Queued for chef &bull; Not cooked yet
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setCancellingOrder(round)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 min-h-[34px] rounded-full text-xs font-mono font-medium text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 hover:border-rose-500/40 transition-all cursor-pointer active:scale-95 shrink-0"
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                        <span>Cancel Round</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -483,6 +563,52 @@ export function GuestOrderStatusScreen() {
             >
               <Banknote className="h-4 w-4" strokeWidth={1.5} />
               Cash Settle at Counter
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Order Cancellation Confirmation Modal */}
+      <Modal
+        isOpen={!!cancellingOrder}
+        onClose={() => !isCancelling && setCancellingOrder(null)}
+        title="Cancel Order Round"
+        size="sm"
+      >
+        <div className="space-y-4 py-2 font-sans">
+          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 space-y-2.5 text-center">
+            <div className="h-10 w-10 mx-auto rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <h4 className="font-heading font-bold text-sm text-text">
+              Cancel Round #{cancellingOrder?.round_number}?
+            </h4>
+            <p className="text-xs text-muted leading-relaxed">
+              This will pull ticket #{cancellingOrder?.round_number} ({formatCurrency(cancellingOrder?.total || 0)}) directly from the active kitchen prep queue. This action cannot be reversed.
+            </p>
+          </div>
+
+          <div className="space-y-2.5">
+            <button
+              type="button"
+              disabled={isCancelling}
+              onClick={handleConfirmCancel}
+              className="w-full py-3.5 min-h-[44px] rounded-full bg-rose-500 hover:bg-rose-600 text-white font-semibold text-xs flex items-center justify-center gap-2 disabled:opacity-50 transition-colors cursor-pointer shadow-sm active:scale-98"
+            >
+              {isCancelling ? (
+                <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : (
+                <XCircle className="h-4 w-4" />
+              )}
+              Confirm &amp; Cancel Round
+            </button>
+            <button
+              type="button"
+              disabled={isCancelling}
+              onClick={() => setCancellingOrder(null)}
+              className="w-full py-3.5 min-h-[44px] rounded-full border border-white/10 hover:border-white/20 bg-surface-2 text-text font-semibold text-xs flex items-center justify-center transition-colors cursor-pointer"
+            >
+              Keep My Order
             </button>
           </div>
         </div>

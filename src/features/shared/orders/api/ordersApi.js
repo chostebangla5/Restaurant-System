@@ -79,13 +79,14 @@ export async function fetchOrders(venueId) {
     }
 
     return (data || []).map((o) => {
-      const isSettled = o.status === 'completed' || o.table_sessions?.status === 'settled';
+      const isSettled = (o.status === 'completed' || o.table_sessions?.status === 'settled') && o.status !== 'cancelled';
+      const roundSubtotal = Number(o.subtotal) || 0;
       return {
         id: o.id,
         table_number: o.table_sessions?.tables?.table_number || '01',
         short_code: o.table_sessions?.tables?.short_code || '',
         round_number: o.round_number || 1,
-        status: isSettled ? 'completed' : o.status,
+        status: o.status === 'cancelled' ? 'cancelled' : (isSettled ? 'completed' : o.status),
         items: (o.order_items || []).map((it) => ({
           id: it.id,
           name: it.item_name || 'Item',
@@ -94,10 +95,10 @@ export async function fetchOrders(venueId) {
           station: it.station || 'hot',
           notes: it.customization_notes || it.notes || '',
         })),
-        subtotal: Number(o.subtotal) || Number(o.table_sessions?.subtotal) || 0,
+        subtotal: roundSubtotal,
         tax: Number(o.table_sessions?.tax_amount) || 0,
-        total: Number(o.table_sessions?.total_amount) || Number(o.subtotal) || 0,
-        payment_status: isSettled ? 'paid' : 'pending',
+        total: roundSubtotal,
+        payment_status: o.status === 'cancelled' ? 'cancelled' : (isSettled ? 'paid' : 'pending'),
         payment_method: 'counter',
         guest_notes: o.notes || '',
         placed_at: o.placed_at,
@@ -160,13 +161,14 @@ export async function fetchOrdersForTable(shortCode) {
     const isSessionSettled = session.status === 'settled';
 
     return orders.map((o) => {
-      const isSettled = isSessionSettled || o.status === 'completed';
+      const isSettled = (isSessionSettled || o.status === 'completed') && o.status !== 'cancelled';
+      const roundSubtotal = Number(o.subtotal) || 0;
       return {
         id: o.id,
         table_number: tableData.table_number,
         short_code: shortCode,
         round_number: o.round_number || 1,
-        status: isSettled ? 'completed' : o.status,
+        status: o.status === 'cancelled' ? 'cancelled' : (isSettled ? 'completed' : o.status),
         items: (o.order_items || []).map((it) => ({
           id: it.id,
           name: it.item_name || 'Item',
@@ -175,10 +177,10 @@ export async function fetchOrdersForTable(shortCode) {
           station: it.station || 'hot',
           notes: it.customization_notes || it.notes || '',
         })),
-        subtotal: Number(o.subtotal) || 0,
+        subtotal: roundSubtotal,
         tax: Number(session.tax_amount) || 0,
-        total: Number(session.total_amount || o.subtotal) || 0,
-        payment_status: isSettled ? 'paid' : 'pending',
+        total: roundSubtotal,
+        payment_status: o.status === 'cancelled' ? 'cancelled' : (isSettled ? 'paid' : 'pending'),
         payment_method: 'counter',
         guest_notes: o.notes || '',
         created_at: o.created_at,
@@ -428,6 +430,140 @@ export async function updateOrderStatus(orderId, newStatus) {
   }
 
   notifySync('order_status_updated', { id: orderId, status: statusToSave });
+  return true;
+}
+
+/**
+ * Securely cancel an order (guest or staff initiated)
+ * Validates table authorization, protects against cancelling orders already in preparation,
+ * recalculates session totals, and notifies KDS & Live Orders in real time.
+ */
+export async function cancelOrder(orderId, shortCode = null, reason = 'Cancelled by guest') {
+  if (!isSupabaseConfigured() || !orderId) {
+    throw new Error('Database connection is not configured.');
+  }
+
+  // 1. Fetch order details with session and table
+  const { data: order, error: fetchErr } = await supabase
+    .from('orders')
+    .select(`
+      id,
+      status,
+      subtotal,
+      notes,
+      table_session_id,
+      venue_id,
+      table_sessions (
+        id,
+        status,
+        table_id,
+        tables (
+          id,
+          short_code,
+          table_number
+        )
+      )
+    `)
+    .eq('id', orderId)
+    .single();
+
+  if (fetchErr || !order) {
+    console.error('Error fetching order for cancellation:', fetchErr);
+    throw new Error('Order not found.');
+  }
+
+  // 2. Validate table ownership if shortCode is provided
+  if (shortCode && order.table_sessions?.tables?.short_code) {
+    if (order.table_sessions.tables.short_code.toUpperCase() !== shortCode.toUpperCase()) {
+      throw new Error('Unauthorized: This order does not belong to your table.');
+    }
+  }
+
+  // 3. Status Guard: Non-vulnerable check
+  // Cannot cancel if food is already being cooked, ready, served, or completed
+  if (['cooking', 'ready', 'served', 'completed'].includes(order.status)) {
+    throw new Error(
+      `Cannot cancel this order because the kitchen has already started preparing it (${order.status.toUpperCase()}). Please speak directly with restaurant staff.`
+    );
+  }
+
+  if (order.status === 'cancelled') {
+    return true; // Already cancelled
+  }
+
+  // 4. Update order status to 'cancelled'
+  const cancellationNote = order.notes
+    ? `${order.notes} [${reason}]`.trim()
+    : `[${reason}]`;
+
+  const { error: updateErr } = await supabase
+    .from('orders')
+    .update({
+      status: 'cancelled',
+      notes: cancellationNote,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', orderId);
+
+  if (updateErr) {
+    console.error('Failed to update order status to cancelled:', updateErr);
+    throw new Error(updateErr.message || 'Failed to cancel order.');
+  }
+
+  // 5. Recalculate session financial totals based on remaining active orders
+  if (order.table_session_id) {
+    try {
+      const { data: remainingOrders } = await supabase
+        .from('orders')
+        .select('id, subtotal, status')
+        .eq('table_session_id', order.table_session_id)
+        .neq('status', 'cancelled');
+
+      const activeOrders = remainingOrders || [];
+      const newSubtotal = activeOrders.reduce((sum, o) => sum + (Number(o.subtotal) || 0), 0);
+
+      if (activeOrders.length === 0) {
+        // If ALL orders at this table are now cancelled, free the table and close session
+        await supabase
+          .from('table_sessions')
+          .update({
+            status: 'cancelled',
+            subtotal: 0,
+            tax_amount: 0,
+            discount_amount: 0,
+            total_amount: 0,
+            closed_at: new Date().toISOString(),
+          })
+          .eq('id', order.table_session_id);
+
+        if (order.table_sessions?.table_id) {
+          await supabase
+            .from('tables')
+            .update({ status: 'free' })
+            .eq('id', order.table_sessions.table_id);
+        }
+      } else {
+        // Recalculate active session totals
+        await supabase
+          .from('table_sessions')
+          .update({
+            subtotal: newSubtotal,
+            total_amount: newSubtotal,
+          })
+          .eq('id', order.table_session_id);
+      }
+    } catch (calcErr) {
+      console.warn('Error adjusting session after cancellation:', calcErr);
+    }
+  }
+
+  // 6. Broadcast realtime sync event to Live Orders, Kitchen KDS, and Table displays
+  notifySync('order_status_updated', {
+    id: orderId,
+    status: 'cancelled',
+    venueId: order.venue_id,
+  });
+
   return true;
 }
 

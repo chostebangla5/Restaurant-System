@@ -9,6 +9,7 @@ import {
   subscribeToOrders,
   updateOrderStatus,
   settleOrder,
+  cancelOrder,
   playOrderAlertSound,
 } from '@/features/shared/orders/api/ordersApi';
 import toast from 'react-hot-toast';
@@ -20,6 +21,8 @@ import {
   Volume2,
   Utensils,
   Check,
+  XCircle,
+  AlertTriangle,
 } from 'lucide-react';
 
 export function StaffLiveOrdersScreen() {
@@ -91,6 +94,22 @@ export function StaffLiveOrdersScreen() {
     }
   };
 
+  const handleCancelByStaff = async (order) => {
+    const ok = window.confirm(
+      `Cancel Table ${order.table_number} Round #${order.round_number}? This will immediately pull the order from the kitchen.`
+    );
+    if (!ok) return;
+
+    try {
+      await cancelOrder(order.id, null, 'Cancelled by staff');
+      toast.success(`Table ${order.table_number} Round #${order.round_number} cancelled.`);
+      load();
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.message || 'Failed to cancel order');
+    }
+  };
+
   const filteredOrders = (orders || []).filter((o) => {
     if (!o) return false;
     if (activeFilter === 'all') return true;
@@ -114,6 +133,12 @@ export function StaffLiveOrdersScreen() {
         return <Badge variant="success">Served</Badge>;
       case 'completed':
         return <Badge variant="accent">Settled</Badge>;
+      case 'cancelled':
+        return (
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-400">
+            Cancelled
+          </span>
+        );
       default:
         return <Badge variant="default">{status}</Badge>;
     }
@@ -170,6 +195,7 @@ export function StaffLiveOrdersScreen() {
           { id: 'ready', label: 'Ready' },
           { id: 'served', label: 'Served' },
           { id: 'completed', label: 'Settled' },
+          { id: 'cancelled', label: 'Cancelled' },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -211,6 +237,8 @@ export function StaffLiveOrdersScreen() {
                   ? 'border-amber-400/60 shadow-sm'
                   : order.status === 'ready'
                   ? 'border-[#C6FF3D]/60 shadow-sm'
+                  : order.status === 'cancelled'
+                  ? 'border-rose-500/20 bg-[#0E1016]/60 opacity-80'
                   : 'border-white/[0.08] hover:border-white/[0.18]'
               }`}
             >
@@ -236,9 +264,9 @@ export function StaffLiveOrdersScreen() {
                 {/* Items List */}
                 <div className="space-y-2 py-2.5 border-y border-white/[0.06] text-xs">
                   {(order.items || []).map((item, idx) => (
-                    <div key={idx} className="flex justify-between items-start text-[#F4F5F7]">
+                    <div key={idx} className={`flex justify-between items-start ${order.status === 'cancelled' ? 'text-muted line-through' : 'text-[#F4F5F7]'}`}>
                       <div className="min-w-0 pr-2">
-                        <span className="font-mono font-bold text-[#C6FF3D] mr-1.5">
+                        <span className={`font-mono font-bold mr-1.5 ${order.status === 'cancelled' ? 'text-muted' : 'text-[#C6FF3D]'}`}>
                           {item.qty}x
                         </span>
                         <span className="font-medium">{item.name}</span>
@@ -267,7 +295,11 @@ export function StaffLiveOrdersScreen() {
               <div className="pt-4 mt-2 space-y-3">
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-1.5">
-                    {order.payment_status === 'paid' ? (
+                    {order.status === 'cancelled' ? (
+                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                        Voided
+                      </span>
+                    ) : order.payment_status === 'paid' ? (
                       <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1">
                         <Check className="h-3 w-3 shrink-0" strokeWidth={2} /> Paid ({order.payment_method})
                       </span>
@@ -277,7 +309,7 @@ export function StaffLiveOrdersScreen() {
                       </span>
                     )}
                   </div>
-                  <span className="text-sm font-mono font-bold text-[#F4F5F7]">
+                  <span className={`text-sm font-mono font-bold ${order.status === 'cancelled' ? 'text-muted line-through' : 'text-[#F4F5F7]'}`}>
                     {formatCurrency(order?.total || 0)}
                   </span>
                 </div>
@@ -301,17 +333,33 @@ export function StaffLiveOrdersScreen() {
                       >
                         Start Cooking
                       </Button>
+                      <button
+                        type="button"
+                        onClick={() => handleCancelByStaff(order)}
+                        className="col-span-2 text-[11px] font-mono text-rose-400 hover:text-rose-300 py-1 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <XCircle className="h-3 w-3" /> Void / Cancel Ticket
+                      </button>
                     </>
                   )}
 
                   {order.status === 'acknowledged' && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleStatusChange(order.id, 'cooking')}
-                      className="col-span-2 text-xs font-medium rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e]"
-                    >
-                      Start Cooking
-                    </Button>
+                    <>
+                      <Button
+                        size="sm"
+                        onClick={() => handleStatusChange(order.id, 'cooking')}
+                        className="col-span-2 text-xs font-medium rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e]"
+                      >
+                        Start Cooking
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => handleCancelByStaff(order)}
+                        className="col-span-2 text-[11px] font-mono text-rose-400 hover:text-rose-300 py-1 transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                      >
+                        <XCircle className="h-3 w-3" /> Void / Cancel Ticket
+                      </button>
+                    </>
                   )}
 
                   {order.status === 'cooking' && (
@@ -348,6 +396,12 @@ export function StaffLiveOrdersScreen() {
                   {order.status === 'completed' && (
                     <div className="col-span-2 text-center text-xs font-mono text-[#8A8F9C] py-1 flex items-center justify-center gap-1.5">
                       <Check className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} /> Order Fulfilled
+                    </div>
+                  )}
+
+                  {order.status === 'cancelled' && (
+                    <div className="col-span-2 text-center text-xs font-mono text-rose-400 py-1.5 flex items-center justify-center gap-1.5 bg-rose-500/10 rounded-full border border-rose-500/20">
+                      <XCircle className="h-3.5 w-3.5 text-rose-400" strokeWidth={1.5} /> Ticket Cancelled
                     </div>
                   )}
                 </div>
