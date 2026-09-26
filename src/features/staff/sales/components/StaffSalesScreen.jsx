@@ -28,6 +28,7 @@ import {
   Printer,
   ShieldCheck,
   CheckCircle2,
+  Coins,
 } from 'lucide-react';
 
 // ── Period options ──────────────────────────────────────────────────
@@ -249,6 +250,15 @@ function generateSalesStatementHTML(data, venueName, gstin) {
             <span class="label">Pending Table Settlement (${data.paymentSplitCount.pending} bills)</span>
             <span class="value" style="color:#e65100;">${fc(data.paymentSplit.pending)}</span>
           </div>
+          ${
+            (data.paymentSplitCount.split > 0 || (data.paymentSplit.splitOnline > 0 || data.paymentSplit.splitCash > 0))
+              ? `
+          <div class="summary-item" style="background:#f3e8ff;border:1px solid #d8b4fe;grid-column:1 / -1;">
+            <span class="label" style="color:#6b21a8;font-weight:600;">Part / Split Payment Collections (${data.paymentSplitCount.split || 0} orders)</span>
+            <span class="value" style="color:#6b21a8;">${fc(data.paymentSplit.splitOnline || 0)} UPI Portion + ${fc(data.paymentSplit.splitCash || 0)} Cash Portion</span>
+          </div>`
+              : ''
+          }
         </div>
       </div>
 
@@ -872,6 +882,28 @@ export function StaffSalesScreen() {
                     />
                   </div>
                 </div>
+
+                {/* Part / Split Payments (if any) */}
+                {(salesData.paymentSplitCount?.split > 0 || (salesData.paymentSplit?.splitOnline > 0 || salesData.paymentSplit?.splitCash > 0)) && (
+                  <div className="pt-2 border-t border-white/[0.06]">
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <Coins className="h-3.5 w-3.5 text-violet-400" strokeWidth={1.5} />
+                        <span className="text-xs text-[#8A8F9C]">Part Payments (Split)</span>
+                        <span className="text-[9px] font-mono text-[#8A8F9C]">
+                          ({salesData.paymentSplitCount.split || 0} orders)
+                        </span>
+                      </div>
+                      <span className="text-xs font-mono font-bold text-violet-300">
+                        {formatCurrency((salesData.paymentSplit.splitOnline || 0) + (salesData.paymentSplit.splitCash || 0))}
+                      </span>
+                    </div>
+                    <div className="p-2 rounded-lg bg-[#141721] text-[10px] font-mono flex justify-between text-[#8A8F9C]">
+                      <span className="text-sky-400">Online: {formatCurrency(salesData.paymentSplit.splitOnline || 0)}</span>
+                      <span className="text-emerald-400">Cash: {formatCurrency(salesData.paymentSplit.splitCash || 0)}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

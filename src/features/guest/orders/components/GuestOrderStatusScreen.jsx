@@ -24,6 +24,9 @@ import {
   Check,
   XCircle,
   AlertTriangle,
+  Coins,
+  QrCode,
+  ArrowRightLeft,
 } from 'lucide-react';
 
 /* ─── Modern Progress Line with Dot Pulses ─── */
@@ -126,6 +129,8 @@ export function GuestOrderStatusScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSettleModalOpen, setIsSettleModalOpen] = useState(false);
   const [settling, setSettling] = useState(false);
+  const [settleMethod, setSettleMethod] = useState('online'); // online | counter | split
+  const [customSplitOnline, setCustomSplitOnline] = useState(0);
   const [cancellingOrder, setCancellingOrder] = useState(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -168,16 +173,44 @@ export function GuestOrderStatusScreen() {
     .filter((o) => o.status !== 'cancelled')
     .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
+  // Total cash due across all rounds, respecting already-paid online portions
+  const totalPaidOnlinePortion = ordersList
+    .filter((o) => o.status !== 'cancelled' && o.split_details?.online)
+    .reduce((sum, o) => sum + (Number(o.split_details.online) || 0), 0);
+
+  const remainingCashDue = ordersList
+    .filter((o) => o.status !== 'cancelled' && o.payment_status !== 'paid' && o.status !== 'completed')
+    .reduce((sum, o) => {
+      if (o.split_details?.cash) {
+        return sum + Number(o.split_details.cash);
+      }
+      return sum + (Number(o.total) || 0);
+    }, 0);
+
   const hasUnpaid = ordersList.some(
-    (o) => o.payment_status === 'pending' && o.status !== 'cancelled' && o.status !== 'completed'
+    (o) => (o.payment_status === 'pending' || o.payment_status === 'partially_paid') && o.status !== 'cancelled' && o.status !== 'completed'
   );
 
-  const handleSettle = async (paymentMethod) => {
+  const hasPartiallyPaid = ordersList.some(
+    (o) => o.payment_status === 'partially_paid' && o.status !== 'cancelled' && o.status !== 'completed'
+  );
+
+  // Set default custom split online amount to 50% of remaining due
+  useEffect(() => {
+    if (remainingCashDue > 0) {
+      setCustomSplitOnline(Math.round(remainingCashDue / 2));
+    }
+  }, [remainingCashDue]);
+
+  const effectiveSettleOnline = Math.max(1, Math.min(remainingCashDue > 1 ? remainingCashDue - 1 : 1, Number(customSplitOnline) || Math.round(remainingCashDue / 2)));
+  const effectiveSettleCash = Math.max(0, remainingCashDue - effectiveSettleOnline);
+
+  const handleSettle = async (paymentMethod, splitDetails = null) => {
     setSettling(true);
     try {
       for (const o of orders) {
-        if (o.payment_status === 'pending' || o.status !== 'completed') {
-          await settleOrder(o.id, paymentMethod);
+        if (o.payment_status === 'pending' || o.payment_status === 'partially_paid' || o.status !== 'completed') {
+          await settleOrder(o.id, paymentMethod, splitDetails);
         }
       }
       toast.success('Bill settled successfully! Thank you for dining with us.');
@@ -398,6 +431,11 @@ export function GuestOrderStatusScreen() {
                           <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
                             Paid
                           </span>
+                        ) : round.payment_status === 'partially_paid' || round.split_details ? (
+                          <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30 flex items-center gap-1">
+                            <Coins className="h-3 w-3 text-amber-400" />
+                            Part Paid (₹{round.split_details?.online || 0} Online &bull; ₹{round.split_details?.cash || 0} Cash Due)
+                          </span>
                         ) : (
                           <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/5 text-muted border border-white/10">
                             Pay on Exit
@@ -487,6 +525,18 @@ export function GuestOrderStatusScreen() {
                 <span>All Rounds Total</span>
                 <span className="font-mono text-accent font-bold text-sm">{formatCurrency(grandTotalAllRounds)}</span>
               </div>
+              {totalPaidOnlinePortion > 0 && (
+                <div className="flex justify-between text-accent text-xs">
+                  <span>Online Paid (Part)</span>
+                  <span className="font-mono font-semibold">-{formatCurrency(totalPaidOnlinePortion)}</span>
+                </div>
+              )}
+              {hasPartiallyPaid && (
+                <div className="flex justify-between text-amber-300 text-xs font-semibold pt-1 border-t border-dashed border-white/10">
+                  <span>Balance Cash Due</span>
+                  <span className="font-mono text-sm">{formatCurrency(remainingCashDue)}</span>
+                </div>
+              )}
             </div>
 
             <div className="pt-2 border-t border-white/10 space-y-3">
@@ -505,7 +555,11 @@ export function GuestOrderStatusScreen() {
                   className="w-full flex items-center justify-center gap-2 py-4 rounded-full bg-accent hover:bg-accent-hover text-bg font-heading font-bold text-sm transition-all shadow-lift cursor-pointer active:scale-[0.98]"
                 >
                   <Banknote className="h-4 w-4" strokeWidth={1.75} />
-                  <span>Settle Bill &bull; {formatCurrency(grandTotalAllRounds)}</span>
+                  <span>
+                    {hasPartiallyPaid
+                      ? `Settle Cash Due &bull; ${formatCurrency(remainingCashDue)}`
+                      : `Settle Bill &bull; ${formatCurrency(grandTotalAllRounds)}`}
+                  </span>
                 </button>
               ) : (
                 <div className="p-4 text-center rounded-xl bg-accent/10 border border-accent/20 text-xs font-mono text-accent flex items-center justify-center gap-1.5">
@@ -532,39 +586,183 @@ export function GuestOrderStatusScreen() {
       >
         <div className="space-y-4 py-2 font-sans">
           <div className="p-4 rounded-xl bg-surface-2 border border-white/10 text-center space-y-1">
-            <span className="text-xs font-mono text-muted uppercase tracking-wider">Total Cumulative Bill</span>
+            <span className="text-xs font-mono text-muted uppercase tracking-wider">
+              {hasPartiallyPaid ? 'Remaining Cash Due' : 'Total Cumulative Bill'}
+            </span>
             <div className="text-2xl font-mono font-bold text-accent">
-              {formatCurrency(grandTotalAllRounds)}
+              {formatCurrency(remainingCashDue)}
             </div>
+            {hasPartiallyPaid && (
+              <p className="text-[11px] text-emerald-400 font-mono">
+                ₹{totalPaidOnlinePortion} already paid online via UPI
+              </p>
+            )}
             <p className="text-[11px] text-muted font-sans">
               {orders.length} round{orders.length !== 1 ? 's' : ''} &bull; 5% GST inclusive
             </p>
           </div>
 
-          <div className="space-y-2.5">
+          {/* Settle Mode Tabs */}
+          <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-surface-2 border border-white/10">
             <button
               type="button"
-              disabled={settling}
-              onClick={() => handleSettle('online')}
-              className="w-full py-3.5 rounded-full bg-accent text-bg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-accent-hover disabled:opacity-50 transition-colors cursor-pointer shadow-sm"
+              onClick={() => setSettleMethod('online')}
+              className={`py-2 px-1 text-center rounded-lg text-xs font-medium transition-all ${
+                settleMethod === 'online'
+                  ? 'bg-accent text-bg font-bold shadow-xs'
+                  : 'text-muted hover:text-text'
+              }`}
             >
-              {settling ? (
-                <span className="h-4 w-4 border-2 border-bg/30 border-t-bg rounded-full animate-spin" />
-              ) : (
-                <CreditCard className="h-4 w-4" strokeWidth={1.5} />
-              )}
-              Pay Online via UPI / Card
+              Online (UPI)
             </button>
             <button
               type="button"
-              disabled={settling}
-              onClick={() => handleSettle('counter')}
-              className="w-full py-3.5 rounded-full border border-white/10 hover:border-white/25 bg-surface text-text font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              onClick={() => setSettleMethod('counter')}
+              className={`py-2 px-1 text-center rounded-lg text-xs font-medium transition-all ${
+                settleMethod === 'counter'
+                  ? 'bg-accent text-bg font-bold shadow-xs'
+                  : 'text-muted hover:text-text'
+              }`}
             >
-              <Banknote className="h-4 w-4" strokeWidth={1.5} />
-              Cash Settle at Counter
+              Cash Counter
+            </button>
+            <button
+              type="button"
+              onClick={() => setSettleMethod('split')}
+              className={`py-2 px-1 text-center rounded-lg text-xs font-medium transition-all ${
+                settleMethod === 'split'
+                  ? 'bg-accent text-bg font-bold shadow-xs'
+                  : 'text-muted hover:text-text'
+              }`}
+            >
+              Part (Split)
             </button>
           </div>
+
+          {/* Tab 1: Full Online */}
+          {settleMethod === 'online' && (
+            <div className="space-y-3">
+              <div className="p-4 rounded-xl bg-surface-2 border border-white/10 text-center space-y-2">
+                <div className="h-24 w-24 mx-auto bg-white p-2 rounded-xl flex items-center justify-center">
+                  <QrCode className="h-20 w-20 text-bg" strokeWidth={1.5} />
+                </div>
+                <p className="text-[11px] text-muted font-mono">Scan QR with GPay, PhonePe, or Paytm</p>
+              </div>
+
+              <button
+                type="button"
+                disabled={settling}
+                onClick={() => handleSettle('online')}
+                className="w-full py-3.5 rounded-full bg-accent text-bg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-accent-hover disabled:opacity-50 transition-colors cursor-pointer shadow-sm"
+              >
+                {settling ? (
+                  <span className="h-4 w-4 border-2 border-bg/30 border-t-bg rounded-full animate-spin" />
+                ) : (
+                  <CreditCard className="h-4 w-4" strokeWidth={1.5} />
+                )}
+                Authorize {formatCurrency(remainingCashDue)} via UPI
+              </button>
+            </div>
+          )}
+
+          {/* Tab 2: Full Cash */}
+          {settleMethod === 'counter' && (
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-xl bg-surface-2 border border-white/10 text-center space-y-1">
+                <p className="text-xs text-text">Please hand over cash directly to the service staff or counter cashier.</p>
+                <span className="text-base font-mono font-bold text-amber-300 block">{formatCurrency(remainingCashDue)}</span>
+              </div>
+              <button
+                type="button"
+                disabled={settling}
+                onClick={() => handleSettle('counter')}
+                className="w-full py-3.5 rounded-full border border-white/10 hover:border-white/25 bg-surface text-text font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
+              >
+                <Banknote className="h-4 w-4" strokeWidth={1.5} />
+                Request Cash Settle at Counter
+              </button>
+            </div>
+          )}
+
+          {/* Tab 3: Split Payment */}
+          {settleMethod === 'split' && (
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-xl bg-surface-2 border border-accent/25 space-y-3">
+                <div className="flex items-center justify-between text-xs font-semibold text-text">
+                  <span className="flex items-center gap-1.5">
+                    <ArrowRightLeft className="h-3.5 w-3.5 text-accent" /> Configure Split
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCustomSplitOnline(Math.round(remainingCashDue / 2))}
+                    className="text-[10px] font-mono text-accent hover:underline"
+                  >
+                    Reset 50/50
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono text-accent uppercase tracking-wider block">Pay Online</span>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-muted">₹</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max={remainingCashDue - 1}
+                        value={customSplitOnline}
+                        onChange={(e) => setCustomSplitOnline(Number(e.target.value))}
+                        className="w-full pl-6 pr-2 py-1.5 rounded-lg bg-surface border border-accent/30 text-xs font-mono font-bold text-text focus:outline-none focus:ring-1 focus:ring-accent"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono text-amber-300 uppercase tracking-wider block">Cash at Counter</span>
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-muted">₹</span>
+                      <input
+                        type="number"
+                        readOnly
+                        value={effectiveSettleCash}
+                        className="w-full pl-6 pr-2 py-1.5 rounded-lg bg-surface/50 border border-white/10 text-xs font-mono font-bold text-amber-300 cursor-not-allowed select-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="h-2 w-full rounded-full bg-surface overflow-hidden flex">
+                  <div
+                    className="bg-accent transition-all duration-300 h-full"
+                    style={{ width: `${(effectiveSettleOnline / (remainingCashDue || 1)) * 100}%` }}
+                  />
+                  <div
+                    className="bg-amber-400/80 transition-all duration-300 h-full"
+                    style={{ width: `${(effectiveSettleCash / (remainingCashDue || 1)) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={settling}
+                onClick={() =>
+                  handleSettle('split', {
+                    onlineAmount: effectiveSettleOnline,
+                    cashAmount: effectiveSettleCash,
+                  })
+                }
+                className="w-full py-3.5 rounded-full bg-accent text-bg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-accent-hover disabled:opacity-50 transition-colors cursor-pointer shadow-sm"
+              >
+                {settling ? (
+                  <span className="h-4 w-4 border-2 border-bg/30 border-t-bg rounded-full animate-spin" />
+                ) : (
+                  <Coins className="h-4 w-4" strokeWidth={1.5} />
+                )}
+                Pay {formatCurrency(effectiveSettleOnline)} Online &bull; Rest {formatCurrency(effectiveSettleCash)} Cash
+              </button>
+            </div>
+          )}
         </div>
       </Modal>
 

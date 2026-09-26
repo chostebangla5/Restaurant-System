@@ -17,6 +17,8 @@ import {
   ShoppingBag,
   Sparkles,
   Check,
+  Coins,
+  ArrowRightLeft,
 } from 'lucide-react';
 
 /* ─── Quantity with pop animation ─── */
@@ -59,13 +61,24 @@ export function GuestCartScreen() {
     isSubmitting,
   } = useCart();
 
-  const [paymentChoice, setPaymentChoice] = useState('counter');
+  const [paymentChoice, setPaymentChoice] = useState('counter'); // counter | online | split
+  const [splitOnlineAmount, setSplitOnlineAmount] = useState(() => Math.round(grandTotal / 2));
   const [guestNotes, setGuestNotes] = useState('');
   const [couponInput, setCouponInput] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [selectedUpiApp, setSelectedUpiApp] = useState('gpay');
+
+  // Keep split online amount aligned whenever cart grand total updates
+  useEffect(() => {
+    if (grandTotal > 0) {
+      setSplitOnlineAmount(Math.round(grandTotal / 2));
+    }
+  }, [grandTotal]);
+
+  const effectiveOnlineAmount = Math.max(1, Math.min(grandTotal > 1 ? grandTotal - 1 : 1, Number(splitOnlineAmount) || Math.round(grandTotal / 2)));
+  const effectiveCashAmount = Math.max(0, grandTotal - effectiveOnlineAmount);
 
   const handleApplyCoupon = async (codeToApply) => {
     const code = (codeToApply || couponInput).trim();
@@ -104,7 +117,7 @@ export function GuestCartScreen() {
   }
 
   const handleOrderSubmission = async () => {
-    if (paymentChoice === 'online') {
+    if (paymentChoice === 'online' || paymentChoice === 'split') {
       setIsPaymentModalOpen(true);
       return;
     }
@@ -119,11 +132,23 @@ export function GuestCartScreen() {
     setPaymentProcessing(true);
     setTimeout(async () => {
       try {
-        await submitOrder({
-          paymentMethod: 'online',
-          paymentStatus: 'paid',
-          guestNotes,
-        });
+        if (paymentChoice === 'split') {
+          await submitOrder({
+            paymentMethod: 'split',
+            paymentStatus: 'partially_paid',
+            splitDetails: {
+              onlineAmount: effectiveOnlineAmount,
+              cashAmount: effectiveCashAmount,
+            },
+            guestNotes,
+          });
+        } else {
+          await submitOrder({
+            paymentMethod: 'online',
+            paymentStatus: 'paid',
+            guestNotes,
+          });
+        }
         setIsPaymentModalOpen(false);
       } catch (err) {
         // error handled in context
@@ -339,22 +364,27 @@ export function GuestCartScreen() {
         {/* Right Column: Payment & Summary (Span 5) */}
         <div className="lg:col-span-5 space-y-6">
           {/* Payment Method Selector */}
-          <div className="card-surface p-5 rounded-card border border-white/[0.08] space-y-3">
-            <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-text/80">
-              Payment Preference
-            </label>
-            <div className="grid grid-cols-2 gap-3">
+          <div className="card-surface p-5 rounded-card border border-white/[0.08] space-y-3.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-mono font-semibold uppercase tracking-wider text-text/80">
+                Payment Preference
+              </label>
+              <span className="text-[10px] font-mono text-accent">Flexible Checkout</span>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              {/* Pay at Counter */}
               <button
                 type="button"
                 onClick={() => setPaymentChoice('counter')}
-                className={`p-4 rounded-xl border text-left transition-all flex flex-col gap-2 cursor-pointer ${
+                className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between gap-2 cursor-pointer ${
                   paymentChoice === 'counter'
                     ? 'border-accent bg-accent/10 text-text shadow-[0_0_12px_rgba(198,255,61,0.1)]'
                     : 'border-white/10 bg-surface-2 hover:border-white/20 text-muted'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <Banknote className={`h-5 w-5 ${paymentChoice === 'counter' ? 'text-accent' : 'text-muted'}`} strokeWidth={1.5} />
+                  <Banknote className={`h-4.5 w-4.5 ${paymentChoice === 'counter' ? 'text-accent' : 'text-muted'}`} strokeWidth={1.5} />
                   {paymentChoice === 'counter' && (
                     <CheckCircle2 className="h-4 w-4 text-accent" strokeWidth={1.5} />
                   )}
@@ -363,37 +393,161 @@ export function GuestCartScreen() {
                   <span className={`text-xs font-semibold block ${paymentChoice === 'counter' ? 'text-text' : 'text-muted'}`}>
                     Pay at Counter
                   </span>
-                  <span className="text-[10px] text-muted block mt-0.5 font-sans">
-                    Cash or Card when dining is complete
+                  <span className="text-[10px] text-muted block mt-0.5 font-sans leading-tight">
+                    100% Cash or Card after dining
                   </span>
                 </div>
               </button>
 
+              {/* Pay Online */}
               <button
                 type="button"
                 onClick={() => setPaymentChoice('online')}
-                className={`p-4 rounded-xl border text-left transition-all flex flex-col gap-2 cursor-pointer ${
+                className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between gap-2 cursor-pointer ${
                   paymentChoice === 'online'
                     ? 'border-accent bg-accent/10 text-text shadow-[0_0_12px_rgba(198,255,61,0.1)]'
                     : 'border-white/10 bg-surface-2 hover:border-white/20 text-muted'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <CreditCard className={`h-5 w-5 ${paymentChoice === 'online' ? 'text-accent' : 'text-muted'}`} strokeWidth={1.5} />
+                  <CreditCard className={`h-4.5 w-4.5 ${paymentChoice === 'online' ? 'text-accent' : 'text-muted'}`} strokeWidth={1.5} />
                   {paymentChoice === 'online' && (
                     <CheckCircle2 className="h-4 w-4 text-accent" strokeWidth={1.5} />
                   )}
                 </div>
                 <div>
                   <span className={`text-xs font-semibold block ${paymentChoice === 'online' ? 'text-text' : 'text-muted'}`}>
-                    Pay Online (UPI)
+                    Pay Online
                   </span>
-                  <span className="text-[10px] text-muted block mt-0.5 font-sans">
-                    Instant UPI QR or Card
+                  <span className="text-[10px] text-muted block mt-0.5 font-sans leading-tight">
+                    100% UPI QR / Card instantly
+                  </span>
+                </div>
+              </button>
+
+              {/* Part Payment (Split) */}
+              <button
+                type="button"
+                onClick={() => setPaymentChoice('split')}
+                className={`p-3.5 rounded-xl border text-left transition-all flex flex-col justify-between gap-2 cursor-pointer ${
+                  paymentChoice === 'split'
+                    ? 'border-accent bg-accent/10 text-text shadow-[0_0_12px_rgba(198,255,61,0.1)]'
+                    : 'border-white/10 bg-surface-2 hover:border-white/20 text-muted'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <Coins className={`h-4.5 w-4.5 ${paymentChoice === 'split' ? 'text-accent' : 'text-muted'}`} strokeWidth={1.5} />
+                  {paymentChoice === 'split' && (
+                    <CheckCircle2 className="h-4 w-4 text-accent" strokeWidth={1.5} />
+                  )}
+                </div>
+                <div>
+                  <span className={`text-xs font-semibold block ${paymentChoice === 'split' ? 'text-text' : 'text-muted'}`}>
+                    Part Payment
+                  </span>
+                  <span className="text-[10px] text-muted block mt-0.5 font-sans leading-tight">
+                    Split Online + Cash
                   </span>
                 </div>
               </button>
             </div>
+
+            {/* Part Payment Configuration Interactive Panel */}
+            {paymentChoice === 'split' && (
+              <div className="p-4 rounded-xl bg-surface-2 border border-accent/25 space-y-3.5 mt-3 animate-fadeIn">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-text">
+                    <ArrowRightLeft className="h-3.5 w-3.5 text-accent" />
+                    <span>Configure Split Amounts</span>
+                  </div>
+                  <span className="text-[10px] font-mono text-muted">Total: {formatCurrency(grandTotal)}</span>
+                </div>
+
+                {/* Quick Split Ratio Buttons */}
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { label: '50% / 50%', onlineRatio: 0.5 },
+                    { label: '25% Online', onlineRatio: 0.25 },
+                    { label: '75% Online', onlineRatio: 0.75 },
+                  ].map((preset) => {
+                    const presetOnline = Math.max(1, Math.min(grandTotal - 1, Math.round(grandTotal * preset.onlineRatio)));
+                    const isSelected = effectiveOnlineAmount === presetOnline;
+                    return (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setSplitOnlineAmount(presetOnline)}
+                        className={`px-3 py-1 rounded-full text-xs font-mono transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-accent text-bg font-bold shadow-xs'
+                            : 'bg-white/[0.05] text-muted hover:text-text border border-white/10 hover:border-white/20'
+                        }`}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Amount inputs */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-accent block">
+                      Pay Online (UPI)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted">₹</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max={grandTotal - 1}
+                        value={splitOnlineAmount}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          setSplitOnlineAmount(val);
+                        }}
+                        className="w-full pl-7 pr-3 py-2 rounded-lg bg-surface border border-accent/40 text-text font-mono text-xs font-bold focus:outline-none focus:ring-1 focus:ring-accent"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-mono uppercase tracking-wider text-amber-300 block">
+                      Remaining Cash Due
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono text-muted">₹</span>
+                      <input
+                        type="number"
+                        readOnly
+                        value={effectiveCashAmount}
+                        className="w-full pl-7 pr-3 py-2 rounded-lg bg-surface/50 border border-white/10 text-amber-300 font-mono text-xs font-bold cursor-not-allowed select-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Visual Ratio Progress Bar */}
+                <div className="space-y-1">
+                  <div className="h-2 w-full rounded-full bg-surface overflow-hidden flex">
+                    <div
+                      className="bg-accent transition-all duration-300 h-full"
+                      style={{ width: `${(effectiveOnlineAmount / (grandTotal || 1)) * 100}%` }}
+                      title={`Online: ${formatCurrency(effectiveOnlineAmount)}`}
+                    />
+                    <div
+                      className="bg-amber-400/80 transition-all duration-300 h-full"
+                      style={{ width: `${(effectiveCashAmount / (grandTotal || 1)) * 100}%` }}
+                      title={`Cash: ${formatCurrency(effectiveCashAmount)}`}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] font-mono text-muted pt-0.5">
+                    <span className="text-accent">Online: {formatCurrency(effectiveOnlineAmount)}</span>
+                    <span className="text-amber-300">Offline Cash: {formatCurrency(effectiveCashAmount)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Bill Breakdown Card */}
@@ -425,6 +579,19 @@ export function GuestCartScreen() {
               <span className="text-text font-heading text-base font-bold">Total Payable</span>
               <span className="text-accent font-mono text-lg font-extrabold">{formatCurrency(grandTotal)}</span>
             </div>
+
+            {paymentChoice === 'split' && (
+              <div className="mt-2 pt-2 border-t border-dashed border-white/10 space-y-1.5 text-[11px] font-mono">
+                <div className="flex justify-between text-accent">
+                  <span>&bull; Part 1: Online Portion (UPI)</span>
+                  <span>{formatCurrency(effectiveOnlineAmount)}</span>
+                </div>
+                <div className="flex justify-between text-amber-300">
+                  <span>&bull; Part 2: Offline Cash Balance</span>
+                  <span>{formatCurrency(effectiveCashAmount)}</span>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Place Order CTA Button */}
@@ -440,6 +607,8 @@ export function GuestCartScreen() {
                   <span className="h-4 w-4 border-2 border-bg/30 border-t-bg rounded-full animate-spin" />
                   Sending Order to Kitchen...
                 </span>
+              ) : paymentChoice === 'split' ? (
+                `Pay ${formatCurrency(effectiveOnlineAmount)} Online & Settle ${formatCurrency(effectiveCashAmount)} Cash`
               ) : paymentChoice === 'online' ? (
                 `Proceed to Pay ${formatCurrency(grandTotal)} Online`
               ) : (
@@ -459,16 +628,23 @@ export function GuestCartScreen() {
       <Modal
         isOpen={isPaymentModalOpen}
         onClose={() => !paymentProcessing && setIsPaymentModalOpen(false)}
-        title="Pay via Razorpay"
+        title={paymentChoice === 'split' ? 'Part Payment: Online Share' : 'Pay via Razorpay'}
         size="sm"
       >
         <div className="space-y-4 py-2 font-sans">
           <div className="p-4 rounded-xl bg-surface-2 border border-white/10 flex items-center justify-between">
             <div>
-              <span className="text-[10px] font-mono text-muted uppercase tracking-wider">Payable Amount</span>
+              <span className="text-[10px] font-mono text-muted uppercase tracking-wider">
+                {paymentChoice === 'split' ? 'Online Part to Pay' : 'Payable Amount'}
+              </span>
               <div className="text-lg font-mono font-bold text-accent">
-                {formatCurrency(grandTotal)}
+                {formatCurrency(paymentChoice === 'split' ? effectiveOnlineAmount : grandTotal)}
               </div>
+              {paymentChoice === 'split' && (
+                <span className="text-[10px] font-mono text-amber-300 block mt-0.5">
+                  Remaining {formatCurrency(effectiveCashAmount)} cash due at counter
+                </span>
+              )}
             </div>
             <span className="text-[11px] px-2.5 py-1 bg-accent/10 text-accent font-mono font-bold rounded-full flex items-center gap-1 border border-accent/20">
               <ShieldCheck className="h-3 w-3" strokeWidth={1.5} /> Secure Gateway
@@ -520,7 +696,7 @@ export function GuestCartScreen() {
                 Verifying Transaction...
               </span>
             ) : (
-              `Authorize ${formatCurrency(grandTotal)}`
+              `Authorize ${formatCurrency(paymentChoice === 'split' ? effectiveOnlineAmount : grandTotal)}`
             )}
           </button>
         </div>

@@ -53,6 +53,34 @@ export function playOrderAlertSound() {
 }
 
 /**
+ * Helper to parse payment method and split details from order notes
+ */
+export function parsePaymentDetails(notes) {
+  if (!notes) {
+    return { method: 'counter', isSplit: false, onlineAmount: 0, cashAmount: 0, summary: 'Cash / Counter' };
+  }
+  const splitMatch = notes.match(/\[Payment:\s*Split\s*\|\s*Online:\s*₹?([\d,.]+)\s*\|\s*Cash:\s*₹?([\d,.]+)\]/i);
+  if (splitMatch) {
+    const online = parseFloat(splitMatch[1].replace(/,/g, '')) || 0;
+    const cash = parseFloat(splitMatch[2].replace(/,/g, '')) || 0;
+    return {
+      method: 'split',
+      isSplit: true,
+      onlineAmount: online,
+      cashAmount: cash,
+      summary: `Split (₹${online} Online + ₹${cash} Cash)`,
+    };
+  }
+  if (/\[Payment:\s*(online|upi|card)\]/i.test(notes) || notes.toLowerCase().includes('online') || notes.toLowerCase().includes('upi')) {
+    return { method: 'online', isSplit: false, onlineAmount: 0, cashAmount: 0, summary: 'Online / UPI' };
+  }
+  if (/\[Payment:\s*(cash|counter)\]/i.test(notes) || notes.toLowerCase().includes('cash')) {
+    return { method: 'counter', isSplit: false, onlineAmount: 0, cashAmount: 0, summary: 'Cash Counter' };
+  }
+  return { method: 'counter', isSplit: false, onlineAmount: 0, cashAmount: 0, summary: 'Counter' };
+}
+
+/**
  * Fetch all orders for a venue from Supabase
  * @param {string} venueId
  * @returns {Promise<Array>}
@@ -81,6 +109,14 @@ export async function fetchOrders(venueId) {
     return (data || []).map((o) => {
       const isSettled = (o.status === 'completed' || o.table_sessions?.status === 'settled') && o.status !== 'cancelled';
       const roundSubtotal = Number(o.subtotal) || 0;
+      const payInfo = parsePaymentDetails(o.notes);
+
+      let paymentStatus = o.status === 'cancelled' ? 'cancelled' : (isSettled ? 'paid' : 'pending');
+      // If split payment and not fully settled yet, mark as partially_paid
+      if (payInfo.isSplit && !isSettled && o.status !== 'cancelled') {
+        paymentStatus = 'partially_paid';
+      }
+
       return {
         id: o.id,
         table_number: o.table_sessions?.tables?.table_number || '01',
@@ -98,8 +134,9 @@ export async function fetchOrders(venueId) {
         subtotal: roundSubtotal,
         tax: Number(o.table_sessions?.tax_amount) || 0,
         total: roundSubtotal,
-        payment_status: o.status === 'cancelled' ? 'cancelled' : (isSettled ? 'paid' : 'pending'),
-        payment_method: 'counter',
+        payment_status: paymentStatus,
+        payment_method: payInfo.method,
+        split_details: payInfo.isSplit ? { online: payInfo.onlineAmount, cash: payInfo.cashAmount } : null,
         guest_notes: o.notes || '',
         placed_at: o.placed_at,
         cooking_at: o.cooking_at,
@@ -163,6 +200,13 @@ export async function fetchOrdersForTable(shortCode) {
     return orders.map((o) => {
       const isSettled = (isSessionSettled || o.status === 'completed') && o.status !== 'cancelled';
       const roundSubtotal = Number(o.subtotal) || 0;
+      const payInfo = parsePaymentDetails(o.notes);
+
+      let paymentStatus = o.status === 'cancelled' ? 'cancelled' : (isSettled ? 'paid' : 'pending');
+      if (payInfo.isSplit && !isSettled && o.status !== 'cancelled') {
+        paymentStatus = 'partially_paid';
+      }
+
       return {
         id: o.id,
         table_number: tableData.table_number,
@@ -180,8 +224,9 @@ export async function fetchOrdersForTable(shortCode) {
         subtotal: roundSubtotal,
         tax: Number(session.tax_amount) || 0,
         total: roundSubtotal,
-        payment_status: o.status === 'cancelled' ? 'cancelled' : (isSettled ? 'paid' : 'pending'),
-        payment_method: 'counter',
+        payment_status: paymentStatus,
+        payment_method: payInfo.method,
+        split_details: payInfo.isSplit ? { online: payInfo.onlineAmount, cash: payInfo.cashAmount } : null,
         guest_notes: o.notes || '',
         created_at: o.created_at,
       };
@@ -206,6 +251,7 @@ export async function createOrder({
   total,
   paymentMethod = 'counter',
   paymentStatus = 'pending',
+  splitDetails = null,
   guestNotes = '',
   venueId,
 }) {
@@ -315,10 +361,21 @@ export async function createOrder({
 
   const nextRoundNumber = (count || 0) + 1;
 
-  // Format notes to include coupon if applied
-  const finalGuestNotes = couponCode
-    ? `[Coupon: ${couponCode.toUpperCase()} (-₹${discountAmount})] ${guestNotes || ''}`.trim()
-    : (guestNotes || '');
+  // Format notes to include coupon and split/payment info if applied
+  const couponTag = couponCode ? `[Coupon: ${couponCode.toUpperCase()} (-₹${discountAmount})]` : '';
+  let paymentTag = '';
+  if (paymentMethod === 'split' && splitDetails) {
+    paymentTag = `[Payment: Split | Online: ₹${splitDetails.onlineAmount} | Cash: ₹${splitDetails.cashAmount}]`;
+  } else if (paymentMethod === 'online') {
+    paymentTag = `[Payment: Online]`;
+  } else if (paymentMethod === 'counter' || paymentMethod === 'cash') {
+    paymentTag = `[Payment: Cash]`;
+  }
+
+  const finalGuestNotes = [couponTag, paymentTag, guestNotes].filter(Boolean).join(' ').trim();
+
+  // Determine effective status
+  const effectivePaymentStatus = paymentMethod === 'split' ? 'partially_paid' : paymentStatus;
 
   // 4. Insert order
   const { data: createdOrder, error: orderErr } = await supabase
@@ -336,6 +393,22 @@ export async function createOrder({
     .single();
 
   if (orderErr) throw orderErr;
+
+  // 4a. If split payment, record online portion in payments table
+  if (paymentMethod === 'split' && splitDetails?.onlineAmount > 0) {
+    try {
+      await supabase.from('payments').insert({
+        org_id: session.org_id || targetOrgId,
+        venue_id: targetVenueId,
+        table_session_id: session.id,
+        amount: Number(splitDetails.onlineAmount) || 0,
+        payment_method: 'upi',
+        status: 'completed',
+      });
+    } catch (payErr) {
+      console.warn('Could not insert part payment record:', payErr);
+    }
+  }
 
   // 4b. If coupon applied, increment times_used in coupons table
   if (couponCode && targetVenueId) {
@@ -393,8 +466,9 @@ export async function createOrder({
     coupon_code: couponCode,
     tax,
     total,
-    payment_status: paymentStatus,
+    payment_status: effectivePaymentStatus,
     payment_method: paymentMethod,
+    split_details: splitDetails,
     guest_notes: finalGuestNotes,
     created_at: createdOrder.created_at,
   };
@@ -570,17 +644,13 @@ export async function cancelOrder(orderId, shortCode = null, reason = 'Cancelled
 /**
  * Settle bill / Mark order as paid and complete
  */
-export async function settleOrder(orderId, paymentMethod = 'counter') {
+export async function settleOrder(orderId, paymentMethod = 'counter', splitDetails = null) {
   if (!isSupabaseConfigured()) return;
-
-  const validMethod = ['cash', 'card', 'upi', 'online'].includes(paymentMethod)
-    ? paymentMethod
-    : 'cash';
 
   // 1. Fetch order details
   const { data: order, error: fetchErr } = await supabase
     .from('orders')
-    .select('id, table_session_id, venue_id, org_id, subtotal, status')
+    .select('id, table_session_id, venue_id, org_id, subtotal, status, notes')
     .eq('id', orderId)
     .single();
 
@@ -589,12 +659,26 @@ export async function settleOrder(orderId, paymentMethod = 'counter') {
     throw fetchErr || new Error('Order not found');
   }
 
-  // 2. Mark this order (and any other uncancelled orders in this session) as 'served'
+  let finalNotes = order.notes || '';
+  if ((paymentMethod === 'split' || splitDetails) && splitDetails) {
+    const splitTag = `[Payment: Split | Online: ₹${splitDetails.onlineAmount} | Cash: ₹${splitDetails.cashAmount}]`;
+    finalNotes = finalNotes.replace(/\[Payment:[^\]]+\]/gi, '').trim() + ' ' + splitTag;
+    finalNotes = finalNotes.trim();
+  } else if (paymentMethod === 'online' || paymentMethod === 'upi') {
+    finalNotes = finalNotes.replace(/\[Payment:[^\]]+\]/gi, '').trim() + ' [Payment: Online]';
+    finalNotes = finalNotes.trim();
+  } else if (paymentMethod === 'counter' || paymentMethod === 'cash') {
+    finalNotes = finalNotes.replace(/\[Payment:[^\]]+\]/gi, '').trim() + ' [Payment: Cash]';
+    finalNotes = finalNotes.trim();
+  }
+
+  // 2. Mark this order (and any other uncancelled orders in this session) as 'served' with updated notes
   if (order.table_session_id) {
     await supabase
       .from('orders')
       .update({
         status: 'served',
+        notes: finalNotes,
         updated_at: new Date().toISOString(),
       })
       .eq('table_session_id', order.table_session_id)
@@ -604,6 +688,7 @@ export async function settleOrder(orderId, paymentMethod = 'counter') {
       .from('orders')
       .update({
         status: 'served',
+        notes: finalNotes,
         updated_at: new Date().toISOString(),
       })
       .eq('id', orderId);
@@ -631,14 +716,40 @@ export async function settleOrder(orderId, paymentMethod = 'counter') {
 
     // Record payment in payments table
     try {
-      await supabase.from('payments').insert({
-        org_id: sess?.org_id || order.org_id,
-        venue_id: sess?.venue_id || order.venue_id,
-        table_session_id: order.table_session_id,
-        amount: Number(sess?.total_amount || sess?.subtotal || order.subtotal) || 0,
-        payment_method: validMethod,
-        status: 'completed',
-      });
+      if ((paymentMethod === 'split' || splitDetails) && splitDetails) {
+        if (splitDetails.onlineAmount > 0) {
+          await supabase.from('payments').insert({
+            org_id: sess?.org_id || order.org_id,
+            venue_id: sess?.venue_id || order.venue_id,
+            table_session_id: order.table_session_id,
+            amount: Number(splitDetails.onlineAmount) || 0,
+            payment_method: 'upi',
+            status: 'completed',
+          });
+        }
+        if (splitDetails.cashAmount > 0) {
+          await supabase.from('payments').insert({
+            org_id: sess?.org_id || order.org_id,
+            venue_id: sess?.venue_id || order.venue_id,
+            table_session_id: order.table_session_id,
+            amount: Number(splitDetails.cashAmount) || 0,
+            payment_method: 'cash',
+            status: 'completed',
+          });
+        }
+      } else {
+        const validMethod = ['cash', 'card', 'upi', 'online'].includes(paymentMethod)
+          ? paymentMethod
+          : 'cash';
+        await supabase.from('payments').insert({
+          org_id: sess?.org_id || order.org_id,
+          venue_id: sess?.venue_id || order.venue_id,
+          table_session_id: order.table_session_id,
+          amount: Number(sess?.total_amount || sess?.subtotal || order.subtotal) || 0,
+          payment_method: validMethod,
+          status: 'completed',
+        });
+      }
     } catch (payErr) {
       console.warn('Could not insert payment record:', payErr);
     }
@@ -859,15 +970,23 @@ export async function getSalesAnalytics(venueId, period = 'today', customStart =
       pendingRevenue = 0;
     let cashCount = 0,
       onlineCount = 0,
+      splitCount = 0,
+      splitOnlineAmount = 0,
+      splitCashAmount = 0,
       pendingCount = 0;
 
     for (const o of paidOrders) {
       const amt = Number(o.subtotal) || 0;
-      const isOnline =
-        o.notes?.toLowerCase().includes('online') ||
-        o.notes?.toLowerCase().includes('upi') ||
-        o.notes?.toLowerCase().includes('card');
-      if (isOnline) {
+      const payInfo = parsePaymentDetails(o.notes);
+
+      if (payInfo.isSplit) {
+        // Split payment: accurately divide revenue between online & cash
+        onlineRevenue += payInfo.onlineAmount;
+        cashRevenue += payInfo.cashAmount;
+        splitOnlineAmount += payInfo.onlineAmount;
+        splitCashAmount += payInfo.cashAmount;
+        splitCount++;
+      } else if (payInfo.method === 'online' || o.notes?.toLowerCase().includes('online') || o.notes?.toLowerCase().includes('upi') || o.notes?.toLowerCase().includes('card')) {
         onlineRevenue += amt;
         onlineCount++;
       } else {
@@ -875,8 +994,18 @@ export async function getSalesAnalytics(venueId, period = 'today', customStart =
         cashCount++;
       }
     }
+
     for (const o of pendingOrders) {
-      pendingRevenue += Number(o.subtotal) || 0;
+      const payInfo = parsePaymentDetails(o.notes);
+      if (payInfo.isSplit) {
+        // If part was paid online and part is pending at counter
+        onlineRevenue += payInfo.onlineAmount;
+        splitOnlineAmount += payInfo.onlineAmount;
+        pendingRevenue += payInfo.cashAmount;
+        splitCount++;
+      } else {
+        pendingRevenue += Number(o.subtotal) || 0;
+      }
       pendingCount++;
     }
 
@@ -955,11 +1084,11 @@ export async function getSalesAnalytics(venueId, period = 'today', customStart =
         if (isCompleted) {
           existing.completedOrders++;
         }
-        const isOnline =
-          o.notes?.toLowerCase().includes('online') ||
-          o.notes?.toLowerCase().includes('upi') ||
-          o.notes?.toLowerCase().includes('card');
-        if (isOnline) {
+        const payInfo = parsePaymentDetails(o.notes);
+        if (payInfo.isSplit) {
+          existing.onlineRevenue += payInfo.onlineAmount;
+          existing.cashRevenue += payInfo.cashAmount;
+        } else if (payInfo.method === 'online' || o.notes?.toLowerCase().includes('online') || o.notes?.toLowerCase().includes('upi') || o.notes?.toLowerCase().includes('card')) {
           existing.onlineRevenue += amt;
         } else {
           existing.cashRevenue += amt;
@@ -997,6 +1126,15 @@ export async function getSalesAnalytics(venueId, period = 'today', customStart =
       const subtotal = Number(o.subtotal) || 0;
       const tax = Math.round((subtotal * GST_RATE) / 100 * 100) / 100;
       const total = Math.round((subtotal + tax) * 100) / 100;
+      const payInfo = parsePaymentDetails(o.notes);
+
+      let payModeStr = 'Cash';
+      if (payInfo.isSplit) {
+        payModeStr = `Split (₹${payInfo.onlineAmount} Online + ₹${payInfo.cashAmount} Cash)`;
+      } else if (payInfo.method === 'online') {
+        payModeStr = 'Online/UPI';
+      }
+
       return {
         id: o.id,
         date: dateStr,
@@ -1011,7 +1149,7 @@ export async function getSalesAnalytics(venueId, period = 'today', customStart =
         sgst: Math.round(tax / 2 * 100) / 100,
         gstTotal: tax,
         netTotal: total,
-        paymentMode: o.notes?.toLowerCase().includes('online') || o.notes?.toLowerCase().includes('upi') ? 'Online/UPI' : 'Cash',
+        paymentMode: payModeStr,
       };
     });
 
@@ -1038,10 +1176,13 @@ export async function getSalesAnalytics(venueId, period = 'today', customStart =
         cash: cashRevenue,
         online: onlineRevenue,
         pending: pendingRevenue,
+        splitOnline: splitOnlineAmount,
+        splitCash: splitCashAmount,
       },
       paymentSplitCount: {
         cash: cashCount,
         online: onlineCount,
+        split: splitCount,
         pending: pendingCount,
       },
       topItems,

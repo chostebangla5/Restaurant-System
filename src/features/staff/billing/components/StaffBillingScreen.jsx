@@ -23,6 +23,9 @@ import {
   Calendar,
   CalendarDays,
   Filter,
+  Coins,
+  ArrowRightLeft,
+  QrCode,
 } from 'lucide-react';
 
 export function StaffBillingScreen() {
@@ -32,6 +35,10 @@ export function StaffBillingScreen() {
   const [dateFilter, setDateFilter] = useState('today');   // today | yesterday | week | month | all | custom
   const [customDate, setCustomDate] = useState('');
   const [selectedReceiptOrder, setSelectedReceiptOrder] = useState(null);
+  const [settlingOrder, setSettlingOrder] = useState(null);
+  const [posSettleMethod, setPosSettleMethod] = useState('cash'); // cash | online | split
+  const [posSplitOnline, setPosSplitOnline] = useState(0);
+  const [posSplitCash, setPosSplitCash] = useState(0);
 
   const loadData = async () => {
     try {
@@ -50,17 +57,42 @@ export function StaffBillingScreen() {
     return () => unsubscribe();
   }, [venue?.id]);
 
-  const handleSettle = async (orderId, method) => {
-    await settleOrder(orderId, method);
-    toast.success(`Bill marked as settled via ${method.toUpperCase()}!`);
-    loadData();
-    if (selectedReceiptOrder?.id === orderId) {
-      setSelectedReceiptOrder((prev) => ({
-        ...prev,
-        payment_status: 'paid',
-        payment_method: method,
-        status: 'completed',
-      }));
+  const openPosSettleModal = (order) => {
+    setSettlingOrder(order);
+    const tot = Number(order.total) || 0;
+    if (order.split_details) {
+      setPosSplitOnline(Number(order.split_details.online) || 0);
+      setPosSplitCash(Number(order.split_details.cash) || 0);
+      setPosSettleMethod('cash'); // directly collect cash due
+    } else {
+      const half = Math.round(tot / 2);
+      setPosSplitOnline(half);
+      setPosSplitCash(tot - half);
+      setPosSettleMethod('cash');
+    }
+  };
+
+  const handleSettle = async (orderId, method, splitDetails = null) => {
+    try {
+      await settleOrder(orderId, method, splitDetails);
+      toast.success(
+        method === 'split'
+          ? `Bill settled via Split (₹${splitDetails?.onlineAmount} Online + ₹${splitDetails?.cashAmount} Cash)!`
+          : `Bill marked as settled via ${method.toUpperCase()}!`
+      );
+      setSettlingOrder(null);
+      loadData();
+      if (selectedReceiptOrder?.id === orderId) {
+        setSelectedReceiptOrder((prev) => ({
+          ...prev,
+          payment_status: 'paid',
+          payment_method: method,
+          split_details: splitDetails ? { online: splitDetails.onlineAmount, cash: splitDetails.cashAmount } : prev.split_details,
+          status: 'completed',
+        }));
+      }
+    } catch (err) {
+      toast.error('Failed to settle bill');
     }
   };
 
@@ -303,8 +335,19 @@ export function StaffBillingScreen() {
                       </td>
                       <td className="px-5 py-4">
                         {isPaid ? (
-                          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1">
-                            <Check className="h-3 w-3 shrink-0" strokeWidth={2} /> Paid ({o.payment_method || 'counter'})
+                          o.split_details ? (
+                            <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1">
+                              <Coins className="h-3 w-3 shrink-0" /> Split (₹{o.split_details.online} Online + ₹{o.split_details.cash} Cash)
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1">
+                              <Check className="h-3 w-3 shrink-0" strokeWidth={2} /> Paid ({o.payment_method || 'counter'})
+                            </span>
+                          )
+                        ) : o.payment_status === 'partially_paid' || o.split_details ? (
+                          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30 inline-flex items-center gap-1">
+                            <Coins className="h-3 w-3 shrink-0 text-amber-400" />
+                            Part Paid (₹{o.split_details?.online || 0} Online &bull; ₹{o.split_details?.cash || 0} Cash Due)
                           </span>
                         ) : (
                           <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30">
@@ -325,10 +368,13 @@ export function StaffBillingScreen() {
                           {!isPaid && (
                             <Button
                               size="sm"
-                              onClick={() => handleSettle(o.id, 'counter')}
-                              className="h-8 text-xs font-medium rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e]"
+                              onClick={() => openPosSettleModal(o)}
+                              className="h-8 text-xs font-medium rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] flex items-center gap-1"
                             >
-                              Settle (Cash)
+                              <Coins className="h-3.5 w-3.5" />
+                              {o.payment_status === 'partially_paid' || o.split_details
+                                ? `Collect Cash Due (₹${o.split_details?.cash || 0})`
+                                : 'Settle Bill'}
                             </Button>
                           )}
                         </div>
@@ -341,6 +387,233 @@ export function StaffBillingScreen() {
           </table>
         </div>
       </div>
+
+      {/* POS Settle Bill Modal */}
+      <Modal
+        isOpen={Boolean(settlingOrder)}
+        onClose={() => setSettlingOrder(null)}
+        title={settlingOrder ? `POS Settlement • Table T-${settlingOrder.table_number}` : 'Settle Order'}
+        size="sm"
+      >
+        {settlingOrder && (
+          <div className="space-y-4 py-2 font-sans">
+            {/* Header info */}
+            <div className="p-4 rounded-xl bg-[#141721] border border-white/10 space-y-1 text-center">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-[#8A8F9C]">
+                Invoice #{settlingOrder.id} &bull; Round #{settlingOrder.round_number}
+              </span>
+              <div className="text-2xl font-mono font-bold text-[#C6FF3D]">
+                {formatCurrency(settlingOrder.total)}
+              </div>
+              <p className="text-[11px] text-[#8A8F9C]">
+                {(settlingOrder.items || []).length} dish items &bull; 5% GST included
+              </p>
+            </div>
+
+            {/* Case A: Already Placed as Part Payment by Consumer */}
+            {settlingOrder.split_details ? (
+              <div className="space-y-3">
+                <div className="p-3.5 rounded-xl bg-amber-400/10 border border-amber-400/25 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-amber-300">
+                    <Coins className="h-4 w-4" />
+                    <span>Part Payment Already Initiated</span>
+                  </div>
+                  <div className="space-y-1 text-xs font-mono">
+                    <div className="flex justify-between text-[#8A8F9C]">
+                      <span>Online Portion (Received via UPI):</span>
+                      <span className="text-emerald-400 font-bold">+{formatCurrency(settlingOrder.split_details.online)}</span>
+                    </div>
+                    <div className="flex justify-between text-[#8A8F9C]">
+                      <span>Remaining Cash Due at Counter:</span>
+                      <span className="text-amber-300 font-bold text-sm">{formatCurrency(settlingOrder.split_details.cash)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <Button
+                  size="md"
+                  onClick={() =>
+                    handleSettle(settlingOrder.id, 'split', {
+                      onlineAmount: Number(settlingOrder.split_details.online) || 0,
+                      cashAmount: Number(settlingOrder.split_details.cash) || 0,
+                    })
+                  }
+                  className="w-full font-bold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] py-3.5 text-xs flex items-center justify-center gap-2"
+                >
+                  <Banknote className="h-4 w-4" />
+                  Collect ₹{settlingOrder.split_details.cash} Cash &amp; Complete Settle
+                </Button>
+              </div>
+            ) : (
+              /* Case B: Pending Order - Choose Settle Mode (Cash, Online, or Split) */
+              <div className="space-y-3.5">
+                {/* Mode Tabs */}
+                <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-[#141721] border border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => setPosSettleMethod('cash')}
+                    className={`py-2 px-1 text-center rounded-lg text-xs font-medium transition-all ${
+                      posSettleMethod === 'cash'
+                        ? 'bg-[#C6FF3D] text-[#07080B] font-bold shadow-xs'
+                        : 'text-[#8A8F9C] hover:text-[#F4F5F7]'
+                    }`}
+                  >
+                    Full Cash
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPosSettleMethod('online')}
+                    className={`py-2 px-1 text-center rounded-lg text-xs font-medium transition-all ${
+                      posSettleMethod === 'online'
+                        ? 'bg-[#C6FF3D] text-[#07080B] font-bold shadow-xs'
+                        : 'text-[#8A8F9C] hover:text-[#F4F5F7]'
+                    }`}
+                  >
+                    UPI / Online
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPosSettleMethod('split')}
+                    className={`py-2 px-1 text-center rounded-lg text-xs font-medium transition-all ${
+                      posSettleMethod === 'split'
+                        ? 'bg-[#C6FF3D] text-[#07080B] font-bold shadow-xs'
+                        : 'text-[#8A8F9C] hover:text-[#F4F5F7]'
+                    }`}
+                  >
+                    Part (Split)
+                  </button>
+                </div>
+
+                {/* Tab 1: Full Cash */}
+                {posSettleMethod === 'cash' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-[#8A8F9C] text-center">
+                      Collect full amount in cash at the counter or table.
+                    </p>
+                    <Button
+                      size="md"
+                      onClick={() => handleSettle(settlingOrder.id, 'counter')}
+                      className="w-full font-bold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] py-3.5 text-xs flex items-center justify-center gap-2"
+                    >
+                      <Banknote className="h-4 w-4" /> Settle {formatCurrency(settlingOrder.total)} in Cash
+                    </Button>
+                  </div>
+                )}
+
+                {/* Tab 2: Full Online / UPI */}
+                {posSettleMethod === 'online' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-[#8A8F9C] text-center">
+                      Full payment received via dynamic UPI QR or card terminal.
+                    </p>
+                    <Button
+                      size="md"
+                      onClick={() => handleSettle(settlingOrder.id, 'online')}
+                      className="w-full font-bold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] py-3.5 text-xs flex items-center justify-center gap-2"
+                    >
+                      <CreditCard className="h-4 w-4" /> Settle {formatCurrency(settlingOrder.total)} via UPI / Online
+                    </Button>
+                  </div>
+                )}
+
+                {/* Tab 3: Split Payment */}
+                {posSettleMethod === 'split' && (
+                  <div className="space-y-3">
+                    <div className="p-3.5 rounded-xl bg-[#141721] border border-[#C6FF3D]/25 space-y-3">
+                      <div className="flex items-center justify-between text-xs font-semibold text-[#F4F5F7]">
+                        <span className="flex items-center gap-1.5">
+                          <ArrowRightLeft className="h-3.5 w-3.5 text-[#C6FF3D]" /> Configure POS Split
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const tot = Number(settlingOrder.total) || 0;
+                            const half = Math.round(tot / 2);
+                            setPosSplitOnline(half);
+                            setPosSplitCash(tot - half);
+                          }}
+                          className="text-[10px] font-mono text-[#C6FF3D] hover:underline"
+                        >
+                          Reset 50/50
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-mono text-[#C6FF3D] uppercase tracking-wider block">
+                            Online (UPI)
+                          </span>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-[#8A8F9C]">₹</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max={Number(settlingOrder.total) - 1}
+                              value={posSplitOnline}
+                              onChange={(e) => {
+                                const onVal = Math.max(0, Math.min(Number(settlingOrder.total), Number(e.target.value) || 0));
+                                setPosSplitOnline(onVal);
+                                setPosSplitCash(Math.max(0, Number(settlingOrder.total) - onVal));
+                              }}
+                              className="w-full pl-6 pr-2 py-1.5 rounded-lg bg-[#0E1016] border border-[#C6FF3D]/30 text-xs font-mono font-bold text-[#F4F5F7] focus:outline-none focus:ring-1 focus:ring-[#C6FF3D]"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-mono text-amber-300 uppercase tracking-wider block">
+                            Cash / Counter
+                          </span>
+                          <div className="relative">
+                            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-[#8A8F9C]">₹</span>
+                            <input
+                              type="number"
+                              min="0"
+                              max={Number(settlingOrder.total)}
+                              value={posSplitCash}
+                              onChange={(e) => {
+                                const cVal = Math.max(0, Math.min(Number(settlingOrder.total), Number(e.target.value) || 0));
+                                setPosSplitCash(cVal);
+                                setPosSplitOnline(Math.max(0, Number(settlingOrder.total) - cVal));
+                              }}
+                              className="w-full pl-6 pr-2 py-1.5 rounded-lg bg-[#0E1016] border border-amber-400/30 text-xs font-mono font-bold text-amber-300 focus:outline-none focus:ring-1 focus:ring-amber-400"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="h-2 w-full rounded-full bg-[#0E1016] overflow-hidden flex">
+                        <div
+                          className="bg-[#C6FF3D] transition-all duration-300 h-full"
+                          style={{ width: `${(posSplitOnline / (Number(settlingOrder.total) || 1)) * 100}%` }}
+                        />
+                        <div
+                          className="bg-amber-400 transition-all duration-300 h-full"
+                          style={{ width: `${(posSplitCash / (Number(settlingOrder.total) || 1)) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    <Button
+                      size="md"
+                      onClick={() =>
+                        handleSettle(settlingOrder.id, 'split', {
+                          onlineAmount: posSplitOnline,
+                          cashAmount: posSplitCash,
+                        })
+                      }
+                      className="w-full font-bold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] py-3.5 text-xs flex items-center justify-center gap-2"
+                    >
+                      <Coins className="h-4 w-4" />
+                      Settle: ₹{posSplitOnline} Online + ₹{posSplitCash} Cash
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
 
       {/* Digital Tax Receipt Modal */}
       <Modal
@@ -393,8 +666,23 @@ export function StaffBillingScreen() {
                 </div>
               </div>
 
-              <div className="text-center pt-2 border-t border-dashed border-white/[0.12] text-[10px] text-[#8A8F9C]">
-                Payment: {selectedReceiptOrder.payment_status === 'paid' ? `PAID VIA ${selectedReceiptOrder.payment_method?.toUpperCase()}` : 'PENDING COUNTER SETTLEMENT'}
+              {/* Payment Mode Status */}
+              <div className="text-center pt-2 border-t border-dashed border-white/[0.12] text-[10px] text-[#8A8F9C] space-y-0.5">
+                {selectedReceiptOrder.split_details ? (
+                  <div>
+                    <span className="text-[#C6FF3D] font-bold block">PAYMENT: SPLIT PAYMENT</span>
+                    <span>&bull; Online / UPI: {formatCurrency(selectedReceiptOrder.split_details.online)}</span>
+                    <br />
+                    <span>&bull; Cash / Counter: {formatCurrency(selectedReceiptOrder.split_details.cash)}</span>
+                    {selectedReceiptOrder.payment_status === 'partially_paid' && (
+                      <span className="text-amber-300 font-bold block mt-1">STATUS: CASH DUE AT COUNTER</span>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    Payment: {selectedReceiptOrder.payment_status === 'paid' ? `PAID VIA ${selectedReceiptOrder.payment_method?.toUpperCase()}` : 'PENDING COUNTER SETTLEMENT'}
+                  </div>
+                )}
                 <br />Thank you for visiting!
               </div>
             </div>
@@ -415,9 +703,9 @@ export function StaffBillingScreen() {
                 <Button
                   size="md"
                   className="flex-1 font-semibold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e]"
-                  onClick={() => handleSettle(selectedReceiptOrder.id, 'cash')}
+                  onClick={() => openPosSettleModal(selectedReceiptOrder)}
                 >
-                  Mark as Paid
+                  Settle Bill
                 </Button>
               )}
             </div>

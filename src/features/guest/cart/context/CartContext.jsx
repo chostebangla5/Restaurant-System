@@ -189,6 +189,7 @@ export function CartProvider({ children }) {
     paymentStatus = 'pending',
     guestNotes = '',
     tableNumber = shortCode.replace(/[^0-9]/g, '') || '01',
+    splitDetails = null,
   }) => {
     if (items.length === 0) {
       toast.error('Your cart is empty');
@@ -208,6 +209,7 @@ export function CartProvider({ children }) {
         total: grandTotal,
         paymentMethod,
         paymentStatus,
+        splitDetails,
         guestNotes,
       });
 
