@@ -1,0 +1,276 @@
+/* ═══════════════════════════════════════════════════════════════════
+   Guest Light Theme — Clean restaurant ordering UI
+   Applied ONLY to guest-facing pages under /t/:shortCode
+   Does NOT affect admin/staff dashboard dark theme
+   ═══════════════════════════════════════════════════════════════════ */
+
+.guest-light {
+  --g-bg: #FAFAF8;
+  --g-surface: #FFFFFF;
+  --g-surface-2: #F4F3EF;
+  --g-surface-3: #EDECEA;
+  --g-border: rgba(0, 0, 0, 0.08);
+  --g-border-hover: rgba(0, 0, 0, 0.15);
+  --g-text: #1A1A1A;
+  --g-text-secondary: #4A4A4A;
+  --g-text-muted: #8C8C8C;
+  --g-accent: #E23744;
+  --g-accent-hover: #c72e3a;
+  --g-accent-light: rgba(226, 55, 68, 0.08);
+  --g-accent-glow: rgba(226, 55, 68, 0.15);
+  --g-green: #1BA672;
+  --g-green-light: rgba(27, 166, 114, 0.08);
+  --g-amber: #F59E0B;
+  --g-amber-light: rgba(245, 158, 11, 0.08);
+  --g-radius-sm: 12px;
+  --g-radius-card: 16px;
+  --g-radius-pill: 9999px;
+  --g-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --g-shadow-card: 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 1px rgba(0, 0, 0, 0.08);
+  --g-shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04);
+  --g-shadow-float: 0 12px 40px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.06);
+
+  background-color: var(--g-bg);
+  color: var(--g-text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Remove the noise overlay on guest pages */
+.guest-light body::before,
+.guest-light::before {
+  display: none !important;
+}
+
+/* ─── Guest Card ─── */
+.guest-light .g-card {
+  background: var(--g-surface);
+  border: 1px solid var(--g-border);
+  border-radius: var(--g-radius-card);
+  box-shadow: var(--g-shadow-card);
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+
+.guest-light .g-card:hover {
+  box-shadow: var(--g-shadow-lg);
+  border-color: var(--g-border-hover);
+}
+
+/* ─── Guest Button (Primary) ─── */
+.guest-light .g-btn-primary {
+  background: var(--g-accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--g-radius-pill);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.guest-light .g-btn-primary:hover {
+  background: var(--g-accent-hover);
+  box-shadow: 0 4px 14px rgba(226, 55, 68, 0.25);
+}
+
+.guest-light .g-btn-primary:active {
+  transform: scale(0.97);
+}
+
+/* ─── Guest Button (Secondary/Outline) ─── */
+.guest-light .g-btn-outline {
+  background: var(--g-surface);
+  color: var(--g-text);
+  border: 1px solid var(--g-border);
+  border-radius: var(--g-radius-pill);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.guest-light .g-btn-outline:hover {
+  border-color: var(--g-border-hover);
+  background: var(--g-surface-2);
+}
+
+/* ─── Floating Cart Bar ─── */
+.guest-light .g-floating-bar {
+  background: var(--g-accent);
+  color: #fff;
+  border-radius: var(--g-radius-pill);
+  box-shadow: var(--g-shadow-float);
+  transition: all 0.3s ease;
+}
+
+.guest-light .g-floating-bar:hover {
+  background: var(--g-accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 48px rgba(226, 55, 68, 0.2), 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* ─── Input styling ─── */
+.guest-light .g-input {
+  background: var(--g-surface);
+  border: 1px solid var(--g-border);
+  color: var(--g-text);
+  border-radius: var(--g-radius-pill);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.guest-light .g-input:focus {
+  border-color: var(--g-accent);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--g-accent-light);
+}
+
+.guest-light .g-input::placeholder {
+  color: var(--g-text-muted) !important;
+  opacity: 0.8 !important;
+}
+
+/* ─── Category Chip Active ─── */
+.guest-light .g-chip-active {
+  background: var(--g-accent);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(226, 55, 68, 0.2);
+}
+
+.guest-light .g-chip-inactive {
+  background: var(--g-surface);
+  color: var(--g-text-secondary);
+  border: 1px solid var(--g-border);
+}
+
+.guest-light .g-chip-inactive:hover {
+  border-color: var(--g-border-hover);
+  background: var(--g-surface-2);
+}
+
+/* ─── Badge styles ─── */
+.guest-light .g-badge-bestseller {
+  background: var(--g-accent-light);
+  color: var(--g-accent);
+  border: 1px solid rgba(226, 55, 68, 0.15);
+}
+
+.guest-light .g-badge-veg {
+  color: var(--g-green);
+}
+
+.guest-light .g-badge-nonveg {
+  color: #E23744;
+}
+
+/* ─── Veg/Non-veg indicator ─── */
+.guest-light .g-veg-dot {
+  border-color: var(--g-green);
+}
+
+.guest-light .g-veg-dot-inner {
+  background: var(--g-green);
+}
+
+.guest-light .g-nonveg-dot {
+  border-color: #E23744;
+}
+
+.guest-light .g-nonveg-dot-inner {
+  background: #E23744;
+}
+
+/* ─── Qty Stepper ─── */
+.guest-light .g-stepper {
+  background: var(--g-surface);
+  border: 1px solid var(--g-border);
+  border-radius: var(--g-radius-pill);
+  box-shadow: var(--g-shadow-sm);
+}
+
+.guest-light .g-stepper-btn {
+  color: var(--g-accent);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.guest-light .g-stepper-btn:hover {
+  background: var(--g-accent-light);
+}
+
+.guest-light .g-stepper-qty {
+  color: var(--g-accent);
+  font-weight: 700;
+}
+
+/* ─── Scrollbar ─── */
+.guest-light ::-webkit-scrollbar {
+  width: 4px;
+}
+
+.guest-light ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.guest-light ::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 99px;
+}
+
+/* ─── Selection ─── */
+.guest-light ::selection {
+  background: var(--g-accent-light);
+  color: var(--g-accent);
+}
+
+/* ─── Animations ─── */
+@keyframes g-fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes g-pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.guest-light .g-animate-in {
+  animation: g-fadeInUp 0.4s ease-out both;
+}
+
+.guest-light .g-pulse-soft {
+  animation: g-pulse-soft 2s ease-in-out infinite;
+}
+
+/* ─── Progress bar ─── */
+.guest-light .g-progress-track {
+  background: var(--g-surface-3);
+  border-radius: 99px;
+}
+
+.guest-light .g-progress-fill {
+  background: var(--g-accent);
+  border-radius: 99px;
+  transition: width 0.7s ease-out;
+}
+
+/* ─── Modal Override for Guest ─── */
+.guest-light-modal-backdrop {
+  background: rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.guest-light-modal {
+  background: var(--g-surface) !important;
+  border: 1px solid var(--g-border) !important;
+  color: var(--g-text) !important;
+  border-radius: 20px !important;
+  box-shadow: var(--g-shadow-float) !important;
+}

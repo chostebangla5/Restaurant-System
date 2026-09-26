@@ -1,5 +1,6 @@
 {
   "files.associations": {
     "*.sql": "postgres"
-  }
+  },
+  "css.lint.unknownAtRules": "ignore"
 }

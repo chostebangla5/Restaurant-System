@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import './styles/globals.css';
+import './styles/guest-theme.css';
 
 // Auto-reload on deployment chunk update with cache busting and prevent unhandled rejection
 window.addEventListener('vite:preloadError', (event) => {

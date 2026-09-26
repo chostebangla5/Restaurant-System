@@ -23,7 +23,7 @@ function GuestShell({ shortCode, tableData }) {
 
   useEffect(() => {
     preloadGuestFlow();
-    document.body.style.backgroundColor = '#07080B';
+    document.body.style.backgroundColor = '#FAFAF8';
     return () => {
       document.body.style.backgroundColor = '';
     };
@@ -58,7 +58,7 @@ function GuestShell({ shortCode, tableData }) {
     },
     {
       id: 'orders',
-      label: 'Live Orders',
+      label: 'Orders',
       mobileLabel: 'Orders',
       href: `/t/${shortCode}/orders`,
       icon: Clock,
@@ -67,40 +67,37 @@ function GuestShell({ shortCode, tableData }) {
   ];
 
   return (
-    <div className="min-h-screen bg-[#07080B] text-[#F4F5F7] flex flex-col font-sans selection:bg-accent selection:text-bg">
-      {/* ─── Pure Restaurant Dining Header (No TableSuite Branding) ─── */}
-      <header className="w-full border-b border-white/[0.08] bg-[#0E1016]/95 backdrop-blur-md sticky top-0 z-30 transition-all shadow-sm">
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 md:px-10 py-2.5 sm:py-3.5">
-          <div className="flex items-center justify-between gap-2 sm:gap-4">
-            {/* Restaurant & Table Identity — Guaranteed prominence for venue name */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl bg-[#141721] border border-white/10 flex items-center justify-center text-accent font-bold text-xs sm:text-sm shrink-0 shadow-sm">
-                <UtensilsCrossed className="h-4 w-4 sm:h-5 sm:w-5 text-accent" strokeWidth={1.75} />
+    <div className="guest-light min-h-screen flex flex-col font-sans">
+      {/* ─── Clean Light Header ─── */}
+      <header className="w-full bg-white/95 backdrop-blur-md sticky top-0 z-30 border-b"
+        style={{ borderColor: 'rgba(0,0,0,0.06)' }}>
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-3">
+          <div className="flex items-center justify-between gap-3">
+            {/* Restaurant Identity */}
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div className="h-9 w-9 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: 'var(--g-accent-light)', border: '1px solid rgba(226,55,68,0.12)' }}>
+                <UtensilsCrossed className="h-4.5 w-4.5" style={{ color: 'var(--g-accent)' }} strokeWidth={1.75} />
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5 sm:gap-2">
-                  <h1
-                    title={tableData.venueName}
-                    className="text-sm sm:text-base font-heading font-bold text-[#F4F5F7] tracking-tight truncate leading-tight"
-                  >
-                    {tableData.venueName}
-                  </h1>
-                  <span className="hidden xs:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-accent font-mono text-[10px] font-medium shrink-0">
-                    <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-                    Table {tableData.tableNumber}
-                  </span>
-                </div>
-                <p className="text-[10px] sm:text-[11px] font-mono text-[#8A8F9C] flex items-center gap-1.5 truncate">
-                  <span className="xs:hidden text-accent font-semibold">T-{tableData.tableNumber} &bull;</span>
-                  <span>Digital Menu</span>
-                  <span className="text-white/20">&bull;</span>
+                <h1
+                  title={tableData.venueName}
+                  className="text-sm font-semibold tracking-tight truncate leading-tight"
+                  style={{ color: 'var(--g-text)' }}
+                >
+                  {tableData.venueName}
+                </h1>
+                <p className="text-[11px] flex items-center gap-1.5 truncate"
+                  style={{ color: 'var(--g-text-muted)' }}>
+                  <span style={{ color: 'var(--g-accent)', fontWeight: 600 }}>Table {tableData.tableNumber}</span>
+                  <span style={{ color: 'rgba(0,0,0,0.2)' }}>&bull;</span>
                   <span>Code: {shortCode}</span>
                 </p>
               </div>
             </div>
 
-            {/* Sub-Navigation Tabs — Responsive pills (active tab shows text, inactive tabs compact on mobile) */}
-            <nav className="flex items-center gap-1 sm:gap-2 shrink-0">
+            {/* Navigation Tabs */}
+            <nav className="flex items-center gap-1.5 shrink-0">
               {navTabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -108,11 +105,12 @@ function GuestShell({ shortCode, tableData }) {
                     key={tab.id}
                     to={tab.href}
                     title={tab.label}
-                    className={`group relative flex items-center gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2.5 min-h-[36px] sm:min-h-[42px] rounded-full text-xs font-medium transition-all duration-200 shrink-0 ${
-                      tab.isActive
-                        ? 'bg-accent text-bg font-semibold shadow-xs'
-                        : 'bg-surface-2 text-muted hover:text-white border border-white/10 hover:border-white/20'
-                    }`}
+                    className="group relative flex items-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs font-medium transition-all duration-200 shrink-0"
+                    style={{
+                      ...(tab.isActive
+                        ? { background: 'var(--g-accent)', color: '#fff', fontWeight: 600, boxShadow: '0 2px 8px rgba(226,55,68,0.2)' }
+                        : { background: 'var(--g-surface-2)', color: 'var(--g-text-muted)', border: '1px solid var(--g-border)' }),
+                    }}
                   >
                     <Icon className="h-3.5 w-3.5" strokeWidth={1.75} />
                     <span className={tab.isActive ? 'text-xs inline' : 'hidden sm:inline text-xs'}>
@@ -121,9 +119,12 @@ function GuestShell({ shortCode, tableData }) {
                     </span>
                     {tab.badge && (
                       <span
-                        className={`h-4 min-w-4 px-1 rounded-full text-[10px] font-mono font-bold flex items-center justify-center ${
-                          tab.isActive ? 'bg-bg text-accent' : 'bg-accent text-bg'
-                        } ${cartBounce ? 'scale-110' : ''} transition-transform`}
+                        className={`h-4 min-w-4 px-1 rounded-full text-[10px] font-bold flex items-center justify-center ${cartBounce ? 'scale-110' : ''} transition-transform`}
+                        style={{
+                          ...(tab.isActive
+                            ? { background: '#fff', color: 'var(--g-accent)' }
+                            : { background: 'var(--g-accent)', color: '#fff' }),
+                        }}
                       >
                         {tab.badge}
                       </span>
@@ -137,11 +138,11 @@ function GuestShell({ shortCode, tableData }) {
       </header>
 
       {/* Dynamic Route Content */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-10 py-5 sm:py-6 safe-bottom">
+      <main className="flex-1 w-full max-w-2xl mx-auto px-4 sm:px-6 py-5 sm:py-6 safe-bottom">
         <AnimatedOutlet />
       </main>
 
-      {/* Push Notification Opt-In (Framed at Top) */}
+      {/* Push Notification Opt-In */}
       {tableData.venueId && (
         <NotificationOptIn
           venueId={tableData.venueId}
@@ -149,9 +150,10 @@ function GuestShell({ shortCode, tableData }) {
         />
       )}
 
-      {/* Clean Restaurant Dining Minimal Footer (No TableSuite Branding) */}
-      <footer className="w-full border-t border-white/[0.06] py-5 px-4 text-center text-xs text-[#8A8F9C]/60 font-mono">
-        <p>{tableData.venueName} &bull; Table {tableData.tableNumber} &bull; Digital Dining</p>
+      {/* Minimal Footer */}
+      <footer className="w-full py-5 px-4 text-center text-[11px]"
+        style={{ color: 'var(--g-text-muted)', borderTop: '1px solid var(--g-border)' }}>
+        <p>{tableData.venueName} &bull; Table {tableData.tableNumber} &bull; Digital Menu</p>
       </footer>
     </div>
   );
@@ -162,7 +164,7 @@ export function GuestLayout() {
   const [tableData, setTableData] = useState({
     tableNumber: '',
     venueName: '',
-    brandColor: '#C6FF3D',
+    brandColor: '#E23744',
     currency: 'INR',
     venueId: null,
   });
@@ -193,11 +195,11 @@ export function GuestLayout() {
           setTableData({
             tableNumber: data.table_number,
             venueName: venue?.name || 'Restaurant Dining',
-            brandColor: venue?.brand_color || '#C6FF3D',
+            brandColor: venue?.brand_color || '#E23744',
             currency: venue?.currency || 'INR',
             venueId: venue?.id || null,
           });
-          applyVenueBranding(venue?.brand_color || '#C6FF3D');
+          applyVenueBranding(venue?.brand_color || '#E23744');
         }
       } catch (err) {
         console.warn('Error loading table info:', err);
@@ -210,41 +212,46 @@ export function GuestLayout() {
     loadTableAndVenue();
   }, [shortCode]);
 
-  /* Clean Restaurant Loading State (No TableSuite Navbar/Footer) */
+  /* Loading State — Light Theme */
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#07080B] text-[#F4F5F7] flex flex-col items-center justify-center p-6 font-sans">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-accent border-t-transparent" />
-          <span className="text-xs font-mono text-[#8A8F9C] tracking-wider uppercase">
-            Loading Digital Menu…
+      <div className="guest-light min-h-screen flex flex-col items-center justify-center p-6 font-sans"
+        style={{ background: 'var(--g-bg)' }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-10 w-10 animate-spin rounded-full border-3"
+            style={{ borderColor: 'var(--g-surface-3)', borderTopColor: 'var(--g-accent)' }} />
+          <span className="text-xs tracking-wide" style={{ color: 'var(--g-text-muted)' }}>
+            Loading Menu…
           </span>
         </div>
       </div>
     );
   }
 
-  /* Clean Restaurant Table Not Found State (No TableSuite Navbar/Footer) */
+  /* Table Not Found — Light Theme */
   if (tableNotFound) {
     return (
-      <div className="min-h-screen bg-[#07080B] text-[#F4F5F7] flex items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full rounded-card card-surface p-8 border border-white/10 space-y-4 shadow-2xl text-center">
-          <div className="h-12 w-12 mx-auto rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
-            <AlertCircle className="h-6 w-6" strokeWidth={1.5} />
+      <div className="guest-light min-h-screen flex items-center justify-center p-6 font-sans"
+        style={{ background: 'var(--g-bg)' }}>
+        <div className="max-w-sm w-full rounded-2xl p-8 text-center space-y-4"
+          style={{ background: 'var(--g-surface)', boxShadow: 'var(--g-shadow-lg)', border: '1px solid var(--g-border)' }}>
+          <div className="h-14 w-14 mx-auto rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(226,55,68,0.08)', border: '1px solid rgba(226,55,68,0.15)' }}>
+            <AlertCircle className="h-7 w-7" style={{ color: 'var(--g-accent)' }} strokeWidth={1.5} />
           </div>
-          <h2 className="text-lg sm:text-xl font-heading font-bold text-white">Table Not Found</h2>
-          <p className="text-xs text-[#8A8F9C] leading-relaxed font-sans">
-            The table code (<code className="font-mono text-accent">{shortCode}</code>) is inactive or unavailable.
-            Please scan the QR code on your dining table again or ask a staff member for assistance.
+          <h2 className="text-lg font-bold" style={{ color: 'var(--g-text)' }}>Table Not Found</h2>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--g-text-muted)' }}>
+            The table code (<code className="font-mono font-semibold" style={{ color: 'var(--g-accent)' }}>{shortCode}</code>) is inactive or unavailable.
+            Please scan the QR code on your dining table again.
           </p>
           <div className="pt-2">
             <button
               type="button"
               onClick={() => window.location.reload()}
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-accent text-bg text-xs font-semibold hover:bg-accent-hover transition-colors shadow-sm"
+              className="g-btn-primary inline-flex items-center gap-2 px-6 py-2.5 text-sm"
             >
-              <RotateCw className="h-3.5 w-3.5" />
-              Scan Again / Refresh
+              <RotateCw className="h-4 w-4" />
+              Try Again
             </button>
           </div>
         </div>

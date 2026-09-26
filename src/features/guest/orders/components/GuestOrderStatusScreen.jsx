@@ -18,7 +18,6 @@ import {
   Banknote,
   CreditCard,
   ClipboardList,
-  Sparkles,
   ShieldCheck,
   Plus,
   Check,
@@ -29,19 +28,18 @@ import {
   ArrowRightLeft,
 } from 'lucide-react';
 
-/* ─── Modern Progress Line with Dot Pulses ─── */
+/* ─── Progress Steps ─── */
 function OrderProgressLine({ currentStatus }) {
   if (currentStatus === 'cancelled') {
     return (
-      <div className="card-surface p-5 rounded-card border border-rose-500/25 bg-rose-500/5 space-y-2">
+      <div className="g-card p-5 space-y-2" style={{ borderColor: 'rgba(226,55,68,0.15)', background: 'rgba(226,55,68,0.03)' }}>
         <div className="flex items-center justify-between">
-          <span className="font-mono text-xs font-semibold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
+          <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5" style={{ color: 'var(--g-accent)' }}>
             <XCircle className="h-4 w-4" /> Order Cancelled
           </span>
-          <span className="font-mono text-[10px] text-muted">Ticket Withdrawn</span>
         </div>
-        <p className="text-xs text-muted font-sans leading-relaxed">
-          This order was cancelled and removed from the active kitchen prep line.
+        <p className="text-xs leading-relaxed" style={{ color: 'var(--g-text-muted)' }}>
+          This order was cancelled and removed from the kitchen queue.
         </p>
       </div>
     );
@@ -56,7 +54,6 @@ function OrderProgressLine({ currentStatus }) {
 
   const statusOrder = ['placed', 'acknowledged', 'cooking', 'ready', 'served', 'completed'];
   const currentIdx = statusOrder.indexOf(currentStatus || 'placed');
-
   const getStepIdx = (key) => statusOrder.indexOf(key);
   const totalSteps = steps.length - 1;
 
@@ -69,48 +66,49 @@ function OrderProgressLine({ currentStatus }) {
   const fillPercent = (fillSteps / totalSteps) * 100;
 
   return (
-    <div className="card-surface p-6 rounded-card border border-white/[0.08] space-y-4">
+    <div className="g-card p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-xs font-semibold uppercase tracking-wider text-text/80 block">
-          Kitchen Dispatch Status
+        <span className="text-xs font-semibold" style={{ color: 'var(--g-text-secondary)' }}>
+          Order Progress
         </span>
-        <span className="font-mono text-[10px] text-accent">Real-Time Sync</span>
+        <span className="text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1"
+          style={{ background: 'var(--g-green-light)', color: 'var(--g-green)' }}>
+          <span className="h-1.5 w-1.5 rounded-full g-pulse-soft" style={{ background: 'var(--g-green)' }} />
+          Live
+        </span>
       </div>
 
       <div className="relative px-2 pt-2 pb-1">
         {/* Background track */}
-        <div className="absolute top-[13px] left-[14px] right-[14px] h-[2px] bg-white/10" />
-        {/* Filled accent track */}
+        <div className="absolute top-[13px] left-[14px] right-[14px] h-[2px]" style={{ background: 'var(--g-surface-3)' }} />
+        {/* Filled track */}
         <div
-          className="absolute top-[13px] left-[14px] h-[2px] bg-accent transition-all duration-700 ease-out shadow-[0_0_8px_#C6FF3D]"
-          style={{ width: `calc(${fillPercent}% - 28px)` }}
+          className="absolute top-[13px] left-[14px] h-[2px] transition-all duration-700 ease-out"
+          style={{ width: `calc(${fillPercent}% - 28px)`, background: 'var(--g-accent)', boxShadow: '0 0 6px rgba(226,55,68,0.3)' }}
         />
 
-        {/* Dots & Labels */}
         <div className="flex justify-between relative">
           {steps.map((step, idx) => {
             const completed = idx <= fillSteps;
             const current = idx === fillSteps;
-
             return (
               <div key={step.key} className="flex flex-col items-center gap-2.5 z-10">
                 <div
-                  className={`h-3.5 w-3.5 rounded-full border transition-all duration-300 ${
-                    current
-                      ? 'bg-accent border-accent ring-4 ring-accent/20'
+                  className="h-3.5 w-3.5 rounded-full border-2 transition-all duration-300"
+                  style={{
+                    ...(current
+                      ? { background: 'var(--g-accent)', borderColor: 'var(--g-accent)', boxShadow: '0 0 0 4px var(--g-accent-light)' }
                       : completed
-                      ? 'bg-accent border-accent'
-                      : 'bg-surface border-white/20'
-                  }`}
+                      ? { background: 'var(--g-accent)', borderColor: 'var(--g-accent)' }
+                      : { background: 'var(--g-surface)', borderColor: 'var(--g-border-hover)' }),
+                  }}
                 />
                 <span
-                  className={`text-[10px] font-mono tracking-wider uppercase ${
-                    current
-                      ? 'text-accent font-semibold'
-                      : completed
-                      ? 'text-text font-medium'
-                      : 'text-muted/60'
-                  }`}
+                  className="text-[10px] tracking-wider uppercase font-medium"
+                  style={{
+                    color: current ? 'var(--g-accent)' : completed ? 'var(--g-text)' : 'var(--g-text-muted)',
+                    fontWeight: current ? 600 : 400,
+                  }}
                 >
                   {step.label}
                 </span>
@@ -129,7 +127,7 @@ export function GuestOrderStatusScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSettleModalOpen, setIsSettleModalOpen] = useState(false);
   const [settling, setSettling] = useState(false);
-  const [settleMethod, setSettleMethod] = useState('online'); // online | counter | split
+  const [settleMethod, setSettleMethod] = useState('online');
   const [customSplitOnline, setCustomSplitOnline] = useState(0);
   const [cancellingOrder, setCancellingOrder] = useState(null);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -153,17 +151,8 @@ export function GuestOrderStatusScreen() {
     }
 
     load();
-
-    const unsubscribe = subscribeToOrders(() => {
-      if (isMounted) {
-        load();
-      }
-    });
-
-    return () => {
-      isMounted = false;
-      unsubscribe();
-    };
+    const unsubscribe = subscribeToOrders(() => { if (isMounted) load(); });
+    return () => { isMounted = false; unsubscribe(); };
   }, [shortCode]);
 
   const ordersList = orders || [];
@@ -173,7 +162,6 @@ export function GuestOrderStatusScreen() {
     .filter((o) => o.status !== 'cancelled')
     .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
-  // Total cash due across all rounds, respecting already-paid online portions
   const totalPaidOnlinePortion = ordersList
     .filter((o) => o.status !== 'cancelled' && o.split_details?.online)
     .reduce((sum, o) => sum + (Number(o.split_details.online) || 0), 0);
@@ -181,9 +169,7 @@ export function GuestOrderStatusScreen() {
   const remainingCashDue = ordersList
     .filter((o) => o.status !== 'cancelled' && o.payment_status !== 'paid' && o.status !== 'completed')
     .reduce((sum, o) => {
-      if (o.split_details?.cash) {
-        return sum + Number(o.split_details.cash);
-      }
+      if (o.split_details?.cash) return sum + Number(o.split_details.cash);
       return sum + (Number(o.total) || 0);
     }, 0);
 
@@ -195,11 +181,8 @@ export function GuestOrderStatusScreen() {
     (o) => o.payment_status === 'partially_paid' && o.status !== 'cancelled' && o.status !== 'completed'
   );
 
-  // Set default custom split online amount to 50% of remaining due
   useEffect(() => {
-    if (remainingCashDue > 0) {
-      setCustomSplitOnline(Math.round(remainingCashDue / 2));
-    }
+    if (remainingCashDue > 0) setCustomSplitOnline(Math.round(remainingCashDue / 2));
   }, [remainingCashDue]);
 
   const effectiveSettleOnline = Math.max(1, Math.min(remainingCashDue > 1 ? remainingCashDue - 1 : 1, Number(customSplitOnline) || Math.round(remainingCashDue / 2)));
@@ -213,7 +196,7 @@ export function GuestOrderStatusScreen() {
           await settleOrder(o.id, paymentMethod, splitDetails);
         }
       }
-      toast.success('Bill settled successfully! Thank you for dining with us.');
+      toast.success('Bill settled! Thank you for dining with us.');
       setIsSettleModalOpen(false);
       const updated = await fetchOrdersForTable(shortCode);
       setOrders(updated);
@@ -229,7 +212,7 @@ export function GuestOrderStatusScreen() {
     setIsCancelling(true);
     try {
       await cancelOrder(cancellingOrder.id, shortCode, 'Cancelled by guest from table app');
-      toast.success(`Round #${cancellingOrder.round_number} cancelled successfully.`);
+      toast.success(`Round #${cancellingOrder.round_number} cancelled.`);
       setCancellingOrder(null);
       const updated = await fetchOrdersForTable(shortCode);
       setOrders(Array.isArray(updated) ? updated : []);
@@ -241,15 +224,7 @@ export function GuestOrderStatusScreen() {
   };
 
   const getStatusText = (status) => {
-    const map = {
-      placed: 'Placed',
-      acknowledged: 'Acknowledged',
-      cooking: 'Cooking',
-      ready: 'Ready',
-      served: 'Served',
-      completed: 'Completed',
-      cancelled: 'Cancelled',
-    };
+    const map = { placed: 'Placed', acknowledged: 'Acknowledged', cooking: 'Cooking', ready: 'Ready', served: 'Served', completed: 'Completed', cancelled: 'Cancelled' };
     return map[status] || status;
   };
 
@@ -257,532 +232,432 @@ export function GuestOrderStatusScreen() {
     switch (status) {
       case 'placed':
       case 'acknowledged':
-        return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+        return { background: 'var(--g-amber-light)', color: '#D97706', borderColor: 'rgba(245,158,11,0.15)' };
       case 'cooking':
-        return 'bg-orange-500/10 text-orange-400 border-orange-500/20';
+        return { background: 'rgba(249,115,22,0.08)', color: '#EA580C', borderColor: 'rgba(249,115,22,0.15)' };
       case 'ready':
-        return 'bg-sky-500/10 text-sky-400 border-sky-500/20';
+        return { background: 'rgba(14,165,233,0.08)', color: '#0284C7', borderColor: 'rgba(14,165,233,0.15)' };
       case 'served':
       case 'completed':
-        return 'bg-accent/10 text-accent border-accent/20';
+        return { background: 'var(--g-green-light)', color: 'var(--g-green)', borderColor: 'rgba(27,166,114,0.15)' };
       case 'cancelled':
-        return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+        return { background: 'var(--g-accent-light)', color: 'var(--g-accent)', borderColor: 'rgba(226,55,68,0.15)' };
       default:
-        return 'bg-white/5 text-muted border-white/10';
+        return { background: 'var(--g-surface-2)', color: 'var(--g-text-muted)', borderColor: 'var(--g-border)' };
     }
   };
 
   const getHeadline = (status) => {
     switch (status) {
       case 'placed':
-        return { title: 'Order Sent to Kitchen', desc: 'Your ticket is on the line and queued for prep.', Icon: Clock };
+        return { title: 'Order Received', desc: 'Your order is in queue and will be prepared shortly.', Icon: Clock };
       case 'acknowledged':
       case 'cooking':
-        return { title: 'Chef is Preparing Your Dishes', desc: 'Ingredients on the stove. Estimated prep ~8-12 min.', Icon: Flame };
+        return { title: 'Being Prepared', desc: 'The chef is preparing your dishes. ~8-12 min.', Icon: Flame };
       case 'ready':
-        return { title: 'Food is Plated & Ready', desc: 'Waitstaff is serving your dishes to the table now.', Icon: ShoppingBag };
+        return { title: 'Ready to Serve', desc: 'Your food is ready and being brought to your table.', Icon: ShoppingBag };
       case 'served':
       case 'completed':
-        return { title: 'Courses Served', desc: 'Enjoy your dining! Order additional rounds anytime.', Icon: CheckCircle2 };
+        return { title: 'Enjoy Your Meal!', desc: 'All dishes have been served. Order more anytime.', Icon: CheckCircle2 };
       case 'cancelled':
-        return { title: 'Order Round Cancelled', desc: 'Your ticket was withdrawn from the kitchen. You can order fresh dishes anytime.', Icon: XCircle };
+        return { title: 'Order Cancelled', desc: 'This order was withdrawn. You can order again.', Icon: XCircle };
       default:
-        return { title: 'Live Kitchen Connection', desc: 'Synchronizing with kitchen display...', Icon: Clock };
+        return { title: 'Tracking Order', desc: 'Connecting to kitchen...', Icon: Clock };
     }
   };
 
-  /* Loading state */
   if (isLoading) {
     return (
       <div className="py-24 text-center space-y-3 font-sans">
-        <div className="h-7 w-7 mx-auto animate-spin rounded-full border-2 border-accent border-t-transparent" />
-        <p className="text-xs font-mono text-muted tracking-wider uppercase">Connecting to live kitchen display...</p>
+        <div className="h-7 w-7 mx-auto animate-spin rounded-full border-2" style={{ borderColor: 'var(--g-surface-3)', borderTopColor: 'var(--g-accent)' }} />
+        <p className="text-xs" style={{ color: 'var(--g-text-muted)' }}>Connecting to kitchen…</p>
       </div>
     );
   }
 
-  /* No orders */
   if (orders.length === 0) {
     return (
-      <div className="py-20 text-center space-y-4 font-sans max-w-md mx-auto">
-        <div className="mx-auto h-20 w-20 rounded-full border border-white/10 bg-surface-2 flex items-center justify-center text-accent shadow-sm">
-          <ClipboardList className="h-9 w-9" strokeWidth={1.5} />
+      <div className="py-20 text-center space-y-4 font-sans max-w-sm mx-auto">
+        <div className="mx-auto h-20 w-20 rounded-full flex items-center justify-center"
+          style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border)' }}>
+          <ClipboardList className="h-9 w-9" style={{ color: 'var(--g-text-muted)' }} strokeWidth={1.5} />
         </div>
         <div className="space-y-1.5">
-          <h1 className="text-2xl font-heading font-extrabold text-text tracking-tight">No Active Orders Yet</h1>
-          <p className="text-xs sm:text-sm text-muted leading-relaxed font-sans">
-            No live kitchen tickets have been dispatched for Table {shortCode} yet.
+          <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--g-text)' }}>No Orders Yet</h1>
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--g-text-muted)' }}>
+            Browse the menu and place your first order.
           </p>
         </div>
         <div className="pt-2">
           <Link
             to={`/t/${shortCode}`}
-            className="inline-flex items-center justify-center gap-2 px-7 py-3.5 min-h-[44px] touch-manipulation rounded-full bg-accent text-bg text-xs font-semibold hover:bg-accent-hover active:scale-[0.98] transition-all shadow-sm"
+            className="g-btn-primary inline-flex items-center justify-center gap-2 px-7 py-3 text-sm active:scale-[0.98] transition-all"
           >
-            <Plus className="h-4 w-4" />
-            <span>Browse Menu &amp; Order</span>
+            <Plus className="h-4 w-4" /> Browse Menu
           </Link>
         </div>
       </div>
     );
   }
 
-  // Track the most relevant active order, or latest order if all are cancelled
   const activeOrders = ordersList.filter((o) => o.status !== 'cancelled');
   const displayOrder = activeOrders[0] || latestOrder;
   const headline = getHeadline(displayOrder?.status);
   const HeadlineIcon = headline.Icon;
 
   return (
-    <div className="space-y-8 pb-16 font-sans w-full">
-      {/* Clean Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-white/[0.08]">
-        <div className="flex items-center gap-3.5">
+    <div className="space-y-5 pb-8 font-sans w-full">
+      {/* ─── Page Header ─── */}
+      <div className="flex items-center justify-between gap-3 pb-4" style={{ borderBottom: '1px solid var(--g-border)' }}>
+        <div className="flex items-center gap-3">
           <Link
             to={`/t/${shortCode}`}
-            className="h-11 w-11 min-h-[44px] min-w-[44px] rounded-full border border-white/10 bg-surface-2 flex items-center justify-center text-muted hover:text-white hover:border-white/20 transition-all shrink-0"
+            className="h-10 w-10 rounded-full flex items-center justify-center transition-all shrink-0"
             title="Back to menu"
             aria-label="Back to menu"
+            style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border)', color: 'var(--g-text-muted)' }}
           >
             <ArrowLeft className="h-4 w-4" strokeWidth={1.5} />
           </Link>
           <div>
-            <div className="flex items-center gap-2 font-mono text-xs text-accent uppercase tracking-wider">
-              <Sparkles className="h-3 w-3" />
-              <span>Real-Time Kitchen Feed</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-heading font-extrabold text-text tracking-tight">
-              Live Order Status &amp; Rounds
-            </h1>
+            <h1 className="text-lg font-bold tracking-tight" style={{ color: 'var(--g-text)' }}>Your Orders</h1>
+            <p className="text-xs" style={{ color: 'var(--g-text-muted)' }}>
+              Live order tracking
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 self-end sm:self-auto">
-          <span className="text-xs font-mono text-accent bg-accent/10 px-3.5 py-1.5 rounded-full border border-accent/20 flex items-center gap-2 shadow-xs">
-            <span className="h-2 w-2 rounded-full bg-accent animate-pulse" />
-            <span>KDS Connected</span>
-          </span>
-        </div>
+        <span className="text-xs font-medium px-3 py-1.5 rounded-full flex items-center gap-1.5"
+          style={{ background: 'var(--g-green-light)', color: 'var(--g-green)', border: '1px solid rgba(27,166,114,0.12)' }}>
+          <span className="h-1.5 w-1.5 rounded-full g-pulse-soft" style={{ background: 'var(--g-green)' }} />
+          Connected
+        </span>
       </div>
 
-      {/* Two Column Layout on Desktop */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* Left Column: Progress & Rounds (Span 7) */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Kitchen Status Card */}
-          <div className="card-surface p-5 rounded-card border border-white/[0.08] flex items-center gap-4">
-            <div className="h-12 w-12 rounded-2xl bg-surface-2 border border-white/10 text-accent flex items-center justify-center shrink-0 shadow-sm">
-              <HeadlineIcon className="h-6 w-6" strokeWidth={1.5} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <h4 className="font-heading font-bold text-sm sm:text-base text-text truncate">
-                  {headline.title}
-                </h4>
-                <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${getStatusColor(displayOrder?.status)}`}>
-                  {getStatusText(displayOrder?.status)}
-                </span>
-              </div>
-              <p className="text-xs text-muted mt-1 leading-relaxed font-sans">
-                {headline.desc}
-              </p>
-            </div>
-          </div>
-
-          {/* Progress Line */}
-          <OrderProgressLine currentStatus={displayOrder?.status} />
-
-          {/* Order Rounds Itemized Breakdown */}
-          <div className="space-y-3.5">
-            <div className="flex items-center justify-between">
-              <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-text/80">
-                Dispatched Rounds ({orders.length})
-              </h3>
-              <span className="text-xs font-mono font-semibold text-accent">
-                Rounds Total: {formatCurrency(grandTotalAllRounds)}
-              </span>
-            </div>
-
-            {orders.map((round) => {
-              const isCancelled = round.status === 'cancelled';
-              const canCancel = ['placed', 'acknowledged'].includes(round.status);
-
-              return (
-                <div
-                  key={round.id}
-                  className={`card-surface p-5 rounded-card border transition-all space-y-3 ${
-                    isCancelled
-                      ? 'border-white/[0.04] bg-white/[0.01] opacity-75'
-                      : 'border-white/[0.08] hover:border-white/20'
-                  }`}
-                >
-                  <div className="flex items-center justify-between pb-2.5 border-b border-white/[0.08]">
-                    <div className="flex items-center gap-2.5 font-mono">
-                      <span className={`font-bold text-xs sm:text-sm ${isCancelled ? 'text-muted line-through' : 'text-text'}`}>
-                        Round #{round.round_number}
-                      </span>
-                      <span className="text-xs text-muted">
-                        {new Date(round.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {!isCancelled && (
-                        round.payment_status === 'paid' ? (
-                          <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
-                            Paid
-                          </span>
-                        ) : round.payment_status === 'partially_paid' || round.split_details ? (
-                          <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30 flex items-center gap-1">
-                            <Coins className="h-3 w-3 text-amber-400" />
-                            Part Paid (₹{round.split_details?.online || 0} Online &bull; ₹{round.split_details?.cash || 0} Cash Due)
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-white/5 text-muted border border-white/10">
-                            Pay on Exit
-                          </span>
-                        )
-                      )}
-                      <span className={`text-[10px] font-mono px-2.5 py-0.5 rounded-full border uppercase tracking-wider ${getStatusColor(round.status)}`}>
-                        {getStatusText(round.status)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2 text-xs font-sans">
-                    {round.items.map((item, idx) => (
-                      <div key={idx} className={`flex justify-between items-center ${isCancelled ? 'text-text/50 line-through' : 'text-text/90'}`}>
-                        <span className="truncate pr-3">
-                          <span className={`font-mono font-semibold mr-2 ${isCancelled ? 'text-muted' : 'text-accent'}`}>{item.qty}x</span> {item.name}
-                        </span>
-                        <span className="font-mono text-muted shrink-0">
-                          {formatCurrency(item.price * item.qty)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-
-                  {round.guest_notes && (
-                    <p className="text-[11px] italic text-muted bg-surface-2 p-2.5 rounded-xl border border-white/[0.06] font-sans">
-                      &quot;{round.guest_notes}&quot;
-                    </p>
-                  )}
-
-                  <div className="pt-2 border-t border-white/[0.08] flex justify-between items-center text-xs font-mono">
-                    <span className="text-muted">Round Subtotal</span>
-                    {isCancelled ? (
-                      <div className="flex items-center gap-2">
-                        <span className="text-muted/50 line-through">{formatCurrency(round.total)}</span>
-                        <span className="font-bold text-rose-400">Cancelled (₹0.00)</span>
-                      </div>
-                    ) : (
-                      <span className="font-bold text-accent">
-                        {formatCurrency(round.total)}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Cancel Round Button */}
-                  {canCancel && (
-                    <div className="pt-2.5 border-t border-white/[0.06] flex items-center justify-between gap-3">
-                      <span className="text-[11px] text-muted flex items-center gap-1 font-sans">
-                        <Clock className="h-3.5 w-3.5 text-amber-400 shrink-0" />
-                        Queued for chef &bull; Not cooked yet
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setCancellingOrder(round)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 min-h-[34px] rounded-full text-xs font-mono font-medium text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/25 hover:border-rose-500/40 transition-all cursor-pointer active:scale-95 shrink-0"
-                      >
-                        <XCircle className="h-3.5 w-3.5" />
-                        <span>Cancel Round</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+      {/* ─── Headline Status Card ─── */}
+      <div className="g-card p-4 flex items-center gap-3.5">
+        <div className="h-11 w-11 rounded-2xl flex items-center justify-center shrink-0"
+          style={{ background: 'var(--g-accent-light)', border: '1px solid rgba(226,55,68,0.1)' }}>
+          <HeadlineIcon className="h-5 w-5" style={{ color: 'var(--g-accent)' }} strokeWidth={1.5} />
         </div>
-
-        {/* Right Column: Actions & Settlement (Span 5) */}
-        <div className="lg:col-span-5 space-y-6">
-          {/* Bill Settlement Overview */}
-          <div className="card-surface p-6 rounded-card border border-white/[0.08] space-y-4">
-            <h4 className="font-mono text-xs font-semibold uppercase tracking-wider text-text/80 pb-1 border-b border-white/[0.06]">
-              Table Tab Summary
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="font-bold text-sm truncate" style={{ color: 'var(--g-text)' }}>
+              {headline.title}
             </h4>
-
-            <div className="space-y-2 text-xs font-sans">
-              <div className="flex justify-between text-muted">
-                <span>Rounds Dispatched</span>
-                <span className="font-mono text-text">{orders.length}</span>
-              </div>
-              <div className="flex justify-between text-muted">
-                <span>Table Code</span>
-                <span className="font-mono text-text">{shortCode}</span>
-              </div>
-              <div className="flex justify-between text-muted">
-                <span>All Rounds Total</span>
-                <span className="font-mono text-accent font-bold text-sm">{formatCurrency(grandTotalAllRounds)}</span>
-              </div>
-              {totalPaidOnlinePortion > 0 && (
-                <div className="flex justify-between text-accent text-xs">
-                  <span>Online Paid (Part)</span>
-                  <span className="font-mono font-semibold">-{formatCurrency(totalPaidOnlinePortion)}</span>
-                </div>
-              )}
-              {hasPartiallyPaid && (
-                <div className="flex justify-between text-amber-300 text-xs font-semibold pt-1 border-t border-dashed border-white/10">
-                  <span>Balance Cash Due</span>
-                  <span className="font-mono text-sm">{formatCurrency(remainingCashDue)}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="pt-2 border-t border-white/10 space-y-3">
-              <Link
-                to={`/t/${shortCode}`}
-                className="w-full text-center py-3.5 min-h-[44px] touch-manipulation rounded-full border border-white/10 hover:border-white/20 bg-surface-2 text-text font-heading font-bold text-xs transition-colors flex items-center justify-center gap-2 shadow-xs"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Add More Dishes (Round #{orders.length + 1})</span>
-              </Link>
-
-              {hasUnpaid ? (
-                <button
-                  type="button"
-                  onClick={() => setIsSettleModalOpen(true)}
-                  className="w-full flex items-center justify-center gap-2 py-4 rounded-full bg-accent hover:bg-accent-hover text-bg font-heading font-bold text-sm transition-all shadow-lift cursor-pointer active:scale-[0.98]"
-                >
-                  <Banknote className="h-4 w-4" strokeWidth={1.75} />
-                  <span>
-                    {hasPartiallyPaid
-                      ? `Settle Cash Due &bull; ${formatCurrency(remainingCashDue)}`
-                      : `Settle Bill &bull; ${formatCurrency(grandTotalAllRounds)}`}
-                  </span>
-                </button>
-              ) : (
-                <div className="p-4 text-center rounded-xl bg-accent/10 border border-accent/20 text-xs font-mono text-accent flex items-center justify-center gap-1.5">
-                  <Check className="h-4 w-4" strokeWidth={2} />
-                  <span>All rounds settled. Enjoy your time!</span>
-                </div>
-              )}
-            </div>
+            <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0"
+              style={{ ...getStatusColor(displayOrder?.status), border: `1px solid ${getStatusColor(displayOrder?.status).borderColor}` }}>
+              {getStatusText(displayOrder?.status)}
+            </span>
           </div>
-
-          <p className="text-center text-[11px] text-muted flex items-center justify-center gap-1.5 font-mono">
-            <ShieldCheck className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} />
-            <span>Automatic kitchen receipt printing enabled</span>
+          <p className="text-xs mt-0.5 leading-relaxed" style={{ color: 'var(--g-text-muted)' }}>
+            {headline.desc}
           </p>
         </div>
       </div>
 
-      {/* Bill Settlement Modal */}
-      <Modal
-        isOpen={isSettleModalOpen}
-        onClose={() => !settling && setIsSettleModalOpen(false)}
-        title="Settle Bill"
-        size="sm"
-      >
-        <div className="space-y-4 py-2 font-sans">
-          <div className="p-4 rounded-xl bg-surface-2 border border-white/10 text-center space-y-1">
-            <span className="text-xs font-mono text-muted uppercase tracking-wider">
-              {hasPartiallyPaid ? 'Remaining Cash Due' : 'Total Cumulative Bill'}
-            </span>
-            <div className="text-2xl font-mono font-bold text-accent">
-              {formatCurrency(remainingCashDue)}
-            </div>
-            {hasPartiallyPaid && (
-              <p className="text-[11px] text-emerald-400 font-mono">
-                ₹{totalPaidOnlinePortion} already paid online via UPI
-              </p>
-            )}
-            <p className="text-[11px] text-muted font-sans">
-              {orders.length} round{orders.length !== 1 ? 's' : ''} &bull; 5% GST inclusive
-            </p>
-          </div>
+      {/* ─── Progress Line ─── */}
+      <OrderProgressLine currentStatus={displayOrder?.status} />
 
-          {/* Settle Mode Tabs */}
-          <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-surface-2 border border-white/10">
-            <button
-              type="button"
-              onClick={() => setSettleMethod('online')}
-              className={`py-2 px-1 text-center rounded-lg text-xs font-medium transition-all ${
-                settleMethod === 'online'
-                  ? 'bg-accent text-bg font-bold shadow-xs'
-                  : 'text-muted hover:text-text'
-              }`}
-            >
-              Online (UPI)
-            </button>
-            <button
-              type="button"
-              onClick={() => setSettleMethod('counter')}
-              className={`py-2 px-1 text-center rounded-lg text-xs font-medium transition-all ${
-                settleMethod === 'counter'
-                  ? 'bg-accent text-bg font-bold shadow-xs'
-                  : 'text-muted hover:text-text'
-              }`}
-            >
-              Cash Counter
-            </button>
-            <button
-              type="button"
-              onClick={() => setSettleMethod('split')}
-              className={`py-2 px-1 text-center rounded-lg text-xs font-medium transition-all ${
-                settleMethod === 'split'
-                  ? 'bg-accent text-bg font-bold shadow-xs'
-                  : 'text-muted hover:text-text'
-              }`}
-            >
-              Part (Split)
-            </button>
-          </div>
+      {/* ─── Order Rounds ─── */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold" style={{ color: 'var(--g-text-secondary)' }}>
+            Orders ({orders.length})
+          </h3>
+          <span className="text-xs font-bold" style={{ color: 'var(--g-accent)' }}>
+            Total: {formatCurrency(grandTotalAllRounds)}
+          </span>
+        </div>
 
-          {/* Tab 1: Full Online */}
-          {settleMethod === 'online' && (
-            <div className="space-y-3">
-              <div className="p-4 rounded-xl bg-surface-2 border border-white/10 text-center space-y-2">
-                <div className="h-24 w-24 mx-auto bg-white p-2 rounded-xl flex items-center justify-center">
-                  <QrCode className="h-20 w-20 text-bg" strokeWidth={1.5} />
+        {orders.map((round) => {
+          const isCancelled = round.status === 'cancelled';
+          const canCancel = ['placed', 'acknowledged'].includes(round.status);
+
+          return (
+            <div
+              key={round.id}
+              className="g-card p-4 space-y-3 transition-all"
+              style={{ opacity: isCancelled ? 0.6 : 1 }}
+            >
+              <div className="flex items-center justify-between pb-2.5" style={{ borderBottom: '1px solid var(--g-border)' }}>
+                <div className="flex items-center gap-2.5">
+                  <span className={`font-bold text-xs ${isCancelled ? 'line-through' : ''}`} style={{ color: isCancelled ? 'var(--g-text-muted)' : 'var(--g-text)' }}>
+                    Round #{round.round_number}
+                  </span>
+                  <span className="text-xs" style={{ color: 'var(--g-text-muted)' }}>
+                    {new Date(round.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
-                <p className="text-[11px] text-muted font-mono">Scan QR with GPay, PhonePe, or Paytm</p>
+                <div className="flex items-center gap-2">
+                  {!isCancelled && (
+                    round.payment_status === 'paid' ? (
+                      <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full"
+                        style={{ background: 'var(--g-green-light)', color: 'var(--g-green)', border: '1px solid rgba(27,166,114,0.15)' }}>
+                        Paid
+                      </span>
+                    ) : round.payment_status === 'partially_paid' || round.split_details ? (
+                      <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full flex items-center gap-1"
+                        style={{ background: 'var(--g-amber-light)', color: '#D97706', border: '1px solid rgba(245,158,11,0.15)' }}>
+                        <Coins className="h-3 w-3" /> Part Paid
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-medium px-2.5 py-0.5 rounded-full"
+                        style={{ background: 'var(--g-surface-2)', color: 'var(--g-text-muted)', border: '1px solid var(--g-border)' }}>
+                        Pay Later
+                      </span>
+                    )
+                  )}
+                  <span className="text-[10px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wider"
+                    style={{ ...getStatusColor(round.status), border: `1px solid ${getStatusColor(round.status).borderColor}` }}>
+                    {getStatusText(round.status)}
+                  </span>
+                </div>
               </div>
 
-              <button
-                type="button"
-                disabled={settling}
-                onClick={() => handleSettle('online')}
-                className="w-full py-3.5 rounded-full bg-accent text-bg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-accent-hover disabled:opacity-50 transition-colors cursor-pointer shadow-sm"
-              >
-                {settling ? (
-                  <span className="h-4 w-4 border-2 border-bg/30 border-t-bg rounded-full animate-spin" />
+              <div className="space-y-1.5 text-sm">
+                {round.items.map((item, idx) => (
+                  <div key={idx} className={`flex justify-between items-center ${isCancelled ? 'line-through' : ''}`}
+                    style={{ color: isCancelled ? 'var(--g-text-muted)' : 'var(--g-text-secondary)' }}>
+                    <span className="truncate pr-3">
+                      <span className="font-bold mr-1.5" style={{ color: isCancelled ? 'var(--g-text-muted)' : 'var(--g-accent)' }}>{item.qty}×</span>
+                      {item.name}
+                    </span>
+                    <span className="shrink-0 font-medium" style={{ color: 'var(--g-text-muted)' }}>
+                      {formatCurrency(item.price * item.qty)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {round.guest_notes && (
+                <p className="text-[11px] italic p-2.5 rounded-xl" style={{ color: 'var(--g-text-muted)', background: 'var(--g-surface-2)', border: '1px solid var(--g-border)' }}>
+                  &quot;{round.guest_notes}&quot;
+                </p>
+              )}
+
+              <div className="pt-2 flex justify-between items-center text-xs font-medium" style={{ borderTop: '1px solid var(--g-border)' }}>
+                <span style={{ color: 'var(--g-text-muted)' }}>Subtotal</span>
+                {isCancelled ? (
+                  <div className="flex items-center gap-2">
+                    <span className="line-through" style={{ color: 'var(--g-text-muted)' }}>{formatCurrency(round.total)}</span>
+                    <span className="font-bold" style={{ color: 'var(--g-accent)' }}>Cancelled</span>
+                  </div>
                 ) : (
-                  <CreditCard className="h-4 w-4" strokeWidth={1.5} />
+                  <span className="font-bold" style={{ color: 'var(--g-text)' }}>{formatCurrency(round.total)}</span>
                 )}
-                Authorize {formatCurrency(remainingCashDue)} via UPI
-              </button>
-            </div>
-          )}
-
-          {/* Tab 2: Full Cash */}
-          {settleMethod === 'counter' && (
-            <div className="space-y-3">
-              <div className="p-3.5 rounded-xl bg-surface-2 border border-white/10 text-center space-y-1">
-                <p className="text-xs text-text">Please hand over cash directly to the service staff or counter cashier.</p>
-                <span className="text-base font-mono font-bold text-amber-300 block">{formatCurrency(remainingCashDue)}</span>
               </div>
-              <button
-                type="button"
-                disabled={settling}
-                onClick={() => handleSettle('counter')}
-                className="w-full py-3.5 rounded-full border border-white/10 hover:border-white/25 bg-surface text-text font-semibold text-sm flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                <Banknote className="h-4 w-4" strokeWidth={1.5} />
-                Request Cash Settle at Counter
-              </button>
-            </div>
-          )}
 
-          {/* Tab 3: Split Payment */}
-          {settleMethod === 'split' && (
-            <div className="space-y-3">
-              <div className="p-3.5 rounded-xl bg-surface-2 border border-accent/25 space-y-3">
-                <div className="flex items-center justify-between text-xs font-semibold text-text">
-                  <span className="flex items-center gap-1.5">
-                    <ArrowRightLeft className="h-3.5 w-3.5 text-accent" /> Configure Split
+              {canCancel && (
+                <div className="pt-2.5 flex items-center justify-between gap-3" style={{ borderTop: '1px solid var(--g-border)' }}>
+                  <span className="text-[11px] flex items-center gap-1" style={{ color: 'var(--g-text-muted)' }}>
+                    <Clock className="h-3.5 w-3.5 shrink-0" style={{ color: '#D97706' }} />
+                    Not started yet
                   </span>
                   <button
                     type="button"
-                    onClick={() => setCustomSplitOnline(Math.round(remainingCashDue / 2))}
-                    className="text-[10px] font-mono text-accent hover:underline"
+                    onClick={() => setCancellingOrder(round)}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer active:scale-95 shrink-0"
+                    style={{ color: 'var(--g-accent)', background: 'var(--g-accent-light)', border: '1px solid rgba(226,55,68,0.15)' }}
                   >
+                    <XCircle className="h-3.5 w-3.5" /> Cancel
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* ─── Table Summary & Actions ─── */}
+      <div className="g-card p-5 space-y-3.5">
+        <h4 className="text-xs font-semibold pb-2" style={{ color: 'var(--g-text-secondary)', borderBottom: '1px solid var(--g-border)' }}>
+          Bill Summary
+        </h4>
+
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between" style={{ color: 'var(--g-text-muted)' }}>
+            <span>Total Rounds</span>
+            <span className="font-medium" style={{ color: 'var(--g-text)' }}>{orders.length}</span>
+          </div>
+          <div className="flex justify-between" style={{ color: 'var(--g-text-muted)' }}>
+            <span>Grand Total</span>
+            <span className="font-bold" style={{ color: 'var(--g-accent)' }}>{formatCurrency(grandTotalAllRounds)}</span>
+          </div>
+          {totalPaidOnlinePortion > 0 && (
+            <div className="flex justify-between text-xs" style={{ color: 'var(--g-green)' }}>
+              <span>Paid Online</span>
+              <span className="font-semibold">-{formatCurrency(totalPaidOnlinePortion)}</span>
+            </div>
+          )}
+          {hasPartiallyPaid && (
+            <div className="flex justify-between text-xs font-semibold pt-1" style={{ color: '#D97706', borderTop: '1px dashed var(--g-border)' }}>
+              <span>Cash Due</span>
+              <span>{formatCurrency(remainingCashDue)}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="pt-2 space-y-2.5" style={{ borderTop: '1px solid var(--g-border)' }}>
+          <Link
+            to={`/t/${shortCode}`}
+            className="g-btn-outline w-full text-center py-3 text-xs font-semibold flex items-center justify-center gap-2"
+          >
+            <Plus className="h-3.5 w-3.5" /> Add More Dishes
+          </Link>
+
+          {hasUnpaid ? (
+            <button
+              type="button"
+              onClick={() => setIsSettleModalOpen(true)}
+              className="g-btn-primary w-full flex items-center justify-center gap-2 py-3.5 text-sm font-bold active:scale-[0.98]"
+            >
+              <Banknote className="h-4 w-4" strokeWidth={1.75} />
+              {hasPartiallyPaid
+                ? `Pay Remaining ${formatCurrency(remainingCashDue)}`
+                : `Settle Bill ${formatCurrency(grandTotalAllRounds)}`}
+            </button>
+          ) : (
+            <div className="p-3.5 text-center rounded-xl text-xs font-medium flex items-center justify-center gap-1.5"
+              style={{ background: 'var(--g-green-light)', color: 'var(--g-green)', border: '1px solid rgba(27,166,114,0.12)' }}>
+              <Check className="h-4 w-4" strokeWidth={2} /> All settled. Enjoy!
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ─── Settle Modal ─── */}
+      <Modal isOpen={isSettleModalOpen} onClose={() => !settling && setIsSettleModalOpen(false)} title="Settle Bill" size="sm" guestTheme={true}>
+        <div className="space-y-4 py-2 font-sans">
+          <div className="p-4 rounded-xl text-center space-y-1"
+            style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border)' }}>
+            <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--g-text-muted)' }}>
+              {hasPartiallyPaid ? 'Cash Due' : 'Total Bill'}
+            </span>
+            <div className="text-2xl font-bold" style={{ color: 'var(--g-accent)' }}>
+              {formatCurrency(remainingCashDue)}
+            </div>
+            {hasPartiallyPaid && (
+              <p className="text-[11px] font-medium" style={{ color: 'var(--g-green)' }}>
+                ₹{totalPaidOnlinePortion} already paid online
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5 p-1 rounded-xl" style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border)' }}>
+            {['online', 'counter', 'split'].map((method) => (
+              <button
+                key={method}
+                type="button"
+                onClick={() => setSettleMethod(method)}
+                className="py-2 px-1 text-center rounded-lg text-xs font-medium transition-all"
+                style={{
+                  background: settleMethod === method ? 'var(--g-accent)' : 'transparent',
+                  color: settleMethod === method ? '#fff' : 'var(--g-text-muted)',
+                  fontWeight: settleMethod === method ? 700 : 500,
+                }}
+              >
+                {method === 'online' ? 'Online' : method === 'counter' ? 'Cash' : 'Split'}
+              </button>
+            ))}
+          </div>
+
+          {/* Online */}
+          {settleMethod === 'online' && (
+            <div className="space-y-3">
+              <div className="p-4 rounded-xl text-center space-y-2" style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border)' }}>
+                <div className="h-24 w-24 mx-auto bg-white p-2 rounded-xl flex items-center justify-center"
+                  style={{ border: '1px solid var(--g-border)' }}>
+                  <QrCode className="h-20 w-20" style={{ color: 'var(--g-text)' }} strokeWidth={1.5} />
+                </div>
+                <p className="text-[11px]" style={{ color: 'var(--g-text-muted)' }}>Scan with any UPI app</p>
+              </div>
+              <button type="button" disabled={settling} onClick={() => handleSettle('online')}
+                className="g-btn-primary w-full py-3.5 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50">
+                {settling ? <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CreditCard className="h-4 w-4" strokeWidth={1.5} />}
+                Pay {formatCurrency(remainingCashDue)}
+              </button>
+            </div>
+          )}
+
+          {/* Cash */}
+          {settleMethod === 'counter' && (
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-xl text-center space-y-1" style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border)' }}>
+                <p className="text-xs" style={{ color: 'var(--g-text-secondary)' }}>Hand over cash to the staff or counter cashier.</p>
+                <span className="text-base font-bold block" style={{ color: '#D97706' }}>{formatCurrency(remainingCashDue)}</span>
+              </div>
+              <button type="button" disabled={settling} onClick={() => handleSettle('counter')}
+                className="g-btn-outline w-full py-3.5 text-sm font-semibold flex items-center justify-center gap-2">
+                <Banknote className="h-4 w-4" strokeWidth={1.5} /> Request Cash Settlement
+              </button>
+            </div>
+          )}
+
+          {/* Split */}
+          {settleMethod === 'split' && (
+            <div className="space-y-3">
+              <div className="p-3.5 rounded-xl space-y-3" style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border)' }}>
+                <div className="flex items-center justify-between text-xs font-semibold">
+                  <span className="flex items-center gap-1.5" style={{ color: 'var(--g-text)' }}>
+                    <ArrowRightLeft className="h-3.5 w-3.5" style={{ color: 'var(--g-accent)' }} /> Configure Split
+                  </span>
+                  <button type="button" onClick={() => setCustomSplitOnline(Math.round(remainingCashDue / 2))}
+                    className="text-[10px] font-medium cursor-pointer" style={{ color: 'var(--g-accent)' }}>
                     Reset 50/50
                   </button>
                 </div>
-
                 <div className="grid grid-cols-2 gap-2.5">
                   <div className="space-y-1">
-                    <span className="text-[10px] font-mono text-accent uppercase tracking-wider block">Pay Online</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider block" style={{ color: 'var(--g-accent)' }}>Online</span>
                     <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-muted">₹</span>
-                      <input
-                        type="number"
-                        min="1"
-                        max={remainingCashDue - 1}
-                        value={customSplitOnline}
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: 'var(--g-text-muted)' }}>₹</span>
+                      <input type="number" min="1" max={remainingCashDue - 1} value={customSplitOnline}
                         onChange={(e) => setCustomSplitOnline(Number(e.target.value))}
-                        className="w-full pl-6 pr-2 py-1.5 rounded-lg bg-surface border border-accent/30 text-xs font-mono font-bold text-text focus:outline-none focus:ring-1 focus:ring-accent"
-                      />
+                        className="w-full pl-6 pr-2 py-1.5 rounded-lg text-xs font-bold"
+                        style={{ background: 'var(--g-surface)', border: '1px solid rgba(226,55,68,0.3)', color: 'var(--g-text)' }} />
                     </div>
                   </div>
-
                   <div className="space-y-1">
-                    <span className="text-[10px] font-mono text-amber-300 uppercase tracking-wider block">Cash at Counter</span>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider block" style={{ color: 'var(--g-amber)' }}>Cash</span>
                     <div className="relative">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-mono text-muted">₹</span>
-                      <input
-                        type="number"
-                        readOnly
-                        value={effectiveSettleCash}
-                        className="w-full pl-6 pr-2 py-1.5 rounded-lg bg-surface/50 border border-white/10 text-xs font-mono font-bold text-amber-300 cursor-not-allowed select-none"
-                      />
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs" style={{ color: 'var(--g-text-muted)' }}>₹</span>
+                      <input type="number" readOnly value={effectiveSettleCash}
+                        className="w-full pl-6 pr-2 py-1.5 rounded-lg text-xs font-bold cursor-not-allowed"
+                        style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border)', color: '#D97706' }} />
                     </div>
                   </div>
                 </div>
-
-                <div className="h-2 w-full rounded-full bg-surface overflow-hidden flex">
-                  <div
-                    className="bg-accent transition-all duration-300 h-full"
-                    style={{ width: `${(effectiveSettleOnline / (remainingCashDue || 1)) * 100}%` }}
-                  />
-                  <div
-                    className="bg-amber-400/80 transition-all duration-300 h-full"
-                    style={{ width: `${(effectiveSettleCash / (remainingCashDue || 1)) * 100}%` }}
-                  />
+                <div className="h-2 w-full rounded-full overflow-hidden flex" style={{ background: 'var(--g-surface)' }}>
+                  <div className="h-full transition-all duration-300" style={{ width: `${(effectiveSettleOnline / (remainingCashDue || 1)) * 100}%`, background: 'var(--g-accent)' }} />
+                  <div className="h-full transition-all duration-300" style={{ width: `${(effectiveSettleCash / (remainingCashDue || 1)) * 100}%`, background: 'var(--g-amber)' }} />
                 </div>
               </div>
-
-              <button
-                type="button"
-                disabled={settling}
-                onClick={() =>
-                  handleSettle('split', {
-                    onlineAmount: effectiveSettleOnline,
-                    cashAmount: effectiveSettleCash,
-                  })
-                }
-                className="w-full py-3.5 rounded-full bg-accent text-bg font-semibold text-sm flex items-center justify-center gap-2 hover:bg-accent-hover disabled:opacity-50 transition-colors cursor-pointer shadow-sm"
-              >
-                {settling ? (
-                  <span className="h-4 w-4 border-2 border-bg/30 border-t-bg rounded-full animate-spin" />
-                ) : (
-                  <Coins className="h-4 w-4" strokeWidth={1.5} />
-                )}
-                Pay {formatCurrency(effectiveSettleOnline)} Online &bull; Rest {formatCurrency(effectiveSettleCash)} Cash
+              <button type="button" disabled={settling}
+                onClick={() => handleSettle('split', { onlineAmount: effectiveSettleOnline, cashAmount: effectiveSettleCash })}
+                className="g-btn-primary w-full py-3.5 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50">
+                {settling ? <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Coins className="h-4 w-4" strokeWidth={1.5} />}
+                Pay {formatCurrency(effectiveSettleOnline)} Online &bull; {formatCurrency(effectiveSettleCash)} Cash
               </button>
             </div>
           )}
         </div>
       </Modal>
 
-      {/* Order Cancellation Confirmation Modal */}
-      <Modal
-        isOpen={!!cancellingOrder}
-        onClose={() => !isCancelling && setCancellingOrder(null)}
-        title="Cancel Order Round"
-        size="sm"
-      >
+      {/* ─── Cancel Confirmation Modal ─── */}
+      <Modal isOpen={!!cancellingOrder} onClose={() => !isCancelling && setCancellingOrder(null)} title="Cancel Order" size="sm" guestTheme={true}>
         <div className="space-y-4 py-2 font-sans">
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 space-y-2.5 text-center">
-            <div className="h-10 w-10 mx-auto rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center">
+          <div className="p-4 rounded-xl space-y-2.5 text-center"
+            style={{ background: 'var(--g-accent-light)', border: '1px solid rgba(226,55,68,0.12)' }}>
+            <div className="h-10 w-10 mx-auto rounded-full flex items-center justify-center"
+              style={{ background: 'rgba(226,55,68,0.1)', color: 'var(--g-accent)' }}>
               <AlertTriangle className="h-5 w-5" />
             </div>
-            <h4 className="font-heading font-bold text-sm text-text">
+            <h4 className="font-bold text-sm" style={{ color: 'var(--g-text)' }}>
               Cancel Round #{cancellingOrder?.round_number}?
             </h4>
-            <p className="text-xs text-muted leading-relaxed">
-              This will pull ticket #{cancellingOrder?.round_number} ({formatCurrency(cancellingOrder?.total || 0)}) directly from the active kitchen prep queue. This action cannot be reversed.
+            <p className="text-xs leading-relaxed" style={{ color: 'var(--g-text-muted)' }}>
+              This will remove the order ({formatCurrency(cancellingOrder?.total || 0)}) from the kitchen queue. This cannot be undone.
             </p>
           </div>
 
@@ -791,20 +666,21 @@ export function GuestOrderStatusScreen() {
               type="button"
               disabled={isCancelling}
               onClick={handleConfirmCancel}
-              className="w-full py-3.5 min-h-[44px] rounded-full bg-rose-500 hover:bg-rose-600 text-white font-semibold text-xs flex items-center justify-center gap-2 disabled:opacity-50 transition-colors cursor-pointer shadow-sm active:scale-98"
+              className="w-full py-3.5 rounded-full font-semibold text-sm flex items-center justify-center gap-2 disabled:opacity-50 transition-colors cursor-pointer active:scale-98"
+              style={{ background: 'var(--g-accent)', color: '#fff' }}
             >
               {isCancelling ? (
                 <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <XCircle className="h-4 w-4" />
               )}
-              Confirm &amp; Cancel Round
+              Confirm Cancel
             </button>
             <button
               type="button"
               disabled={isCancelling}
               onClick={() => setCancellingOrder(null)}
-              className="w-full py-3.5 min-h-[44px] rounded-full border border-white/10 hover:border-white/20 bg-surface-2 text-text font-semibold text-xs flex items-center justify-center transition-colors cursor-pointer"
+              className="g-btn-outline w-full py-3.5 text-sm font-semibold flex items-center justify-center"
             >
               Keep My Order
             </button>
