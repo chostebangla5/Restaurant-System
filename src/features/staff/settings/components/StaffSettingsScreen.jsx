@@ -29,6 +29,10 @@ import {
   Tag,
   Check,
   ExternalLink,
+  CreditCard,
+  ShieldCheck,
+  Smartphone,
+  QrCode,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { generateSlug } from '@/features/shared/auth/api/authApi';
@@ -41,6 +45,7 @@ const PLACEHOLDER_GSTINS = ['19AAACC1206D1ZM', '00AAAAA0000A0Z0'];
 const TAB_LIST = [
   { value: 'branding', label: 'Branding', icon: Paintbrush },
   { value: 'business', label: 'Business Details', icon: Store },
+  { value: 'payments', label: 'Payments & UPI', icon: CreditCard },
   { value: 'staff', label: 'Staff Management', icon: Users },
 ];
 
@@ -79,6 +84,11 @@ export function StaffSettingsScreen() {
     allow_guest_ordering: true,
     require_guest_phone: false,
     enable_sound_alerts: true,
+    upi_id: '',
+    upi_merchant_name: '',
+    razorpay_key_id: '',
+    enable_upi_intent: true,
+    fallback_to_counter_on_failure: true,
   });
 
   // ─── Staff ──────────────────────────────────────────────────────────────────
@@ -123,6 +133,11 @@ export function StaffSettingsScreen() {
               allow_guest_ordering: settings.allow_guest_ordering ?? true,
               require_guest_phone: settings.require_guest_phone ?? false,
               enable_sound_alerts: settings.enable_sound_alerts ?? true,
+              upi_id: settings.upi_id || venue.upi_id || '',
+              upi_merchant_name: settings.upi_merchant_name || venue.upi_merchant_name || venue.name || '',
+              razorpay_key_id: settings.razorpay_key_id || '',
+              enable_upi_intent: settings.enable_upi_intent ?? true,
+              fallback_to_counter_on_failure: settings.fallback_to_counter_on_failure ?? true,
             });
           }
         } catch (settingsErr) {
@@ -230,6 +245,41 @@ export function StaffSettingsScreen() {
       toast.success('Business details saved');
     } catch (err) {
       toast.error(err.message || 'Failed to save details');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSavePayments = async (e) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      const activeId = venueId || venueData.id;
+      if (!activeId) throw new Error('No active venue found');
+
+      await updateVenueSettings(activeId, {
+        upi_id: settingsData.upi_id?.trim() || null,
+        upi_merchant_name: settingsData.upi_merchant_name?.trim() || null,
+        razorpay_key_id: settingsData.razorpay_key_id?.trim() || null,
+        enable_upi_intent: settingsData.enable_upi_intent ?? true,
+        fallback_to_counter_on_failure: settingsData.fallback_to_counter_on_failure ?? true,
+      });
+
+      // Also sync upi_id to venues table if provided
+      if (settingsData.upi_id !== undefined) {
+        try {
+          await updateVenue(activeId, {
+            upi_id: settingsData.upi_id?.trim() || null,
+            upi_merchant_name: settingsData.upi_merchant_name?.trim() || null,
+          });
+        } catch (vErr) {
+          console.warn('Venue upi sync notice:', vErr);
+        }
+      }
+
+      toast.success('Payment & UPI settings saved successfully!');
+    } catch (err) {
+      toast.error(err.message || 'Failed to update payment settings');
     } finally {
       setIsSaving(false);
     }
@@ -699,6 +749,90 @@ export function StaffSettingsScreen() {
 
           <Button type="submit" isLoading={isSaving} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
             Save Business Details
+          </Button>
+        </form>
+      )}
+
+      {/* ─── Payments & UPI Settings Tab ─── */}
+      {activeTab === 'payments' && (
+        <form onSubmit={handleSavePayments} className="space-y-6">
+          <div className="p-6 rounded-card bg-[#0E1016] border border-white/[0.08] space-y-5">
+            <div>
+              <h3 className="text-sm font-heading font-bold text-[#F4F5F7] flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-[#C6FF3D]" />
+                Direct UPI Configuration (Zero Gateway Commission)
+              </h3>
+              <p className="text-xs text-[#8A8F9C] mt-1">
+                Receive direct UPI payments into your restaurant bank account with 0% gateway charges. When diners tap Pay Online, it will redirect directly to their installed GPay, PhonePe, or Paytm app.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Input
+                label="Restaurant UPI ID (VPA)"
+                value={settingsData.upi_id}
+                onChange={(e) => setSettingsData((p) => ({ ...p, upi_id: e.target.value.trim() }))}
+                placeholder="e.g. restaurantname@okaxis or 9876543210@paytm"
+                helperText="Payments from GPay, PhonePe, and Paytm will be routed directly to this VPA."
+              />
+              <Input
+                label="UPI Payee / Merchant Display Name"
+                value={settingsData.upi_merchant_name}
+                onChange={(e) => setSettingsData((p) => ({ ...p, upi_merchant_name: e.target.value }))}
+                placeholder={venueData.name || 'e.g. Choste Bangla Restaurant'}
+                helperText="The business name displayed to the customer inside their UPI app."
+              />
+            </div>
+          </div>
+
+          <div className="p-6 rounded-card bg-[#0E1016] border border-white/[0.08] space-y-4">
+            <div>
+              <h3 className="text-sm font-heading font-bold text-[#F4F5F7] flex items-center gap-2">
+                <Smartphone className="h-4 w-4 text-[#C6FF3D]" />
+                Smart UPI Priority & Failure Redirection
+              </h3>
+              <p className="text-xs text-[#8A8F9C] mt-1">
+                Configure mobile app launching and auto-redirect to counter if online payment fails.
+              </p>
+            </div>
+
+            <Toggle
+              checked={settingsData.enable_upi_intent}
+              onChange={(val) => setSettingsData((p) => ({ ...p, enable_upi_intent: val }))}
+              label="UPI Transaction Priority (Direct App Switch)"
+              description="On mobile phones, opening payment will immediately launch the customer's installed UPI app (GPay, PhonePe, Paytm)."
+            />
+
+            <Toggle
+              checked={settingsData.fallback_to_counter_on_failure}
+              onChange={(val) => setSettingsData((p) => ({ ...p, fallback_to_counter_on_failure: val }))}
+              label="Automatic Redirection to Pay at Counter on Failure"
+              description="If the online payment fails, times out, or customer cancels, automatically convert order to Pay at Counter so the order succeeds and goes directly to the kitchen."
+            />
+          </div>
+
+          <div className="p-6 rounded-card bg-[#0E1016] border border-white/[0.08] space-y-4">
+            <div>
+              <h3 className="text-sm font-heading font-bold text-[#F4F5F7] flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-[#C6FF3D]" />
+                Payment Gateway Integration (Optional: Razorpay)
+              </h3>
+              <p className="text-xs text-[#8A8F9C] mt-1">
+                If you have a Razorpay merchant account, enter your Key ID below for automated server-verified settlements. Leave blank to use Direct UPI.
+              </p>
+            </div>
+
+            <Input
+              label="Razorpay Key ID (Optional)"
+              value={settingsData.razorpay_key_id}
+              onChange={(e) => setSettingsData((p) => ({ ...p, razorpay_key_id: e.target.value.trim() }))}
+              placeholder="e.g. rzp_live_xxxxxxxxxxxx or rzp_test_xxxxxxxxxxxx"
+              helperText="Find in Razorpay Dashboard > Settings > API Keys"
+            />
+          </div>
+
+          <Button type="submit" isLoading={isSaving} className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold px-8">
+            Save Payment & UPI Settings
           </Button>
         </form>
       )}

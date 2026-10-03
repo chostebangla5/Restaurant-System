@@ -245,14 +245,19 @@ export function GuestLayout() {
           setTableNotFound(true);
         } else {
           const venue = data.venues;
-          setTableData({
+          const info = {
             tableNumber: data.table_number,
             venueName: venue?.name || 'Restaurant Dining',
             brandColor: venue?.brand_color || '#E23744',
             currency: venue?.currency || 'INR',
             venueId: venue?.id || null,
-          });
+            phone: venue?.phone || '',
+          };
+          setTableData(info);
           applyVenueBranding(venue?.brand_color || '#E23744');
+          try {
+            sessionStorage.setItem(`tablesuite_table_info_${shortCode.toUpperCase()}`, JSON.stringify(info));
+          } catch (e) {}
         }
       } catch (err) {
         console.warn('Error loading table info:', err);

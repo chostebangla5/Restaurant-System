@@ -92,20 +92,26 @@ export function GuestMenuScreen() {
           setCategories([{ id: 'all', name: 'All' }, ...catRes.data]);
         }
         if (itemRes.data) {
-          setItems(
-            itemRes.data.map((i) => ({
-              id: i.id,
-              name: i.name,
-              description: i.description || '',
-              price: Number(i.price) || 0,
-              category: i.category_id,
-              station: i.station || 'hot',
-              is_bestseller: i.is_bestseller,
-              is_veg: (i.dietary_tags || []).includes('veg'),
-              tags: i.dietary_tags || [],
-              image_url: i.image_url,
-            }))
-          );
+          const mappedItems = itemRes.data.map((i) => ({
+            id: i.id,
+            name: i.name,
+            description: i.description || '',
+            price: Number(i.price) || 0,
+            category: i.category_id,
+            station: i.station || 'hot',
+            is_bestseller: i.is_bestseller,
+            is_veg: (i.dietary_tags || []).includes('veg'),
+            tags: i.dietary_tags || [],
+            image_url: i.image_url,
+          }));
+          setItems(mappedItems);
+          try {
+            if (shortCode) {
+              const codeKey = shortCode.trim().toUpperCase();
+              sessionStorage.setItem(`tablesuite_menu_${codeKey}`, JSON.stringify(mappedItems));
+              sessionStorage.setItem(`tablesuite_venue_${codeKey}`, tableData.venue_id);
+            }
+          } catch (e) {}
         }
       } catch (err) {
         console.error('Error loading guest menu from Supabase:', err);
