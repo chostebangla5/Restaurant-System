@@ -28,8 +28,15 @@ import {
   Sparkles,
   Tag,
   Check,
+  ExternalLink,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { generateSlug } from '@/features/shared/auth/api/authApi';
+
+const GSTIN_REGEX = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+const FSSAI_REGEX = /^[0-9]{14}$/;
+const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const PLACEHOLDER_GSTINS = ['19AAACC1206D1ZM', '00AAAAA0000A0Z0'];
 
 const TAB_LIST = [
   { value: 'branding', label: 'Branding', icon: Paintbrush },
@@ -155,12 +162,18 @@ export function StaffSettingsScreen() {
 
   const handleSaveBranding = async (e) => {
     e.preventDefault();
+    const trimmedSlug = (venueData.slug || '').trim().toLowerCase();
+    if (trimmedSlug && !SLUG_REGEX.test(trimmedSlug)) {
+      toast.error('Invalid URL slug format. Use lowercase letters, numbers, and hyphens (e.g. spice-garden).');
+      return;
+    }
+
     setIsSaving(true);
     try {
       const activeId = venueId || venueData.id;
       await updateVenue(activeId, {
         name: venueData.name,
-        slug: venueData.slug,
+        slug: trimmedSlug,
         brand_color: venueData.brand_color,
         logo_url: venueData.logo_url,
       });
@@ -175,6 +188,29 @@ export function StaffSettingsScreen() {
 
   const handleSaveBusiness = async (e) => {
     e.preventDefault();
+
+    // Validate GSTIN if provided
+    const trimmedGstin = (settingsData.gstin || '').trim().toUpperCase();
+    if (trimmedGstin) {
+      if (PLACEHOLDER_GSTINS.includes(trimmedGstin)) {
+        toast.error('The entered GSTIN is a sample/placeholder. Please enter your actual GSTIN.');
+        return;
+      }
+      if (!GSTIN_REGEX.test(trimmedGstin)) {
+        toast.error('Invalid GSTIN format. Expected 15 characters (e.g. 27AAPFU0939F1ZV).');
+        return;
+      }
+    }
+
+    // Validate FSSAI if provided
+    const trimmedFssai = (settingsData.fssai_number || '').trim();
+    if (trimmedFssai) {
+      if (!FSSAI_REGEX.test(trimmedFssai)) {
+        toast.error('Invalid FSSAI format. Must be a 14-digit registration number.');
+        return;
+      }
+    }
+
     setIsSaving(true);
     try {
       const activeId = venueId || venueData.id;
@@ -185,8 +221,8 @@ export function StaffSettingsScreen() {
         tax_rate: parseFloat(venueData.tax_rate),
       });
       await updateVenueSettings(activeId, {
-        gstin: settingsData.gstin,
-        fssai_number: settingsData.fssai_number,
+        gstin: trimmedGstin,
+        fssai_number: trimmedFssai,
         allow_guest_ordering: settingsData.allow_guest_ordering,
         require_guest_phone: settingsData.require_guest_phone,
         enable_sound_alerts: settingsData.enable_sound_alerts,
@@ -340,15 +376,56 @@ export function StaffSettingsScreen() {
                 <Input
                   label="URL Slug (Custom Link)"
                   value={venueData.slug}
-                  onChange={handleVenueField('slug')}
+                  onChange={(e) => {
+                    const clean = e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                    setVenueData((p) => ({ ...p, slug: clean }));
+                  }}
                   placeholder="e.g. spice-garden"
                 />
-                <p className="text-[11px] text-[#8A8F9C] mt-1.5 flex items-center gap-1 font-mono">
-                  <span>Guest URL:</span>
-                  <span className="text-[#C6FF3D]">
-                    /t/{'{table_code}'}
-                  </span>
-                </p>
+
+                {/* Guest URL Preview Incorporating Slug */}
+                <div className="mt-2 p-2.5 rounded-lg bg-[#141721] border border-white/[0.08] text-xs">
+                  <span className="text-[11px] font-mono text-[#8A8F9C] block mb-1">Public Guest Link Preview:</span>
+                  <div className="font-mono text-[#C6FF3D] flex items-center gap-1.5 break-all text-[11px]">
+                    <span>https://www.ditoech.in/venue/</span>
+                    <span className="underline decoration-[#C6FF3D] font-bold text-white">
+                      {venueData.slug || '{venue-slug}'}
+                    </span>
+                    <span>/t/{'{table_code}'}</span>
+                  </div>
+                </div>
+
+                {/* Slug vs Venue Name Mismatch Warning */}
+                {(() => {
+                  const expected = generateSlug(venueData.name || '');
+                  const isMismatched = Boolean(
+                    venueData.name &&
+                    venueData.slug &&
+                    expected &&
+                    venueData.slug.toLowerCase().trim() !== expected
+                  );
+                  if (!isMismatched) return null;
+                  return (
+                    <div className="mt-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                        <div className="text-[11px] text-amber-200">
+                          <span className="font-semibold">Slug doesn't match venue name:</span>
+                          <p className="text-amber-300/80 mt-0.5">
+                            Slug is &ldquo;{venueData.slug}&rdquo; while venue name suggests &ldquo;{expected}&rdquo;.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setVenueData((p) => ({ ...p, slug: expected }))}
+                        className="text-[10px] font-mono text-amber-400 hover:text-amber-300 underline shrink-0 mt-0.5"
+                      >
+                        Sync slug
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 
@@ -538,20 +615,43 @@ export function StaffSettingsScreen() {
               Tax & Legal
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="GSTIN"
-                value={settingsData.gstin}
-                onChange={(e) =>
-                  setSettingsData((p) => ({ ...p, gstin: e.target.value }))
-                }
-              />
-              <Input
-                label="FSSAI License Number"
-                value={settingsData.fssai_number}
-                onChange={(e) =>
-                  setSettingsData((p) => ({ ...p, fssai_number: e.target.value }))
-                }
-              />
+              <div>
+                <Input
+                  label="GSTIN (15 Characters)"
+                  value={settingsData.gstin}
+                  onChange={(e) =>
+                    setSettingsData((p) => ({ ...p, gstin: e.target.value.toUpperCase() }))
+                  }
+                  placeholder="e.g. 27AAPFU0939F1ZV"
+                  helperText={
+                    settingsData.gstin
+                      ? PLACEHOLDER_GSTINS.includes(settingsData.gstin.trim().toUpperCase())
+                        ? '⚠ Sample/placeholder GSTIN detected. Enter real GSTIN.'
+                        : GSTIN_REGEX.test(settingsData.gstin.trim().toUpperCase())
+                        ? '✓ Valid GSTIN format'
+                        : '⚠ Must be 15 alphanumeric characters (e.g. 27AAPFU0939F1ZV)'
+                      : 'Optional: 15-character GST identification number'
+                  }
+                />
+              </div>
+              <div>
+                <Input
+                  label="FSSAI License Number (14 Digits)"
+                  value={settingsData.fssai_number}
+                  onChange={(e) =>
+                    setSettingsData((p) => ({ ...p, fssai_number: e.target.value.replace(/[^0-9]/g, '') }))
+                  }
+                  placeholder="e.g. 10012345678901"
+                  maxLength={14}
+                  helperText={
+                    settingsData.fssai_number
+                      ? FSSAI_REGEX.test(settingsData.fssai_number.trim())
+                        ? '✓ Valid 14-digit FSSAI registration'
+                        : `⚠ Must be exactly 14 digits (${settingsData.fssai_number.trim().length}/14 entered)`
+                      : 'Optional: 14-digit food safety license number'
+                  }
+                />
+              </div>
               <Input
                 label="Tax Rate (%)"
                 type="number"
@@ -646,79 +746,81 @@ export function StaffSettingsScreen() {
 
           {/* Staff Table */}
           <div className="rounded-card bg-[#0E1016] border border-white/[0.08] overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-white/[0.08] bg-[#141721] text-left">
-                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Name</th>
-                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Email</th>
-                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Role</th>
-                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Status</th>
-                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.06]">
-                {staffList.length > 0 ? (
-                  staffList.map((s) => (
-                    <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-2.5">
-                          <div className="h-8 w-8 rounded-full bg-[#141721] border border-white/[0.12] flex items-center justify-center font-mono font-bold text-xs text-[#F4F5F7]">
-                            {(s.full_name || 'S').slice(0, 2).toUpperCase()}
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-white/[0.08] bg-[#141721] text-left">
+                    <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Name</th>
+                    <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C] hidden sm:table-cell">Email</th>
+                    <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Role</th>
+                    <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C] hidden sm:table-cell">Status</th>
+                    <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/[0.06]">
+                  {staffList.length > 0 ? (
+                    staffList.map((s) => (
+                      <tr key={s.id} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-2.5">
+                            <div className="h-8 w-8 rounded-full bg-[#141721] border border-white/[0.12] flex items-center justify-center font-mono font-bold text-xs text-[#F4F5F7]">
+                              {(s.full_name || 'S').slice(0, 2).toUpperCase()}
+                            </div>
+                            <span className="text-xs font-semibold text-[#F4F5F7]">
+                              {s.full_name}
+                            </span>
                           </div>
-                          <span className="text-xs font-semibold text-[#F4F5F7]">
-                            {s.full_name}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-5 py-3.5 text-xs text-[#8A8F9C] font-mono">{s.email}</td>
-                      <td className="px-5 py-3.5">
-                        {myRole === 'owner' && s.role !== 'owner' ? (
-                          <Select
-                            value={s.role}
-                            onChange={(e) => handleRoleChange(s.id, e.target.value)}
-                            options={ROLE_OPTIONS.filter((o) => o.value !== 'owner')}
-                            className="!py-1.5 !text-xs max-w-[120px]"
-                          />
-                        ) : (
+                        </td>
+                        <td className="px-5 py-3.5 text-xs text-[#8A8F9C] font-mono hidden sm:table-cell">{s.email}</td>
+                        <td className="px-5 py-3.5">
+                          {myRole === 'owner' && s.role !== 'owner' ? (
+                            <Select
+                              value={s.role}
+                              onChange={(e) => handleRoleChange(s.id, e.target.value)}
+                              options={ROLE_OPTIONS.filter((o) => o.value !== 'owner')}
+                              className="!py-1.5 !text-xs max-w-[120px]"
+                            />
+                          ) : (
+                            <Badge
+                              variant={s.role === 'owner' ? 'primary' : 'default'}
+                              size="sm"
+                            >
+                              {s.role}
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="px-5 py-3.5 hidden sm:table-cell">
                           <Badge
-                            variant={s.role === 'owner' ? 'primary' : 'default'}
+                            variant={s.is_active ? 'success' : 'danger'}
                             size="sm"
                           >
-                            {s.role}
+                            {s.is_active ? 'Active' : 'Inactive'}
                           </Badge>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <Badge
-                          variant={s.is_active ? 'success' : 'danger'}
-                          size="sm"
-                        >
-                          {s.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </td>
-                      <td className="px-5 py-3.5">
-                        {s.role !== 'owner' && s.is_active && myRole === 'owner' && (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-rose-400 hover:text-rose-300 rounded-full text-xs"
-                            onClick={() => handleDeactivate(s.id, s.full_name)}
-                          >
-                            Deactivate
-                          </Button>
-                        )}
+                        </td>
+                        <td className="px-5 py-3.5">
+                          {s.role !== 'owner' && s.is_active && myRole === 'owner' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-rose-400 hover:text-rose-300 rounded-full text-xs"
+                              onClick={() => handleDeactivate(s.id, s.full_name)}
+                            >
+                              Deactivate
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="5" className="px-5 py-8 text-center text-xs font-mono text-[#8A8F9C]">
+                        No staff members found for this venue. Invite your first team member above.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" className="px-5 py-8 text-center text-xs font-mono text-[#8A8F9C]">
-                      No staff members found for this venue. Invite your first team member above.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           <StaffInviteModal

@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import toast from 'react-hot-toast';
+import { calculateBill, roundMoney } from '@/utils/billCalculation';
 
 // BroadcastChannel for instant cross-tab realtime sync
 const syncChannel = typeof window !== 'undefined' && window.BroadcastChannel
@@ -121,7 +122,7 @@ export async function fetchOrders(venueId) {
       .select(`
         *,
         order_items(*),
-        table_sessions(*, tables(*), guests(*))
+        table_sessions(*, tables(*), guests(*), invoices(invoice_number))
       `)
       .eq('venue_id', venueId)
       .order('created_at', { ascending: false });
@@ -153,6 +154,19 @@ export async function fetchOrders(venueId) {
 
       const cleanNotes = cleanGuestInstructions(o.notes);
 
+      // Extract per-order discount from coupon tag in notes
+      let orderDiscount = 0;
+      const couponMatch = (o.notes || '').match(/\[Coupon:[^\]]*-₹?([0-9.]+)\]/i);
+      if (couponMatch && couponMatch[1]) {
+        orderDiscount = parseFloat(couponMatch[1]) || 0;
+      }
+
+      // Use canonical billing calculation
+      const bill = calculateBill({
+        subtotal: roundSubtotal,
+        discountAmount: orderDiscount,
+      });
+
       let paymentStatus = o.status === 'cancelled' ? 'cancelled' : (isSettled ? 'paid' : 'pending');
       // If split payment and not fully settled yet, mark as partially_paid
       if (payInfo.isSplit && !isSettled && o.status !== 'cancelled') {
@@ -161,6 +175,7 @@ export async function fetchOrders(venueId) {
 
       return {
         id: o.id,
+        invoice_number: o.table_sessions?.invoices?.[0]?.invoice_number || null,
         table_number: o.table_sessions?.tables?.table_number || '01',
         short_code: o.table_sessions?.tables?.short_code || '',
         round_number: o.round_number || 1,
@@ -173,9 +188,10 @@ export async function fetchOrders(venueId) {
           station: it.station || 'hot',
           notes: it.customization_notes || it.notes || '',
         })),
-        subtotal: roundSubtotal,
-        tax: Number(o.table_sessions?.tax_amount) || 0,
-        total: roundSubtotal,
+        subtotal: bill.subtotal,
+        discount: bill.discount,
+        tax: bill.tax,
+        total: bill.total,
         payment_status: paymentStatus,
         payment_method: payInfo.method,
         split_details: payInfo.isSplit ? { online: payInfo.onlineAmount, cash: payInfo.cashAmount } : null,
@@ -289,6 +305,19 @@ export async function fetchOrdersForTable(shortCode) {
       const customerPhone = o.customer_phone || guestInfo.phone || '';
       const cleanNotes = cleanGuestInstructions(o.notes);
 
+      // Extract per-order discount from coupon tag in notes
+      let orderDiscount = 0;
+      const couponMatch = (o.notes || '').match(/\[Coupon:[^\]]*-₹?([0-9.]+)\]/i);
+      if (couponMatch && couponMatch[1]) {
+        orderDiscount = parseFloat(couponMatch[1]) || 0;
+      }
+
+      // Use canonical billing calculation
+      const bill = calculateBill({
+        subtotal: roundSubtotal,
+        discountAmount: orderDiscount,
+      });
+
       let paymentStatus = o.status === 'cancelled' ? 'cancelled' : (isSettled ? 'paid' : 'pending');
       if (payInfo.isSplit && !isSettled && o.status !== 'cancelled') {
         paymentStatus = 'partially_paid';
@@ -308,9 +337,10 @@ export async function fetchOrdersForTable(shortCode) {
           station: it.station || 'hot',
           notes: it.customization_notes || it.notes || '',
         })),
-        subtotal: roundSubtotal,
-        tax: Number(session.tax_amount) || 0,
-        total: roundSubtotal,
+        subtotal: bill.subtotal,
+        discount: bill.discount,
+        tax: bill.tax,
+        total: bill.total,
         payment_status: paymentStatus,
         payment_method: payInfo.method,
         split_details: payInfo.isSplit ? { online: payInfo.onlineAmount, cash: payInfo.cashAmount } : null,
@@ -802,6 +832,8 @@ export async function fetchGuestPreviousOrders({ phone = '', name = '' }) {
         })),
         total: roundSubtotal,
         subtotal: roundSubtotal,
+        discount: 0,
+        tax: 0,
       };
     });
   } catch (err) {
@@ -1030,13 +1062,54 @@ export async function settleOrder(orderId, paymentMethod = 'counter', splitDetai
       .eq('id', orderId);
   }
 
-  // 3. Settle session and free table
+  // 3. Settle session, generate tax invoice, and free table
   if (order.table_session_id) {
+    // 3a. Query all active (non-cancelled) orders for this table session to get true totals
+    const { data: sessionOrders } = await supabase
+      .from('orders')
+      .select('id, subtotal, notes, status, order_items(price_at_order, quantity)')
+      .eq('table_session_id', order.table_session_id)
+      .neq('status', 'cancelled');
+
+    let sessionSubtotal = 0;
+    let sessionDiscount = 0;
+
+    (sessionOrders || []).forEach((so) => {
+      if (so.order_items && so.order_items.length > 0) {
+        so.order_items.forEach((it) => {
+          sessionSubtotal += (Number(it.price_at_order) || 0) * (Number(it.quantity) || 1);
+        });
+      } else {
+        sessionSubtotal += Number(so.subtotal) || 0;
+      }
+
+      // Check coupon discount from notes e.g. [Coupon: TASTY20 (-₹210)]
+      const couponMatch = (so.notes || '').match(/\[Coupon:[^\]]*-₹?([0-9.]+)\]/i);
+      if (couponMatch && couponMatch[1]) {
+        sessionDiscount += parseFloat(couponMatch[1]) || 0;
+      }
+    });
+
+    if (sessionSubtotal === 0) {
+      sessionSubtotal = Number(order.subtotal) || 0;
+    }
+
+    const taxableAmount = Math.max(0, sessionSubtotal - sessionDiscount);
+    const sessionTax = Math.round(taxableAmount * 0.05 * 100) / 100;
+    const sessionTotal = Math.round((taxableAmount + sessionTax) * 100) / 100;
+
     const { data: sess, error: sessErr } = await supabase
       .from('table_sessions')
-      .update({ status: 'settled', closed_at: new Date().toISOString() })
+      .update({
+        status: 'settled',
+        subtotal: sessionSubtotal,
+        discount_amount: sessionDiscount,
+        tax_amount: sessionTax,
+        total_amount: sessionTotal,
+        closed_at: new Date().toISOString(),
+      })
       .eq('id', order.table_session_id)
-      .select('table_id, org_id, venue_id, total_amount, subtotal')
+      .select('id, table_id, org_id, venue_id, total_amount, subtotal, tax_amount, discount_amount')
       .single();
 
     if (sessErr) {
@@ -1050,8 +1123,46 @@ export async function settleOrder(orderId, paymentMethod = 'counter', splitDetai
         .eq('id', sess.table_id);
     }
 
-    // Record payment in payments table
+    // 3b. Generate Tax Invoice idempotently
     try {
+      const { data: existingInv } = await supabase
+        .from('invoices')
+        .select('id, invoice_number')
+        .eq('table_session_id', order.table_session_id)
+        .maybeSingle();
+
+      if (!existingInv) {
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+        const { count } = await supabase
+          .from('invoices')
+          .select('id', { count: 'exact', head: true })
+          .eq('venue_id', sess?.venue_id || order.venue_id);
+        const seq = String((count || 0) + 1).padStart(4, '0');
+        const rand = Math.random().toString(36).substring(2, 5).toUpperCase();
+        const invoiceNumber = `INV-${dateStr}-${seq}-${rand}`;
+
+        await supabase
+          .from('invoices')
+          .insert({
+            org_id: sess?.org_id || order.org_id,
+            venue_id: sess?.venue_id || order.venue_id,
+            table_session_id: order.table_session_id,
+            invoice_number: invoiceNumber,
+            subtotal: sessionSubtotal,
+            tax_amount: sessionTax,
+            discount_amount: sessionDiscount,
+            total_amount: sessionTotal,
+            issued_at: now.toISOString(),
+          });
+      }
+    } catch (invErr) {
+      console.warn('Could not generate tax invoice:', invErr);
+    }
+
+    // 3c. Record payment in payments table
+    try {
+      const finalAmount = Number(sess?.total_amount || sessionTotal || order.subtotal) || 0;
       if ((paymentMethod === 'split' || splitDetails) && splitDetails) {
         if (splitDetails.onlineAmount > 0) {
           await supabase.from('payments').insert({
@@ -1081,7 +1192,7 @@ export async function settleOrder(orderId, paymentMethod = 'counter', splitDetai
           org_id: sess?.org_id || order.org_id,
           venue_id: sess?.venue_id || order.venue_id,
           table_session_id: order.table_session_id,
-          amount: Number(sess?.total_amount || sess?.subtotal || order.subtotal) || 0,
+          amount: finalAmount,
           payment_method: validMethod,
           status: 'completed',
         });
@@ -1092,6 +1203,7 @@ export async function settleOrder(orderId, paymentMethod = 'counter', splitDetai
   }
 
   notifySync('order_settled', { id: orderId });
+  notifySync('invoice_created', { table_session_id: order.table_session_id });
   return true;
 }
 
@@ -1265,30 +1377,49 @@ export async function getSalesAnalytics(venueId, period = 'today', customStart =
     const cancelledOrders = orders.filter((o) => o.status === 'cancelled').length;
     const activeOrders = orders.filter((o) => o.status !== 'cancelled');
 
-    // Gross revenue = sum of subtotals of all non-cancelled orders
-    const grossRevenue = activeOrders.reduce(
-      (sum, o) => sum + (Number(o.subtotal) || 0),
-      0
-    );
-
-    // GST calculation per Indian government rules:
-    // Standalone Restaurant Services: 5% GST (2.5% CGST + 2.5% SGST) without ITC (SAC 996331)
-    const GST_RATE = 5; // percent total
-    const gstAmount = Math.round((grossRevenue * GST_RATE) / 100 * 100) / 100;
-    const cgst = Math.round(gstAmount / 2 * 100) / 100;
-    const sgst = Math.round(gstAmount / 2 * 100) / 100;
-
-    // Total discount (extract from notes if coupon was used)
-    let totalDiscount = 0;
-    for (const o of activeOrders) {
-      const couponMatch = o.notes?.match(/Coupon:.*?\(-₹([\d,.]+)\)/i);
-      if (couponMatch) {
-        totalDiscount += parseFloat(couponMatch[1].replace(',', '')) || 0;
+    // Canonical calculation helper for orders in sales analytics
+    const getOrderBill = (o) => {
+      let discount = Number(o.discount_amount) || 0;
+      if (!discount && o.notes) {
+        const couponMatch = o.notes.match(/Coupon:.*?\(-₹([\d,.]+)\)/i);
+        if (couponMatch) {
+          discount = parseFloat(couponMatch[1].replace(',', '')) || 0;
+        }
       }
+      const sub = Number(o.subtotal) || 0;
+      return calculateBill({
+        subtotal: sub,
+        discountAmount: discount,
+        taxRate: 0.05,
+      });
+    };
+
+    // Calculate revenue metrics using canonical bill calculation
+    let grossRevenue = 0;
+    let totalDiscount = 0;
+    let totalTaxable = 0;
+    let gstAmount = 0;
+    let netRevenue = 0;
+
+    for (const o of activeOrders) {
+      const bill = getOrderBill(o);
+      grossRevenue += bill.subtotal;
+      totalDiscount += bill.discount;
+      totalTaxable += bill.taxableAmount;
+      gstAmount += bill.tax;
+      netRevenue += bill.total;
     }
 
-    const netRevenue = Math.round((grossRevenue + gstAmount - totalDiscount) * 100) / 100;
-    const avgOrderValue = activeOrders.length > 0 ? Math.round((grossRevenue / activeOrders.length) * 100) / 100 : 0;
+    grossRevenue = roundMoney(grossRevenue);
+    totalDiscount = roundMoney(totalDiscount);
+    totalTaxable = roundMoney(totalTaxable);
+    gstAmount = roundMoney(gstAmount);
+    netRevenue = roundMoney(netRevenue);
+    const GST_RATE = 5;
+    const cgst = roundMoney(gstAmount / 2);
+    const sgst = roundMoney(gstAmount / 2);
+
+    const avgOrderValue = activeOrders.length > 0 ? roundMoney(netRevenue / activeOrders.length) : 0;
 
     // --- Payment Method Split ---
     const paidOrders = orders.filter(
@@ -1312,7 +1443,8 @@ export async function getSalesAnalytics(venueId, period = 'today', customStart =
       pendingCount = 0;
 
     for (const o of paidOrders) {
-      const amt = Number(o.subtotal) || 0;
+      const bill = getOrderBill(o);
+      const amt = bill.total;
       const payInfo = parsePaymentDetails(o.notes);
 
       if (payInfo.isSplit) {
@@ -1332,6 +1464,8 @@ export async function getSalesAnalytics(venueId, period = 'today', customStart =
     }
 
     for (const o of pendingOrders) {
+      const bill = getOrderBill(o);
+      const amt = bill.total;
       const payInfo = parsePaymentDetails(o.notes);
       if (payInfo.isSplit) {
         // If part was paid online and part is pending at counter
@@ -1340,10 +1474,14 @@ export async function getSalesAnalytics(venueId, period = 'today', customStart =
         pendingRevenue += payInfo.cashAmount;
         splitCount++;
       } else {
-        pendingRevenue += Number(o.subtotal) || 0;
+        pendingRevenue += amt;
       }
       pendingCount++;
     }
+
+    cashRevenue = roundMoney(cashRevenue);
+    onlineRevenue = roundMoney(onlineRevenue);
+    pendingRevenue = roundMoney(pendingRevenue);
 
     // --- Top Selling Items ---
     const itemMap = new Map();
@@ -1459,9 +1597,7 @@ export async function getSalesAnalytics(venueId, period = 'today', customStart =
       const istD = new Date(orderDate.getTime() + istOffset);
       const dateStr = `${istD.getUTCFullYear()}-${String(istD.getUTCMonth() + 1).padStart(2, '0')}-${String(istD.getUTCDate()).padStart(2, '0')}`;
       const timeStr = `${String(istD.getUTCHours()).padStart(2, '0')}:${String(istD.getUTCMinutes()).padStart(2, '0')}`;
-      const subtotal = Number(o.subtotal) || 0;
-      const tax = Math.round((subtotal * GST_RATE) / 100 * 100) / 100;
-      const total = Math.round((subtotal + tax) * 100) / 100;
+      const bill = getOrderBill(o);
       const payInfo = parsePaymentDetails(o.notes);
 
       let payModeStr = 'Cash';
@@ -1480,11 +1616,13 @@ export async function getSalesAnalytics(venueId, period = 'today', customStart =
         status: o.status,
         itemsCount: (o.order_items || []).reduce((s, it) => s + (it.quantity || 1), 0),
         itemsSummary: (o.order_items || []).map((it) => `${it.item_name} x${it.quantity}`).join('; '),
-        subtotal,
-        cgst: Math.round(tax / 2 * 100) / 100,
-        sgst: Math.round(tax / 2 * 100) / 100,
-        gstTotal: tax,
-        netTotal: total,
+        subtotal: bill.subtotal,
+        discount: bill.discount,
+        taxableAmount: bill.taxableAmount,
+        cgst: bill.cgst,
+        sgst: bill.sgst,
+        gstTotal: bill.tax,
+        netTotal: bill.total,
         paymentMode: payModeStr,
       };
     });

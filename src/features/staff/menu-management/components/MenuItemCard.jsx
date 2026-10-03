@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Toggle } from '@/components/ui/Toggle';
 import { formatCurrency } from '@/utils/formatCurrency';
@@ -7,8 +7,10 @@ import {
   Trash2,
   Star,
   Flame,
+  Utensils,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { getFoodImage, getCatalogFoodImage, DEFAULT_FOOD_IMAGE } from '@/utils/foodImageMap';
 
 const STATION_LABEL = {
   hot: { label: 'Hot', color: 'text-amber-400 bg-amber-400/10 border border-amber-400/25' },
@@ -26,6 +28,25 @@ export function MenuItemCard({
   const station = STATION_LABEL[item.station] || STATION_LABEL.hot;
   const isVeg = item.dietary_tags?.includes('veg');
   const isNonVeg = item.dietary_tags?.includes('non-veg');
+
+  const [imgSrc, setImgSrc] = useState(() => getFoodImage(item));
+  const [imgFailed, setImgFailed] = useState(false);
+
+  useEffect(() => {
+    setImgSrc(getFoodImage(item));
+    setImgFailed(false);
+  }, [item.image_url, item.name, item.description]);
+
+  const handleImageError = () => {
+    const fallback = getCatalogFoodImage(item);
+    if (imgSrc !== fallback) {
+      setImgSrc(fallback);
+    } else if (imgSrc !== DEFAULT_FOOD_IMAGE) {
+      setImgSrc(DEFAULT_FOOD_IMAGE);
+    } else {
+      setImgFailed(true);
+    }
+  };
 
   return (
     <div
@@ -95,16 +116,24 @@ export function MenuItemCard({
         </div>
 
         {/* Image */}
-        {item.image_url && (
-          <img
-            src={item.image_url}
-            alt={item.name}
-            loading="lazy"
-            decoding="async"
-            className="h-16 w-16 rounded-xl object-cover shrink-0 border border-white/[0.08]"
-            onError={(e) => { e.target.style.display = 'none'; }}
-          />
-        )}
+        <div className="relative h-16 w-16 rounded-xl overflow-hidden shrink-0 border border-white/[0.08] bg-[#141721] flex items-center justify-center">
+          {!imgFailed ? (
+            <img
+              src={imgSrc}
+              alt={item.name}
+              loading="lazy"
+              decoding="async"
+              referrerPolicy="no-referrer"
+              className={cn(
+                'h-full w-full object-cover transition-transform duration-300 group-hover:scale-105',
+                !item.image_url && 'opacity-70'
+              )}
+              onError={handleImageError}
+            />
+          ) : (
+            <Utensils className="h-6 w-6 text-[#8A8F9C]/40" strokeWidth={1.5} />
+          )}
+        </div>
       </div>
 
       {/* Action Bar */}

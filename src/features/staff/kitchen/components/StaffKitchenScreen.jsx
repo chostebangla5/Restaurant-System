@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Toggle';
 import { useAuth } from '@/features/shared/auth';
+import { getElapsedTime } from '@/utils/billCalculation';
 import {
   fetchOrders,
   subscribeToOrders,
@@ -73,10 +74,7 @@ export function StaffKitchenScreen() {
     );
   };
 
-  const getMinutesElapsed = (isoString) => {
-    if (!isoString) return 0;
-    return Math.floor((Date.now() - new Date(isoString).getTime()) / 60000);
-  };
+
 
   const activeKitchenTickets = getStationOrders();
 
@@ -138,18 +136,18 @@ export function StaffKitchenScreen() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {activeKitchenTickets.map((ticket) => {
-            const mins = getMinutesElapsed(ticket.created_at);
-            const isUrgent = mins >= 12;
-            const isWarning = mins >= 8;
+            {activeKitchenTickets.map((ticket) => {
+            const elapsed = getElapsedTime(ticket.created_at);
 
             return (
               <div
                 key={ticket.id}
                 className={`p-5 rounded-card bg-[#0E1016] border transition-all duration-300 flex flex-col justify-between ${
-                  isUrgent
+                  elapsed.isOverdue
+                    ? 'border-rose-500 shadow-md ring-1 ring-rose-500/30'
+                    : elapsed.isUrgent
                     ? 'border-rose-500/80 shadow-sm'
-                    : isWarning
+                    : elapsed.isWarning
                     ? 'border-amber-400/80 shadow-sm'
                     : 'border-white/[0.08] hover:border-white/[0.18]'
                 }`}
@@ -166,11 +164,6 @@ export function StaffKitchenScreen() {
                           <span className="font-mono font-semibold text-xs text-[#F4F5F7]">
                             Round #{ticket.round_number}
                           </span>
-                          {ticket.customer_name && (
-                            <span className="text-[11px] font-semibold text-[#C6FF3D] bg-[#C6FF3D]/10 px-2 py-0.5 rounded-full border border-[#C6FF3D]/25">
-                              👤 {ticket.customer_name}
-                            </span>
-                          )}
                         </div>
                         <span className="text-[11px] text-[#8A8F9C] font-mono">
                           {ticket.id}
@@ -180,14 +173,18 @@ export function StaffKitchenScreen() {
 
                     <div
                       className={`px-3 py-1 rounded-full text-xs font-mono flex items-center gap-1.5 border ${
-                        isUrgent
+                        elapsed.isOverdue
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse'
+                          : elapsed.isUrgent
                           ? 'bg-rose-500/15 text-rose-400 border-rose-500/30'
-                          : isWarning
+                          : elapsed.isWarning
                           ? 'bg-amber-400/15 text-amber-300 border-amber-400/30'
                           : 'bg-[#141721] text-[#8A8F9C] border-white/[0.08]'
                       }`}
                     >
-                      <Clock className="h-3.5 w-3.5" strokeWidth={1.5} /> {mins}m elapsed
+                      {elapsed.isOverdue && <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2} />}
+                      {!elapsed.isOverdue && <Clock className="h-3.5 w-3.5" strokeWidth={1.5} />}
+                      {elapsed.isOverdue ? `OVERDUE • ${elapsed.text}` : elapsed.text}
                     </div>
                   </div>
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Bell, Droplets, Utensils, Receipt, HelpCircle, Sparkles, CheckCircle2 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { createStaffCall } from '@/features/staff/service-calls/api/staffCallsApi';
 
 const REASON_OPTIONS = [
   { id: 'water', label: 'Drinking Water', icon: Droplets, desc: 'Bring fresh drinking water' },
@@ -17,8 +18,20 @@ export function CallStaffModal({ isOpen, onClose, tableData = {}, shortCode = ''
   const [isSent, setIsSent] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleCallStaff = () => {
+  const handleCallStaff = async () => {
+    // Rate limit check: prevent spamming assistance requests within 30 seconds
+    const lastCallTime = typeof window !== 'undefined' ? sessionStorage.getItem('tablesuite_last_staff_call_time') : null;
+    const now = Date.now();
+    if (lastCallTime && now - Number(lastCallTime) < 30000) {
+      const waitSec = Math.ceil((30000 - (now - Number(lastCallTime))) / 1000);
+      toast.error(`Please wait ${waitSec}s before sending another assistance request.`, { id: 'call-staff-rate-limit' });
+      return;
+    }
+
     setIsSubmitting(true);
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('tablesuite_last_staff_call_time', String(now));
+    }
     const reasonObj = REASON_OPTIONS.find((r) => r.id === selectedReason) || REASON_OPTIONS[0];
 
     const callPayload = {
@@ -30,7 +43,21 @@ export function CallStaffModal({ isOpen, onClose, tableData = {}, shortCode = ''
       timestamp: Date.now(),
     };
 
-    // 1. Broadcast to staff tabs
+    // 1. Persist to Supabase (staff_calls table) for cross-device realtime
+    try {
+      await createStaffCall({
+        venueId: tableData.venueId || null,
+        orgId: null, // will be resolved from venue
+        tableNumber: tableData.tableNumber || '1',
+        shortCode: shortCode || '',
+        reason: reasonObj.label,
+        notes: notes.trim(),
+      });
+    } catch (err) {
+      console.warn('Supabase staff call insert error:', err);
+    }
+
+    // 2. Broadcast to staff tabs (same-browser fallback)
     try {
       if (typeof window !== 'undefined' && window.BroadcastChannel) {
         const syncChannel = new BroadcastChannel('tablesuite_realtime_sync');
@@ -45,7 +72,7 @@ export function CallStaffModal({ isOpen, onClose, tableData = {}, shortCode = ''
       console.warn('BroadcastChannel error:', e);
     }
 
-    // 2. Dispatch window event
+    // 3. Dispatch window event
     if (typeof window !== 'undefined') {
       window.dispatchEvent(
         new CustomEvent('tablesuite_orders_change', {
@@ -54,7 +81,7 @@ export function CallStaffModal({ isOpen, onClose, tableData = {}, shortCode = ''
       );
     }
 
-    // 3. Save to localStorage for staff dashboard recovery
+    // 4. Save to localStorage for staff dashboard recovery
     try {
       const existing = JSON.parse(localStorage.getItem('tablesuite_staff_calls') || '[]');
       existing.unshift(callPayload);

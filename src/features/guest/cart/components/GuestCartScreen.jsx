@@ -5,7 +5,7 @@ import { formatCurrency } from '@/utils/formatCurrency';
 import { useCart } from '../context/CartContext';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import toast from 'react-hot-toast';
-import { getFoodImage } from '@/utils/foodImageMap';
+import { getFoodImage, getCatalogFoodImage, DEFAULT_FOOD_IMAGE } from '@/utils/foodImageMap';
 import {
   ArrowLeft,
   Trash2,
@@ -468,8 +468,15 @@ export function GuestCartScreen() {
                       alt={rec.name}
                       className="h-full w-full object-cover"
                       loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
                       onError={(e) => {
-                        e.target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&auto=format&fit=crop&q=80';
+                        const fallback = getCatalogFoodImage(rec);
+                        if (e.target.src !== fallback) {
+                          e.target.src = fallback;
+                        } else {
+                          e.target.src = DEFAULT_FOOD_IMAGE;
+                        }
                       }}
                     />
                   </div>

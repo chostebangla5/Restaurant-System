@@ -2,12 +2,13 @@ import React, { Suspense } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { RootLayout } from '@/app/layouts/RootLayout';
 import { GuestLayout } from '@/app/layouts/GuestLayout';
-import { StaffLayout } from '@/app/layouts/StaffLayout';
+import { AdminLayout } from '@/app/layouts/AdminLayout';
+import { StaffPortalLayout } from '@/app/layouts/StaffPortalLayout';
 import { ProtectedRoute } from '@/app/routes/ProtectedRoute';
 import { RouteErrorBoundary } from '@/components/ui/RouteErrorBoundary';
 import { lazyWithRetry, preloadRoute } from '@/lib/lazyWithRetry';
 
-// Factories for lazy-loaded views (enables on-demand idle preloading)
+// ─── Guest Flow Factories ───
 const loadHomeScreen = () =>
   import('@/features/guest/home/components/HomeScreen').then((m) => ({
     default: m.HomeScreen,
@@ -33,11 +34,13 @@ const loadGuestAccountScreen = () =>
     default: m.GuestAccountScreen,
   }));
 
+// ─── Auth ───
 const loadStaffLoginScreen = () =>
   import('@/features/shared/auth/components/StaffLoginScreen').then((m) => ({
     default: m.StaffLoginScreen,
   }));
 
+// ─── Admin Dashboard Factories (was /staff, now /admin) ───
 const loadStaffDashboardScreen = () =>
   import('@/features/staff/dashboard/components/StaffDashboardScreen').then((m) => ({
     default: m.StaffDashboardScreen,
@@ -108,27 +111,55 @@ const loadStaffSalesScreen = () =>
     default: m.StaffSalesScreen,
   }));
 
-// Preload critical flows into browser memory
+const loadStaffAttendanceScreen = () =>
+  import('@/features/staff/attendance/components/StaffAttendanceScreen').then((m) => ({
+    default: m.StaffAttendanceScreen,
+  }));
+
+// ─── Staff Portal Factories (new /staff/* for waiters/kitchen/workers) ───
+const loadStaffMyPortalScreen = () =>
+  import('@/features/staff/my-portal/components/StaffMyPortalScreen').then((m) => ({
+    default: m.StaffMyPortalScreen,
+  }));
+
+const loadStaffServiceCallsScreen = () =>
+  import('@/features/staff/service-calls/components/StaffServiceCallsScreen').then((m) => ({
+    default: m.StaffServiceCallsScreen,
+  }));
+
+const loadStaffMyAttendanceScreen = () =>
+  import('@/features/staff/my-portal/components/StaffMyAttendanceScreen').then((m) => ({
+    default: m.StaffMyAttendanceScreen,
+  }));
+
+// ─── Preload critical flows ───
 export function preloadGuestFlow() {
   preloadRoute(loadGuestMenuScreen);
   preloadRoute(loadGuestCartScreen);
   preloadRoute(loadGuestOrderStatusScreen);
 }
 
-export function preloadStaffFlow() {
+export function preloadAdminFlow() {
   preloadRoute(loadStaffDashboardScreen);
   preloadRoute(loadStaffLiveOrdersScreen);
   preloadRoute(loadStaffKitchenScreen);
   preloadRoute(loadStaffTablesScreen);
 }
 
-// Resilient Lazy Components with retry & auto-refresh on new deployments
+export function preloadStaffFlow() {
+  preloadRoute(loadStaffMyPortalScreen);
+  preloadRoute(loadStaffServiceCallsScreen);
+}
+
+// ─── Resilient Lazy Components ───
 const HomeScreen = lazyWithRetry(loadHomeScreen, 'HomeScreen');
 const GuestMenuScreen = lazyWithRetry(loadGuestMenuScreen, 'GuestMenuScreen');
 const GuestCartScreen = lazyWithRetry(loadGuestCartScreen, 'GuestCartScreen');
 const GuestOrderStatusScreen = lazyWithRetry(loadGuestOrderStatusScreen, 'GuestOrderStatusScreen');
 const GuestAccountScreen = lazyWithRetry(loadGuestAccountScreen, 'GuestAccountScreen');
 const StaffLoginScreen = lazyWithRetry(loadStaffLoginScreen, 'StaffLoginScreen');
+
+// Admin screens
 const StaffDashboardScreen = lazyWithRetry(loadStaffDashboardScreen, 'StaffDashboardScreen');
 const StaffLiveOrdersScreen = lazyWithRetry(loadStaffLiveOrdersScreen, 'StaffLiveOrdersScreen');
 const StaffKitchenScreen = lazyWithRetry(loadStaffKitchenScreen, 'StaffKitchenScreen');
@@ -143,6 +174,12 @@ const StaffTeamScreen = lazyWithRetry(loadStaffTeamScreen, 'StaffTeamScreen');
 const StaffInvoicesScreen = lazyWithRetry(loadStaffInvoicesScreen, 'StaffInvoicesScreen');
 const StaffFeedbackScreen = lazyWithRetry(loadStaffFeedbackScreen, 'StaffFeedbackScreen');
 const StaffSalesScreen = lazyWithRetry(loadStaffSalesScreen, 'StaffSalesScreen');
+const StaffAttendanceScreen = lazyWithRetry(loadStaffAttendanceScreen, 'StaffAttendanceScreen');
+
+// Staff portal screens
+const StaffMyPortalScreen = lazyWithRetry(loadStaffMyPortalScreen, 'StaffMyPortalScreen');
+const StaffServiceCallsScreen = lazyWithRetry(loadStaffServiceCallsScreen, 'StaffServiceCallsScreen');
+const StaffMyAttendanceScreen = lazyWithRetry(loadStaffMyAttendanceScreen, 'StaffMyAttendanceScreen');
 
 function SuspenseFallback() {
   return (
@@ -214,12 +251,12 @@ export const router = createBrowserRouter([
           },
         ],
       },
-      // Staff Experience Routes (/staff/*)
+      // ─── Admin Dashboard Routes (/admin/*) — Owner & Manager ───
       {
-        path: 'staff',
+        path: 'admin',
         element: (
-          <ProtectedRoute>
-            <StaffLayout />
+          <ProtectedRoute allowedRoles={['owner', 'manager']}>
+            <AdminLayout />
           </ProtectedRoute>
         ),
         errorElement: <RouteErrorBoundary />,
@@ -289,6 +326,14 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: 'attendance',
+            element: (
+              <Suspense fallback={<SuspenseFallback />}>
+                <StaffAttendanceScreen />
+              </Suspense>
+            ),
+          },
+          {
             path: 'offers',
             element: (
               <Suspense fallback={<SuspenseFallback />}>
@@ -333,6 +378,58 @@ export const router = createBrowserRouter([
             element: (
               <Suspense fallback={<SuspenseFallback />}>
                 <StaffSettingsScreen />
+              </Suspense>
+            ),
+          },
+        ],
+      },
+      // ─── Staff Portal Routes (/staff/*) — All staff roles ───
+      {
+        path: 'staff',
+        element: (
+          <ProtectedRoute>
+            <StaffPortalLayout />
+          </ProtectedRoute>
+        ),
+        errorElement: <RouteErrorBoundary />,
+        children: [
+          {
+            index: true,
+            element: (
+              <Suspense fallback={<SuspenseFallback />}>
+                <StaffMyPortalScreen />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'orders',
+            element: (
+              <Suspense fallback={<SuspenseFallback />}>
+                <StaffLiveOrdersScreen />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'kitchen',
+            element: (
+              <Suspense fallback={<SuspenseFallback />}>
+                <StaffKitchenScreen />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'calls',
+            element: (
+              <Suspense fallback={<SuspenseFallback />}>
+                <StaffServiceCallsScreen />
+              </Suspense>
+            ),
+          },
+          {
+            path: 'attendance',
+            element: (
+              <Suspense fallback={<SuspenseFallback />}>
+                <StaffMyAttendanceScreen />
               </Suspense>
             ),
           },

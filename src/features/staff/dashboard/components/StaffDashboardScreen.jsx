@@ -27,6 +27,7 @@ import {
   fetchStaffMembers,
   toggleStaffActive,
 } from '@/features/staff/team/api/teamApi';
+import { ServiceCallsPanel } from '@/features/staff/service-calls/components/ServiceCallsPanel';
 
 const ROLE_THEMES = {
   owner: {
@@ -140,7 +141,7 @@ export function StaffDashboardScreen() {
         : 'Daily billing total in IST',
       icon: TrendingUp,
       color: 'text-[#C6FF3D] bg-[#C6FF3D]/10 border border-[#C6FF3D]/25',
-      link: '/staff/sales?period=today',
+      link: '/admin/sales?period=today',
       actionLabel: 'Open Sales Board →',
     },
     {
@@ -149,7 +150,7 @@ export function StaffDashboardScreen() {
       trend: `${stats.activeOrdersCount} in Kitchen queue`,
       icon: Flame,
       color: 'text-amber-400 bg-amber-400/10 border border-amber-400/25',
-      link: '/staff/live-orders',
+      link: '/admin/live-orders',
       actionLabel: 'Live Feed →',
     },
     {
@@ -158,7 +159,7 @@ export function StaffDashboardScreen() {
       trend: `${Math.round((stats.occupiedTablesCount / stats.totalTablesCount) * 100) || 0}% Dining Capacity`,
       icon: Grid,
       color: 'text-sky-400 bg-sky-400/10 border border-sky-400/25',
-      link: '/staff/tables',
+      link: '/admin/tables',
       actionLabel: 'View Tables →',
     },
     {
@@ -167,7 +168,7 @@ export function StaffDashboardScreen() {
       trend: stats.turnaroundTrend || 'Live speed metric',
       icon: ShoppingBag,
       color: 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/25',
-      link: '/staff/kitchen',
+      link: '/admin/kitchen',
       actionLabel: 'Open KDS →',
     },
   ];
@@ -192,18 +193,18 @@ export function StaffDashboardScreen() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 relative z-10 shrink-0">
-          <Link to="/staff/kitchen">
+          <Link to="/admin/kitchen">
             <Button size="md" variant="outline" className="border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25] hover:bg-white/[0.04]">
               Open KDS Display
             </Button>
           </Link>
-          <Link to="/staff/sales">
+          <Link to="/admin/sales">
             <Button size="md" variant="outline" className="border-emerald-500/30 text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/[0.06]">
               <TrendingUp className="h-4 w-4 mr-1.5" strokeWidth={1.5} />
               Sales Dashboard
             </Button>
           </Link>
-          <Link to="/staff/live-orders">
+          <Link to="/admin/live-orders">
             <Button size="md" className="bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
               Live Orders Feed
             </Button>
@@ -276,7 +277,7 @@ export function StaffDashboardScreen() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link to="/staff/team">
+            <Link to="/admin/team">
               <Button
                 size="sm"
                 variant="outline"
@@ -311,7 +312,7 @@ export function StaffDashboardScreen() {
         ) : staffList.length === 0 ? (
           <div className="py-8 text-center text-xs text-[#8A8F9C]">
             No staff members found.{' '}
-            <Link to="/staff/team" className="text-[#C6FF3D] font-medium hover:underline">
+            <Link to="/admin/team" className="text-[#C6FF3D] font-medium hover:underline">
               Add team members
             </Link>
           </div>
@@ -377,6 +378,9 @@ export function StaffDashboardScreen() {
         )}
       </div>
 
+      {/* Service Calls from Guests */}
+      <ServiceCallsPanel compact={true} />
+
       {/* Live Recent Orders Section */}
       <div className="p-6 rounded-card bg-[#0E1016] border border-white/[0.08] space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-white/[0.06]">
@@ -387,7 +391,7 @@ export function StaffDashboardScreen() {
             </h2>
           </div>
           <Link
-            to="/staff/live-orders"
+            to="/admin/live-orders"
             className="text-xs font-mono text-[#C6FF3D] hover:underline flex items-center gap-1"
           >
             View all stream <ChevronRight className="h-3 w-3" strokeWidth={1.5} />

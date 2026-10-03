@@ -1,4 +1,6 @@
 import { supabase } from '@/lib/supabase';
+import { normalizeImageUrl, isLikelyWebpage } from '@/utils/imageUrl';
+import { getCatalogFoodImage } from '@/utils/foodImageMap';
 
 // ─── Categories ──────────────────────────────────────────────────────────────
 
@@ -123,6 +125,11 @@ export async function createItem({
 
   const nextOrder = existing?.[0]?.sort_order != null ? existing[0].sort_order + 1 : 0;
 
+  let finalImg = imageUrl ? normalizeImageUrl(imageUrl) : '';
+  if (!finalImg || isLikelyWebpage(finalImg)) {
+    finalImg = getCatalogFoodImage({ name, description });
+  }
+
   const { data, error } = await supabase
     .from('menu_items')
     .insert({
@@ -132,7 +139,7 @@ export async function createItem({
       name,
       description,
       price: parseFloat(price),
-      image_url: imageUrl,
+      image_url: finalImg,
       station,
       dietary_tags: dietaryTags,
       is_bestseller: isBestseller,
@@ -153,7 +160,13 @@ export async function updateItem(id, updates) {
   if (updates.description !== undefined) mapped.description = updates.description;
   if (updates.price !== undefined) mapped.price = parseFloat(updates.price);
   if (updates.categoryId !== undefined) mapped.category_id = updates.categoryId;
-  if (updates.imageUrl !== undefined) mapped.image_url = updates.imageUrl;
+  if (updates.imageUrl !== undefined) {
+    let finalImg = updates.imageUrl ? normalizeImageUrl(updates.imageUrl) : '';
+    if (isLikelyWebpage(finalImg)) {
+      finalImg = getCatalogFoodImage({ name: updates.name, description: updates.description });
+    }
+    mapped.image_url = finalImg || null;
+  }
   if (updates.station !== undefined) mapped.station = updates.station;
   if (updates.dietaryTags !== undefined) mapped.dietary_tags = updates.dietaryTags;
   if (updates.isBestseller !== undefined) mapped.is_bestseller = updates.isBestseller;

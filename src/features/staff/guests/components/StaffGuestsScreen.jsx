@@ -229,9 +229,9 @@ export function StaffGuestsScreen() {
                 <tr className="border-b border-white/[0.08] bg-[#141721] text-left">
                   <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Guest</th>
                   <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Phone</th>
-                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Loyalty</th>
-                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Points</th>
-                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Joined</th>
+                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C] hidden sm:table-cell">Loyalty</th>
+                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C] hidden md:table-cell">Points</th>
+                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C] hidden lg:table-cell">Joined</th>
                   <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Actions</th>
                 </tr>
               </thead>
@@ -262,15 +262,15 @@ export function StaffGuestsScreen() {
                       <td className="px-5 py-3.5 text-xs text-[#8A8F9C] font-mono">
                         {guest.phone}
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-5 py-3.5 hidden sm:table-cell">
                         <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold ${tier.color}`}>
                           {tier.Icon && <tier.Icon className="h-3 w-3 shrink-0" strokeWidth={1.5} />} {tier.label}
                         </span>
                       </td>
-                      <td className="px-5 py-3.5 text-xs font-mono font-bold text-[#F4F5F7]">
+                      <td className="px-5 py-3.5 text-xs font-mono font-bold text-[#F4F5F7] hidden md:table-cell">
                         {guest.loyalty_points?.toLocaleString() || 0}
                       </td>
-                      <td className="px-5 py-3.5 text-xs font-mono text-[#8A8F9C]">
+                      <td className="px-5 py-3.5 text-xs font-mono text-[#8A8F9C] hidden lg:table-cell">
                         {formatDate(guest.created_at)}
                       </td>
                       <td className="px-5 py-3.5">

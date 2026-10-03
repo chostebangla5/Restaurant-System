@@ -17,6 +17,7 @@ import {
   subscribeToStaff,
 } from '../api/teamApi';
 import { inviteStaff } from '@/features/staff/settings/api/settingsApi';
+import { StaffProfileModal } from './StaffProfileModal';
 import {
   Users,
   UserPlus,
@@ -36,6 +37,7 @@ import {
   XCircle,
   AlertCircle,
   Check,
+  Calendar,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -80,7 +82,7 @@ const ROLE_CONFIG = {
 };
 
 export function StaffTeamScreen() {
-  const { user, venueId, orgId, role: currentUserRole } = useAuth();
+  const { user, venueId, orgId, role: currentUserRole, venue } = useAuth();
 
   const [staff, setStaff] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -89,6 +91,7 @@ export function StaffTeamScreen() {
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedProfileMember, setSelectedProfileMember] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
   // Action menu tracking
@@ -495,7 +498,18 @@ export function StaffTeamScreen() {
                     </div>
 
                     {/* Stats + Actions */}
-                    <div className="flex items-center gap-4 flex-shrink-0">
+                    <div className="flex items-center gap-2.5 sm:gap-3 flex-shrink-0">
+                      {/* View Monthly Attendance / Profile Button */}
+                      <button
+                        type="button"
+                        onClick={() => setSelectedProfileMember(member)}
+                        className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-white/[0.1] bg-white/[0.04] hover:bg-accent hover:text-[#07080B] hover:border-accent transition-all flex items-center gap-1.5 shadow-sm text-[#F4F5F7] cursor-pointer"
+                        title="View Individual Profile & Monthly Attendance"
+                      >
+                        <Calendar className="h-3.5 w-3.5" strokeWidth={1.5} />
+                        <span className="hidden sm:inline">Profile & Attendance</span>
+                      </button>
+
                       {/* Active toggle */}
                       <Toggle
                         checked={member.is_active}
@@ -524,6 +538,20 @@ export function StaffTeamScreen() {
                                 menuDirection === 'up' ? 'bottom-full mb-2' : 'top-full mt-2'
                               } z-50 w-52 bg-[#141721] border border-white/[0.12] rounded-xl shadow-2xl py-1.5`}
                             >
+                              <div className="px-1 py-1 border-b border-white/[0.08]">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    setSelectedProfileMember(member);
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-xs font-semibold rounded-lg flex items-center gap-2 text-accent hover:bg-accent/10 transition-colors cursor-pointer"
+                                >
+                                  <Calendar className="h-3.5 w-3.5" strokeWidth={1.5} />
+                                  <span>Monthly Attendance</span>
+                                </button>
+                              </div>
+
                               <div className="px-3.5 py-1.5 border-b border-white/[0.08]">
                                 <p className="text-[9px] font-mono uppercase tracking-wider text-[#8A8F9C]">
                                   Change Role
@@ -614,6 +642,17 @@ export function StaffTeamScreen() {
             }
           }}
           isLoading={isSaving}
+        />
+      )}
+
+      {/* Individual Staff Profile & Monthly Attendance Modal */}
+      {selectedProfileMember && (
+        <StaffProfileModal
+          isOpen={Boolean(selectedProfileMember)}
+          onClose={() => setSelectedProfileMember(null)}
+          staffMember={selectedProfileMember}
+          venueName={venue?.name}
+          onToggleActive={(member) => handleToggleActive(member)}
         />
       )}
     </div>

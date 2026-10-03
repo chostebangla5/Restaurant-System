@@ -65,7 +65,7 @@ export function StaffQrScreen() {
             onAction={() => {}}
           />
           <div className="text-center mt-4">
-            <Link to="/staff/tables">
+            <Link to="/admin/tables">
               <Button size="md" className="rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">+ Set Up Tables First</Button>
             </Link>
           </div>

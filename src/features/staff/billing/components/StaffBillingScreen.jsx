@@ -184,7 +184,7 @@ export function StaffBillingScreen() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Link to="/staff/sales">
+          <Link to="/admin/sales">
             <Button size="sm" variant="outline" className="border-emerald-500/30 text-emerald-400 hover:border-emerald-500/50 hover:bg-emerald-500/[0.06] text-xs">
               <TrendingUp className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} />
               Sales & Reports
@@ -282,18 +282,19 @@ export function StaffBillingScreen() {
             <thead className="bg-[#141721] border-b border-white/[0.08] text-[#8A8F9C] font-mono font-medium uppercase tracking-wider text-[10px]">
               <tr>
                 <th className="px-5 py-3.5">Invoice / Table</th>
-                <th className="px-5 py-3.5">Items Ordered</th>
+                <th className="px-5 py-3.5 hidden md:table-cell">Items Ordered</th>
                 <th className="px-5 py-3.5">Subtotal</th>
+                <th className="px-5 py-3.5 hidden sm:table-cell">Discount</th>
                 <th className="px-5 py-3.5">Tax (5%)</th>
                 <th className="px-5 py-3.5">Total Amount</th>
-                <th className="px-5 py-3.5">Payment Status</th>
+                <th className="px-5 py-3.5 hidden sm:table-cell">Payment Status</th>
                 <th className="px-5 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.06] font-medium">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-5 py-12 text-center text-[#8A8F9C] font-mono text-xs">
+                  <td colSpan={8} className="px-5 py-12 text-center text-[#8A8F9C] font-mono text-xs">
                     No billing records found.
                   </td>
                 </tr>
@@ -321,11 +322,18 @@ export function StaffBillingScreen() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 max-w-xs truncate text-[#8A8F9C]">
+                      <td className="px-5 py-4 max-w-xs truncate text-[#8A8F9C] hidden md:table-cell">
                         {(o.items || []).map((it) => `${it.qty}x ${it.name}`).join(', ')}
                       </td>
                       <td className="px-5 py-4 font-mono text-[#8A8F9C]">
                         {formatCurrency(o.subtotal)}
+                      </td>
+                      <td className="px-5 py-4 font-mono text-[#8A8F9C] hidden sm:table-cell">
+                        {(o.discount || 0) > 0 ? (
+                          <span className="text-[#C6FF3D]">-{formatCurrency(o.discount)}</span>
+                        ) : (
+                          <span className="text-[#8A8F9C]/50">—</span>
+                        )}
                       </td>
                       <td className="px-5 py-4 font-mono text-[#8A8F9C]">
                         {formatCurrency(o.tax)}
@@ -333,7 +341,7 @@ export function StaffBillingScreen() {
                       <td className="px-5 py-4 font-mono font-bold text-[#F4F5F7] text-sm">
                         {formatCurrency(o.total)}
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="px-5 py-4 hidden sm:table-cell">
                         {isPaid ? (
                           o.split_details ? (
                             <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1">
@@ -630,13 +638,17 @@ export function StaffBillingScreen() {
                 <h3 className="font-heading font-bold text-sm text-[#F4F5F7] uppercase tracking-wider">
                   {venue?.name || 'TableSuite Restaurant'}
                 </h3>
-                <p className="text-[11px] text-[#8A8F9C]">GSTIN: 19AAACC1206D1ZM</p>
-                <p className="text-[10px] text-[#8A8F9C] mt-0.5">
-                  Invoice #{selectedReceiptOrder.id} &bull; Table T-{selectedReceiptOrder.table_number}
+                {venue?.gstin || venue?.settings?.gstin ? (
+                  <p className="text-[11px] text-[#8A8F9C]">GSTIN: {venue.gstin || venue.settings?.gstin}</p>
+                ) : (
+                  <p className="text-[11px] text-amber-400/80">⚠ GSTIN not configured — update in Settings</p>
+                )}
+                <p className="text-[10px] font-mono text-[#8A8F9C] mt-0.5">
+                  Invoice #{selectedReceiptOrder.invoice_number || (selectedReceiptOrder.id ? selectedReceiptOrder.id.slice(0, 8).toUpperCase() : '')} &bull; Table T-{selectedReceiptOrder.table_number}
                 </p>
                 {selectedReceiptOrder.customer_name && (
                   <p className="text-[11px] font-semibold text-[#F4F5F7] mt-1 pt-1 border-t border-dashed border-white/[0.08]">
-                    Guest: {selectedReceiptOrder.customer_name} {selectedReceiptOrder.customer_phone ? `(${selectedReceiptOrder.customer_phone})` : ''}
+                    Guest: {selectedReceiptOrder.customer_name}
                   </p>
                 )}
               </div>
@@ -657,6 +669,12 @@ export function StaffBillingScreen() {
                   <span>Subtotal</span>
                   <span>{formatCurrency(selectedReceiptOrder.subtotal)}</span>
                 </div>
+                {(selectedReceiptOrder.discount || 0) > 0 && (
+                  <div className="flex justify-between text-[#C6FF3D]">
+                    <span>Discount</span>
+                    <span>-{formatCurrency(selectedReceiptOrder.discount)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-[#8A8F9C]">
                   <span>CGST (2.5%)</span>
                   <span>{formatCurrency(selectedReceiptOrder.tax / 2)}</span>

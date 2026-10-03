@@ -167,7 +167,7 @@ function generateSalesStatementHTML(data, venueName, gstin) {
 
       <div class="header">
         <h1>${venueName || 'Restaurant'}</h1>
-        <div class="gstin-badge">GSTIN: ${gstin || '19AAACC1206D1ZM'}</div>
+        <div class="gstin-badge">${gstin ? `GSTIN: ${gstin}` : '<span style="color:#b45309;font-weight:600;">GSTIN: Not Configured (Update in Settings)</span>'}</div>
         <p>SAC Code: <strong>996331</strong> (Restaurant and Food Takeaway Services)</p>
         <p><strong>OFFICIAL SALES & TAX SUMMARY STATEMENT</strong></p>
       </div>
@@ -411,7 +411,7 @@ export function StaffSalesScreen() {
       const html = generateSalesStatementHTML(
         salesData,
         venue?.name || 'TableSuite Dining Venue',
-        venue?.gstin || '19AAACC1206D1ZM'
+        venue?.gstin || venue?.settings?.gstin || ''
       );
 
       const printWindow = window.open('', '_blank', 'width=950,height=750');

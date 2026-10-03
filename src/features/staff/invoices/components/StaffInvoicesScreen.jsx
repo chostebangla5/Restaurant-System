@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@/features/shared/auth';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import {
   fetchInvoices,
   fetchInvoiceDetail,
   fetchInvoiceStats,
+  subscribeToInvoices,
 } from '../api/invoicesApi';
+import { formatCurrency } from '@/utils/formatCurrency';
 import {
   FileText,
   Search,
@@ -17,6 +17,7 @@ import {
   Calendar,
   Percent,
   RefreshCw,
+  User,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -55,7 +56,29 @@ export function StaffInvoicesScreen() {
 
   useEffect(() => {
     loadData();
+    const unsubscribe = subscribeToInvoices(() => {
+      loadData();
+    });
+    return () => unsubscribe();
   }, [loadData]);
+
+  // Client-side quick filter for instant search responsiveness
+  const filteredInvoices = useMemo(() => {
+    if (!search.trim()) return invoices;
+    const term = search.toLowerCase().trim();
+    return invoices.filter((inv) => {
+      const invNum = (inv.invoice_number || '').toLowerCase();
+      const tableNum = (inv.table_sessions?.tables?.table_number || '').toLowerCase();
+      const custName = (inv.table_sessions?.customer_name || '').toLowerCase();
+      const custPhone = (inv.table_sessions?.customer_phone || '').toLowerCase();
+      return (
+        invNum.includes(term) ||
+        tableNum.includes(term) ||
+        custName.includes(term) ||
+        custPhone.includes(term)
+      );
+    });
+  }, [invoices, search]);
 
   const handleViewDetail = async (invoiceId) => {
     setLoadingDetail(true);
@@ -78,28 +101,31 @@ export function StaffInvoicesScreen() {
   const formatDate = (dateStr) => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('en-IN', {
-      day: 'numeric', month: 'short', year: 'numeric',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
     });
   };
 
   const formatDateTime = (dateStr) => {
     if (!dateStr) return '—';
     return new Date(dateStr).toLocaleString('en-IN', {
-      day: 'numeric', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
-  const formatCurrency = (val) => {
-    return `₹${parseFloat(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-  };
 
-  // Collect all order items from the invoice detail
+
+  // Collect all non-cancelled order items from the invoice detail
   const getInvoiceItems = () => {
     if (!invoiceDetail?.table_sessions?.orders) return [];
     const items = [];
     for (const order of invoiceDetail.table_sessions.orders) {
-      if (order.order_items) {
+      if (order.status !== 'cancelled' && order.order_items) {
         items.push(...order.order_items);
       }
     }
@@ -108,13 +134,45 @@ export function StaffInvoicesScreen() {
 
   return (
     <div className="space-y-6">
+      {/* Print Specific CSS to print clean receipt on white background */}
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          .print-receipt-container, .print-receipt-container * {
+            visibility: visible;
+          }
+          .print-receipt-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            max-width: 450px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #ffffff !important;
+            color: #000000 !important;
+            font-family: monospace !important;
+          }
+          .no-print {
+            display: none !important;
+          }
+        }
+      `}</style>
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7]">Invoices</h1>
-          <p className="text-xs text-[#8A8F9C] mt-1">Tax invoices & billing history</p>
+          <p className="text-xs text-[#8A8F9C] mt-1">Official tax invoices & billing history</p>
         </div>
-        <Button size="md" variant="ghost" onClick={loadData} className="rounded-full text-xs font-mono text-[#8A8F9C] hover:text-[#F4F5F7]">
+        <Button
+          size="md"
+          variant="ghost"
+          onClick={loadData}
+          className="rounded-full text-xs font-mono text-[#8A8F9C] hover:text-[#F4F5F7]"
+        >
           <RefreshCw className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} /> Refresh
         </Button>
       </div>
@@ -155,7 +213,7 @@ export function StaffInvoicesScreen() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-[#8A8F9C]" strokeWidth={1.5} />
           <input
             type="text"
-            placeholder="Search by invoice number..."
+            placeholder="Search by invoice #, table, customer name or phone..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2 rounded-full text-xs bg-[#0E1016] border border-white/[0.08] text-[#F4F5F7] placeholder-[#8A8F9C] focus:border-[#C6FF3D] outline-none transition-all"
@@ -175,9 +233,9 @@ export function StaffInvoicesScreen() {
           className="px-3.5 py-2 rounded-full text-xs bg-[#0E1016] border border-white/[0.08] text-[#F4F5F7] outline-none focus:border-[#C6FF3D]"
           title="To date"
         />
-        {(dateFrom || dateTo) && (
+        {(dateFrom || dateTo || search) && (
           <button
-            onClick={() => { setDateFrom(''); setDateTo(''); }}
+            onClick={() => { setDateFrom(''); setDateTo(''); setSearch(''); }}
             className="px-3.5 py-2 rounded-full text-xs bg-white/[0.04] text-[#8A8F9C] hover:text-[#F4F5F7] border border-white/[0.08] transition-colors"
           >
             Clear
@@ -191,12 +249,12 @@ export function StaffInvoicesScreen() {
           <div className="flex items-center justify-center py-16">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#C6FF3D] border-t-transparent" />
           </div>
-        ) : invoices.length === 0 ? (
+        ) : filteredInvoices.length === 0 ? (
           <div className="py-16 text-center space-y-3">
             <FileText className="h-8 w-8 mx-auto text-[#8A8F9C]" strokeWidth={1.5} />
             <p className="text-sm font-semibold text-[#F4F5F7]">No invoices found</p>
             <p className="text-xs text-[#8A8F9C]">
-              Invoices are generated when a table session is settled through Billing & POS
+              Invoices are automatically generated when table sessions are settled through Billing & POS
             </p>
           </div>
         ) : (
@@ -205,16 +263,18 @@ export function StaffInvoicesScreen() {
               <thead>
                 <tr className="border-b border-white/[0.08] bg-[#141721] text-left">
                   <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Invoice #</th>
-                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Date</th>
+                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C] hidden sm:table-cell">Date & Time</th>
                   <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Table</th>
-                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Subtotal</th>
-                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Tax</th>
+                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C] hidden md:table-cell">Guest</th>
+                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C] hidden sm:table-cell">Subtotal</th>
+                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C] hidden lg:table-cell">Discount</th>
+                  <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C] hidden sm:table-cell">Tax (GST)</th>
                   <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Total</th>
                   <th className="px-5 py-3 text-[10px] font-mono font-medium uppercase tracking-wider text-[#8A8F9C]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.06]">
-                {invoices.map((inv) => (
+                {filteredInvoices.map((inv) => (
                   <tr
                     key={inv.id}
                     className="hover:bg-white/[0.02] transition-colors cursor-pointer"
@@ -225,23 +285,49 @@ export function StaffInvoicesScreen() {
                         {inv.invoice_number}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-[#8A8F9C] font-mono">
-                      {formatDate(inv.issued_at)}
+                    <td className="px-5 py-3.5 text-xs text-[#8A8F9C] font-mono hidden sm:table-cell">
+                      {formatDateTime(inv.issued_at)}
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-[#F4F5F7] font-mono">
-                      {inv.table_sessions?.tables?.table_number || '—'}
+                    <td className="px-5 py-3.5 text-xs text-[#F4F5F7] font-mono font-bold">
+                      T-{inv.table_sessions?.tables?.table_number || '—'}
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-[#8A8F9C] font-mono">
+                    <td className="px-5 py-3.5 text-xs text-[#F4F5F7] hidden md:table-cell">
+                      {inv.table_sessions?.customer_name ? (
+                        <div>
+                          <span className="font-medium text-[#F4F5F7] block">
+                            {inv.table_sessions.customer_name}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-[#8A8F9C] italic">Dine-in Guest</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-xs text-[#8A8F9C] font-mono hidden sm:table-cell">
                       {formatCurrency(inv.subtotal)}
                     </td>
-                    <td className="px-5 py-3.5 text-xs text-[#8A8F9C] font-mono">
+                    <td className="px-5 py-3.5 text-xs font-mono hidden lg:table-cell">
+                      {parseFloat(inv.discount_amount || 0) > 0 ? (
+                        <span className="text-[#C6FF3D]">-{formatCurrency(inv.discount_amount)}</span>
+                      ) : (
+                        <span className="text-[#8A8F9C]/50">—</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-3.5 text-xs text-[#8A8F9C] font-mono hidden sm:table-cell">
                       {formatCurrency(inv.tax_amount)}
                     </td>
                     <td className="px-5 py-3.5 text-xs font-mono font-bold text-[#F4F5F7]">
                       {formatCurrency(inv.total_amount)}
                     </td>
                     <td className="px-5 py-3.5">
-                      <Button size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); handleViewDetail(inv.id); }} className="rounded-full text-xs text-[#8A8F9C] hover:text-[#F4F5F7]">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewDetail(inv.id);
+                        }}
+                        className="rounded-full text-xs text-[#8A8F9C] hover:text-[#F4F5F7]"
+                      >
                         View
                       </Button>
                     </td>
@@ -257,7 +343,7 @@ export function StaffInvoicesScreen() {
       <Modal
         isOpen={detailModalOpen}
         onClose={() => { setDetailModalOpen(false); setInvoiceDetail(null); }}
-        title="Invoice Detail"
+        title="Tax Invoice"
         size="lg"
       >
         {loadingDetail ? (
@@ -265,28 +351,50 @@ export function StaffInvoicesScreen() {
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#C6FF3D] border-t-transparent" />
           </div>
         ) : invoiceDetail ? (
-          <div className="space-y-5 print-content">
+          <div className="space-y-5 print-receipt-container">
             {/* Invoice Header */}
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-base font-heading font-bold text-[#F4F5F7]">
                   {venue?.name || 'Restaurant'}
                 </h3>
-                <p className="text-[11px] text-[#8A8F9C] mt-1">{venue?.address || ''}</p>
+                <p className="text-[11px] text-[#8A8F9C] mt-0.5">{venue?.address || ''}</p>
                 <p className="text-[11px] text-[#8A8F9C]">{venue?.phone || ''}</p>
+                {venue?.gstin || venue?.settings?.gstin ? (
+                  <p className="text-[10px] font-mono text-[#8A8F9C] mt-1">GSTIN: {venue.gstin || venue.settings?.gstin}</p>
+                ) : (
+                  <p className="text-[10px] font-mono text-amber-400/80 mt-1">⚠ GSTIN not configured</p>
+                )}
               </div>
               <div className="text-right">
-                <p className="text-xs font-bold font-mono text-[#C6FF3D]">
+                <span className="text-xs font-bold font-mono text-[#C6FF3D] block">
                   {invoiceDetail.invoice_number}
-                </p>
+                </span>
                 <p className="text-[11px] font-mono text-[#8A8F9C] mt-1">
                   {formatDateTime(invoiceDetail.issued_at)}
                 </p>
-                <p className="text-[11px] font-mono text-[#8A8F9C]">
-                  Table: {invoiceDetail.table_sessions?.tables?.table_number || '—'}
+                <p className="text-[11px] font-mono font-bold text-[#F4F5F7]">
+                  Table: T-{invoiceDetail.table_sessions?.tables?.table_number || '—'}
                 </p>
               </div>
             </div>
+
+            {/* Guest CRM info if recorded */}
+            {(invoiceDetail.table_sessions?.customer_name || invoiceDetail.table_sessions?.customer_phone) && (
+              <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] text-xs flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <User className="h-3.5 w-3.5 text-[#C6FF3D]" />
+                  <span className="font-medium text-[#F4F5F7]">
+                    Guest: {invoiceDetail.table_sessions?.customer_name || 'Valued Guest'}
+                  </span>
+                </div>
+                {invoiceDetail.table_sessions?.customer_phone && (
+                  <span className="font-mono text-[#8A8F9C]">
+                    {invoiceDetail.table_sessions.customer_phone}
+                  </span>
+                )}
+              </div>
+            )}
 
             <div className="border-t border-dashed border-white/[0.12]" />
 
@@ -331,21 +439,32 @@ export function StaffInvoicesScreen() {
                 </div>
               )}
               <div className="flex justify-between text-[#8A8F9C]">
-                <span>Tax (GST)</span>
-                <span>{formatCurrency(invoiceDetail.tax_amount)}</span>
+                <span>CGST (2.5%)</span>
+                <span>{formatCurrency(invoiceDetail.tax_amount / 2)}</span>
+              </div>
+              <div className="flex justify-between text-[#8A8F9C]">
+                <span>SGST (2.5%)</span>
+                <span>{formatCurrency(invoiceDetail.tax_amount / 2)}</span>
               </div>
               <div className="border-t border-white/[0.12] pt-2 flex justify-between text-sm font-bold text-[#F4F5F7]">
-                <span>Total</span>
+                <span>Grand Total</span>
                 <span className="text-[#C6FF3D]">{formatCurrency(invoiceDetail.total_amount)}</span>
               </div>
             </div>
 
             {/* Actions */}
-            <div className="flex gap-3 pt-2">
-              <Button variant="ghost" onClick={() => { setDetailModalOpen(false); setInvoiceDetail(null); }} className="flex-1 rounded-full text-[#8A8F9C] hover:text-[#F4F5F7]">
+            <div className="flex gap-3 pt-2 no-print">
+              <Button
+                variant="ghost"
+                onClick={() => { setDetailModalOpen(false); setInvoiceDetail(null); }}
+                className="flex-1 rounded-full text-[#8A8F9C] hover:text-[#F4F5F7]"
+              >
                 Close
               </Button>
-              <Button onClick={handlePrint} className="flex-1 rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold">
+              <Button
+                onClick={handlePrint}
+                className="flex-1 rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] font-semibold"
+              >
                 <Printer className="h-4 w-4 mr-1.5" strokeWidth={1.5} /> Print Invoice
               </Button>
             </div>

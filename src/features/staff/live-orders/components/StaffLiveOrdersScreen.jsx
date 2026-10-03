@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Toggle';
 import { formatCurrency } from '@/utils/formatCurrency';
+import { getElapsedTime } from '@/utils/billCalculation';
 import { useAuth } from '@/features/shared/auth';
 import {
   fetchOrders,
@@ -145,12 +146,7 @@ export function StaffLiveOrdersScreen() {
   };
 
   const formatElapsed = (isoString) => {
-    if (!isoString) return 'Just now';
-    const diff = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
-    if (diff < 60) return `${diff}s ago`;
-    const mins = Math.floor(diff / 60);
-    if (mins < 60) return `${mins}m ago`;
-    return `${Math.floor(mins / 60)}h ago`;
+    return getElapsedTime(isoString);
   };
 
   return (
@@ -227,44 +223,66 @@ export function StaffLiveOrdersScreen() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredOrders.map((order) => (
-            <div
-              key={order.id}
-              className={`p-5 rounded-card bg-[#0E1016] border transition-all duration-300 flex flex-col justify-between ${
-                order.status === 'placed'
-                  ? 'border-rose-500/60 shadow-sm'
-                  : order.status === 'cooking'
-                  ? 'border-amber-400/60 shadow-sm'
-                  : order.status === 'ready'
-                  ? 'border-[#C6FF3D]/60 shadow-sm'
-                  : order.status === 'cancelled'
-                  ? 'border-rose-500/20 bg-[#0E1016]/60 opacity-80'
-                  : 'border-white/[0.08] hover:border-white/[0.18]'
-              }`}
-            >
-              <div className="space-y-3.5">
-                {/* Ticket Top Bar */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono font-bold text-xs px-2.5 py-1 bg-[#141721] text-[#C6FF3D] border border-white/[0.08] rounded-full">
-                      T-{order.table_number}
-                    </span>
-                    <span className="text-xs font-mono font-semibold text-[#F4F5F7]">
-                      Round #{order.round_number}
-                    </span>
-                    {order.customer_name && (
-                      <span className="text-[11px] font-semibold text-[#C6FF3D] bg-[#C6FF3D]/10 px-2 py-0.5 rounded-full border border-[#C6FF3D]/25">
-                        👤 {order.customer_name}
+          {filteredOrders.map((order) => {
+            const elapsed = formatElapsed(order.created_at);
+            const isStale = elapsed.isOverdue && order.status !== 'completed' && order.status !== 'cancelled';
+
+            return (
+              <div
+                key={order.id}
+                className={`p-5 rounded-card bg-[#0E1016] border transition-all duration-300 flex flex-col justify-between ${
+                  isStale
+                    ? 'border-rose-500/80 bg-[#160d10] ring-1 ring-rose-500/40 shadow-md shadow-rose-950/30'
+                    : order.status === 'placed'
+                    ? 'border-rose-500/60 shadow-sm'
+                    : order.status === 'cooking'
+                    ? 'border-amber-400/60 shadow-sm'
+                    : order.status === 'ready'
+                    ? 'border-[#C6FF3D]/60 shadow-sm'
+                    : order.status === 'cancelled'
+                    ? 'border-rose-500/20 bg-[#0E1016]/60 opacity-80'
+                    : 'border-white/[0.08] hover:border-white/[0.18]'
+                }`}
+              >
+                <div className="space-y-3.5">
+                  {/* Ticket Top Bar */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-xs px-2.5 py-1 bg-[#141721] text-[#C6FF3D] border border-white/[0.08] rounded-full">
+                        T-{order.table_number}
                       </span>
-                    )}
+                      <span className="text-xs font-mono font-semibold text-[#F4F5F7]">
+                        Round #{order.round_number}
+                      </span>
+                      {order.customer_name && (
+                        <span className="text-[11px] font-semibold text-[#C6FF3D] bg-[#C6FF3D]/10 px-2 py-0.5 rounded-full border border-[#C6FF3D]/25">
+                          👤 {order.customer_name}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`text-[11px] font-mono flex items-center gap-1 ${
+                          elapsed.isOverdue
+                            ? 'text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/30'
+                            : elapsed.isUrgent
+                            ? 'text-amber-400 font-semibold'
+                            : 'text-[#8A8F9C]'
+                        }`}
+                      >
+                        <Clock className="h-3 w-3" strokeWidth={1.5} /> {elapsed.text}
+                      </span>
+                      {getStatusBadge(order.status)}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono text-[#8A8F9C] flex items-center gap-1">
-                      <Clock className="h-3 w-3" strokeWidth={1.5} /> {formatElapsed(order.created_at)}
-                    </span>
-                    {getStatusBadge(order.status)}
-                  </div>
-                </div>
+
+                  {/* Overdue / Stale Banner */}
+                  {isStale && (
+                    <div className="flex items-center gap-1.5 p-2 rounded-lg bg-rose-500/20 border border-rose-500/40 text-[11px] font-mono text-rose-300">
+                      <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0" />
+                      <span>Overdue ({elapsed.text}) — Review table / settle</span>
+                    </div>
+                  )}
 
                 {/* Items List */}
                 <div className="space-y-2 py-2.5 border-y border-white/[0.06] text-xs">
@@ -412,7 +430,8 @@ export function StaffLiveOrdersScreen() {
                 </div>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       )}
     </div>

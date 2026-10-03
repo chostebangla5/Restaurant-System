@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import { NavLink, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/features/shared/auth';
 import { AnimatedOutlet } from '@/components/animation/AnimatedOutlet';
 import {
@@ -22,13 +22,14 @@ import {
   ChevronsUpDown,
   FileText,
   MessageSquare,
-  Sparkles,
   TrendingUp,
+  ClipboardCheck,
+  Bell,
 } from 'lucide-react';
+import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
-import { preloadStaffFlow } from '@/app/routes';
 
-export function StaffLayout() {
+export function AdminLayout() {
   const {
     user,
     staffProfile,
@@ -39,43 +40,58 @@ export function StaffLayout() {
     signOut,
     switchVenue,
   } = useAuth();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isVenueSwitcherOpen, setIsVenueSwitcherOpen] = useState(false);
 
   useEffect(() => {
-    preloadStaffFlow();
-    const isDark = document.documentElement.classList.contains('dark');
-    setIsDarkMode(isDark);
-  }, []);
+    const pageMetadata = {
+      '/admin': { title: 'Dashboard | TableSuite Admin', desc: 'Real-time restaurant overview, live metrics, and quick actions.' },
+      '/admin/live-orders': { title: 'Live Orders | TableSuite Admin', desc: 'Monitor active table orders and kitchen status in real time.' },
+      '/admin/kitchen': { title: 'Kitchen KDS | TableSuite Admin', desc: 'Kitchen Display System with ticket routing and timer management.' },
+      '/admin/tables': { title: 'Table Management | TableSuite Admin', desc: 'Floor plan, active table sessions, and seat turnover tracking.' },
+      '/admin/menu': { title: 'Menu Management | TableSuite Admin', desc: 'Manage categories, dishes, prices, and 86-item availability.' },
+      '/admin/billing': { title: 'Billing & POS | TableSuite Admin', desc: 'Point-of-Sale billing, table checkout, receipt printing, and payment settlement.' },
+      '/admin/sales': { title: 'Sales & Analytics | TableSuite Admin', desc: 'Revenue analysis, tax reporting, net sales, and exportable financial reports.' },
+      '/admin/team': { title: 'Staff & Team | TableSuite Admin', desc: 'Manage waitstaff, chef accounts, roles, and permissions.' },
+      '/admin/qr-codes': { title: 'QR Generator | TableSuite Admin', desc: 'Generate and print table QR codes with instant menu routing.' },
+      '/admin/offers': { title: 'Offers & Coupons | TableSuite Admin', desc: 'Configure promotional discounts, percentage off, and coupon limits.' },
+      '/admin/guests': { title: 'Guests & CRM | TableSuite Admin', desc: 'Customer directory, dining history, visit count, and guest relationship tools.' },
+      '/admin/invoices': { title: 'Invoices & Tax Records | TableSuite Admin', desc: 'Auditable GST invoice history, reconciliation, and payment records.' },
+      '/admin/feedback': { title: 'Guest Feedback | TableSuite Admin', desc: 'Ratings and dining reviews submitted by diners.' },
+      '/admin/attendance': { title: 'Staff Attendance | TableSuite Admin', desc: 'Team attendance tracking, clock-in/out records, and shift management.' },
+      '/admin/settings': { title: 'Business Settings | TableSuite Admin', desc: 'Venue details, GSTIN, FSSAI, brand styling, and operating preferences.' },
+    };
 
-  const toggleDarkMode = () => {
-    const next = !isDarkMode;
-    setIsDarkMode(next);
-    if (next) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    const current = pageMetadata[location.pathname] || {
+      title: 'Admin Portal | TableSuite',
+      desc: 'TableSuite restaurant admin and operations platform.',
+    };
+    document.title = current.title;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute('content', current.desc);
     }
-  };
+  }, [location.pathname]);
 
   const navItems = [
-    { label: 'Dashboard', path: '/staff', icon: LayoutDashboard, end: true },
-    { label: 'Live Orders', path: '/staff/live-orders', icon: Activity, badge: 'Live' },
-    { label: 'Kitchen KDS', path: '/staff/kitchen', icon: Flame },
-    { label: 'Tables', path: '/staff/tables', icon: Grid },
-    { label: 'Menu Items', path: '/staff/menu', icon: BookOpen },
-    { label: 'Billing & POS', path: '/staff/billing', icon: Receipt },
-    { label: 'Sales & Analytics', path: '/staff/sales', icon: TrendingUp, badge: 'New' },
-    { label: 'Staff', path: '/staff/team', icon: Users },
-    { label: 'QR Generator', path: '/staff/qr-codes', icon: QrCode },
-    { label: 'Offers & Coupons', path: '/staff/offers', icon: Tag },
-    { label: 'Guests & CRM', path: '/staff/guests', icon: UserCheck },
-    { label: 'Invoices', path: '/staff/invoices', icon: FileText },
-    { label: 'Feedback', path: '/staff/feedback', icon: MessageSquare },
-    { label: 'Settings', path: '/staff/settings', icon: Settings },
+    { label: 'Dashboard', path: '/admin', icon: LayoutDashboard, end: true },
+    { label: 'Live Orders', path: '/admin/live-orders', icon: Activity, badge: 'Live' },
+    { label: 'Kitchen KDS', path: '/admin/kitchen', icon: Flame },
+    { label: 'Tables', path: '/admin/tables', icon: Grid },
+    { label: 'Menu Items', path: '/admin/menu', icon: BookOpen },
+    { label: 'Billing & POS', path: '/admin/billing', icon: Receipt },
+    { label: 'Sales & Analytics', path: '/admin/sales', icon: TrendingUp, badge: 'New' },
+    { label: 'Staff & Team', path: '/admin/team', icon: Users },
+    { label: 'Attendance', path: '/admin/attendance', icon: ClipboardCheck, badge: 'New' },
+    { label: 'QR Generator', path: '/admin/qr-codes', icon: QrCode },
+    { label: 'Offers & Coupons', path: '/admin/offers', icon: Tag },
+    { label: 'Guests & CRM', path: '/admin/guests', icon: UserCheck },
+    { label: 'Invoices', path: '/admin/invoices', icon: FileText },
+    { label: 'Feedback', path: '/admin/feedback', icon: MessageSquare },
+    { label: 'Settings', path: '/admin/settings', icon: Settings },
   ];
 
   const handleSignOut = async () => {
@@ -138,7 +154,7 @@ export function StaffLayout() {
               <h2 className="font-heading font-bold text-sm tracking-tight text-[#F4F5F7]">
                 TableSuite
               </h2>
-              <p className="font-mono text-[10px] text-[#8A8F9C] uppercase tracking-wider">Staff Portal</p>
+              <p className="font-mono text-[10px] text-[#8A8F9C] uppercase tracking-wider">Admin Portal</p>
             </div>
           </div>
         </div>
@@ -249,7 +265,7 @@ export function StaffLayout() {
                   {staffProfile?.full_name || user?.email?.split('@')[0] || 'Staff Member'}
                 </p>
                 <p className="text-[10px] font-mono text-[#8A8F9C] capitalize">
-                  {role || 'Staff'}
+                  {role || 'Admin'}
                 </p>
               </div>
             </div>
@@ -264,10 +280,18 @@ export function StaffLayout() {
             </button>
           </div>
 
+          <Link
+            to="/staff"
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold text-[#07080B] bg-[#C6FF3D] hover:bg-[#b5f02e] rounded-xl transition-all shadow-sm group"
+          >
+            <UserCheck className="h-3.5 w-3.5" strokeWidth={2} />
+            <span>Staff Portal View</span>
+          </Link>
+
           <button
             type="button"
             onClick={handleSignOut}
-            className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-rose-400/90 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 rounded-full transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2 text-xs font-medium text-rose-400/90 hover:text-rose-300 hover:bg-rose-500/10 border border-rose-500/20 rounded-xl transition-colors"
           >
             <LogOut className="h-3.5 w-3.5" strokeWidth={1.5} />
             Sign Out
@@ -290,6 +314,15 @@ export function StaffLayout() {
           </div>
 
           <div className="flex items-center gap-3">
+            <Link
+              to="/staff"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-[#C6FF3D] bg-[#C6FF3D]/10 hover:bg-[#C6FF3D]/20 border border-[#C6FF3D]/30 transition-colors"
+              title="Open Staff Portal"
+            >
+              <UserCheck className="h-3.5 w-3.5" strokeWidth={1.5} />
+              <span>Staff Portal</span>
+            </Link>
+
             <div className="flex items-center gap-2 bg-[#C6FF3D]/10 text-[#C6FF3D] px-3 py-1 rounded-full text-xs font-mono border border-[#C6FF3D]/25">
               <span className="h-1.5 w-1.5 rounded-full bg-[#C6FF3D] animate-pulse"></span>
               Realtime Sync Active

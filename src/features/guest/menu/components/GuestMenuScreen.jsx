@@ -13,7 +13,7 @@ import {
   UtensilsCrossed,
   Star,
 } from 'lucide-react';
-import { getFoodImage } from '@/utils/foodImageMap';
+import { getFoodImage, getCatalogFoodImage, DEFAULT_FOOD_IMAGE } from '@/utils/foodImageMap';
 
 /* ─── Quantity with pop animation ─── */
 function QtyDisplay({ qty }) {
@@ -254,8 +254,14 @@ export function GuestMenuScreen() {
                 className="h-full w-full object-cover"
                 loading="lazy"
                 decoding="async"
+                referrerPolicy="no-referrer"
                 onError={(e) => {
-                  e.target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&auto=format&fit=crop&q=80';
+                  const fallback = getCatalogFoodImage(chefSpecialItem);
+                  if (e.target.src !== fallback) {
+                    e.target.src = fallback;
+                  } else {
+                    e.target.src = DEFAULT_FOOD_IMAGE;
+                  }
                 }}
               />
             </div>
@@ -427,8 +433,14 @@ export function GuestMenuScreen() {
                         className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
                         loading="lazy"
                         decoding="async"
+                        referrerPolicy="no-referrer"
                         onError={(e) => {
-                          e.target.src = 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400&auto=format&fit=crop&q=80';
+                          const fallback = getCatalogFoodImage(item);
+                          if (e.target.src !== fallback) {
+                            e.target.src = fallback;
+                          } else {
+                            e.target.src = DEFAULT_FOOD_IMAGE;
+                          }
                         }}
                       />
                     </div>

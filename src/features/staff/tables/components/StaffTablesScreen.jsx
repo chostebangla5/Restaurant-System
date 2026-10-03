@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { formatCurrency } from '@/utils/formatCurrency';
+import { getElapsedTime } from '@/utils/billCalculation';
 import { useAuth } from '@/features/shared/auth';
 import {
   fetchTables,
@@ -167,13 +168,16 @@ export function StaffTablesScreen() {
             const tableOrders = getTableOrders(t);
             const activeOrders = tableOrders.filter((o) => o.status !== 'completed');
             const totalBill = activeOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+            const hasOverdueOrders = activeOrders.some((o) => getElapsedTime(o.created_at).isOverdue);
 
             return (
               <div
                 key={t.id}
                 onClick={() => setSelectedTable(t)}
                 className={`p-5 rounded-card border transition-all duration-300 cursor-pointer hover:-translate-y-0.5 flex flex-col justify-between ${
-                  occupied
+                  hasOverdueOrders
+                    ? 'bg-[#170e12] border-rose-500/70 shadow-sm'
+                    : occupied
                     ? 'bg-[#141721] border-amber-400/40 shadow-sm'
                     : 'bg-[#0E1016] border-white/[0.08] hover:border-white/[0.2]'
                 }`}
@@ -183,8 +187,11 @@ export function StaffTablesScreen() {
                     <span className="text-xl font-heading font-extrabold text-[#F4F5F7]">
                       T-{t.number}
                     </span>
-                    <Badge variant={occupied ? 'warning' : 'success'} size="sm">
-                      {occupied ? 'Occupied' : 'Free'}
+                    <Badge
+                      variant={hasOverdueOrders ? 'danger' : occupied ? 'warning' : 'success'}
+                      size="sm"
+                    >
+                      {hasOverdueOrders ? 'Overdue' : occupied ? 'Occupied' : 'Free'}
                     </Badge>
                   </div>
 

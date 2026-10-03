@@ -5,15 +5,40 @@ import { TRANSITION_EASE, DURATION_SECTION, DURATION_REDUCED } from '@/lib/motio
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '../context/AuthContext';
-import { signUpOwner, signUpStaff, generateSlug, resendConfirmationEmail } from '../api/authApi';
+import { signUpOwner, signUpStaff, generateSlug, resendConfirmationEmail, fetchStaffProfiles } from '../api/authApi';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { Mail, ShieldCheck } from 'lucide-react';
+import { Mail, ShieldCheck, KeyRound } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function StaffLoginScreen() {
   const [mode, setMode] = useState('login'); // 'login' | 'signup'
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
+  const { user, role, isLoading: authLoading } = useAuth();
+
+  // If already authenticated, redirect to appropriate portal
+  useEffect(() => {
+    if (user && !authLoading) {
+      if (role === 'owner' || role === 'manager') {
+        navigate('/admin', { replace: true });
+      } else {
+        navigate('/staff', { replace: true });
+      }
+    }
+  }, [user, role, authLoading, navigate]);
+
+  useEffect(() => {
+    document.title = mode === 'login' ? 'Staff Login | TableSuite' : 'Create Staff Account | TableSuite';
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) {
+      metaDesc.setAttribute(
+        'content',
+        mode === 'login'
+          ? 'Secure staff sign-in for TableSuite restaurant management platform.'
+          : 'Create a new restaurant owner or staff account on TableSuite.'
+      );
+    }
+  }, [mode]);
 
   return (
     <div className="min-h-screen bg-bg text-text flex items-center justify-center p-4 selection:bg-accent selection:text-bg relative overflow-hidden font-sans">
@@ -107,8 +132,20 @@ function LoginForm({ navigate }) {
     setIsLoading(true);
     setUnconfirmedEmail(null);
     try {
-      await signInWithPassword(email, password);
+      const authData = await signInWithPassword(email, password);
       toast.success('Signed in successfully!');
+      if (authData?.user?.id) {
+        try {
+          const profiles = await fetchStaffProfiles(authData.user.id);
+          const active = profiles?.find((p) => p.is_active !== false) || profiles?.[0];
+          if (active && (active.role === 'owner' || active.role === 'manager')) {
+            navigate('/admin');
+            return;
+          }
+        } catch {
+          // fallback to /staff
+        }
+      }
       navigate('/staff');
     } catch (err) {
       const msg = err.message || '';
@@ -144,8 +181,39 @@ function LoginForm({ navigate }) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
-        placeholder="staff@restaurant.com"
+        placeholder="e.g. samim@ditoech.com"
       />
+
+      {/* Quick Select Registered Accounts */}
+      <div className="space-y-1.5">
+        <p className="text-[11px] text-muted font-medium">
+          Registered Accounts (tap to autofill):
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={() => setEmail('samim@ditoech.com')}
+            className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-2 border border-white/10 hover:border-accent/50 text-text transition-colors cursor-pointer"
+          >
+            👑 Owner: samim@ditoech.com
+          </button>
+          <button
+            type="button"
+            onClick={() => setEmail('chostebangla@gmail.com')}
+            className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-2 border border-white/10 hover:border-accent/50 text-text transition-colors cursor-pointer"
+          >
+            👨‍🍳 Kitchen: chostebangla@gmail.com
+          </button>
+          <button
+            type="button"
+            onClick={() => setEmail('manager@petpooja.com')}
+            className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-2 border border-white/10 hover:border-accent/50 text-text transition-colors cursor-pointer"
+          >
+            📋 Manager: manager@petpooja.com
+          </button>
+        </div>
+      </div>
+
       <Input
         label="Password"
         type="password"
@@ -185,6 +253,32 @@ function LoginForm({ navigate }) {
       <Button type="submit" size="lg" className="w-full font-semibold mt-2" isLoading={isLoading}>
         Sign In to Portal
       </Button>
+
+      {/* Password Recovery */}
+      <div className="text-center pt-1">
+        <button
+          type="button"
+          onClick={async () => {
+            if (!email) {
+              toast.error('Enter your email address above, then click Forgot Password.');
+              return;
+            }
+            try {
+              const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/staff`,
+              });
+              if (error) throw error;
+              toast.success(`Password reset link sent to ${email}. Check your inbox.`, { duration: 6000 });
+            } catch (err) {
+              toast.error(err.message || 'Failed to send reset link.');
+            }
+          }}
+          className="text-xs text-accent hover:underline font-medium cursor-pointer inline-flex items-center gap-1"
+        >
+          <KeyRound className="h-3 w-3" strokeWidth={1.5} />
+          Forgot Password?
+        </button>
+      </div>
     </form>
   );
 }
@@ -237,6 +331,11 @@ function SignUpForm({ navigate, setMode }) {
       return;
     }
 
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters long');
+      return;
+    }
+
     setIsLoading(true);
     try {
       if (signupType === 'staff') {
@@ -285,7 +384,7 @@ function SignUpForm({ navigate, setMode }) {
         }
 
         toast.success('Restaurant owner account created! Welcome to TableSuite.');
-        navigate('/staff/settings');
+        navigate('/admin/settings');
       }
     } catch (err) {
       const msg = err?.message || 'Registration failed';
@@ -345,10 +444,11 @@ function SignUpForm({ navigate, setMode }) {
         <>
           {venues.length > 0 && (
             <div>
-              <label className="block text-xs font-medium text-text/80 mb-1.5">
+              <label htmlFor="signup-venue-select" className="block text-xs font-medium text-text/80 mb-1.5">
                 Select Restaurant Venue
               </label>
               <select
+                id="signup-venue-select"
                 value={selectedVenueId}
                 onChange={(e) => setSelectedVenueId(e.target.value)}
                 className="w-full rounded-xl border border-white/10 bg-surface px-4 py-2.5 text-xs text-text focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-colors"
@@ -363,10 +463,11 @@ function SignUpForm({ navigate, setMode }) {
           )}
 
           <div>
-            <label className="block text-xs font-medium text-text/80 mb-1.5">
+            <label htmlFor="signup-role-select" className="block text-xs font-medium text-text/80 mb-1.5">
               Role Applying For
             </label>
             <select
+              id="signup-role-select"
               value={selectedRole}
               onChange={(e) => setSelectedRole(e.target.value)}
               className="w-full rounded-xl border border-white/10 bg-surface px-4 py-2.5 text-xs text-text focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/30 transition-colors"
@@ -415,7 +516,8 @@ function SignUpForm({ navigate, setMode }) {
         value={formData.password}
         onChange={handleChange('password')}
         required
-        placeholder="Minimum 6 characters"
+        placeholder="••••••••"
+        helperText="Minimum 6 characters (must match your authentication provider policy)"
       />
       <Button type="submit" size="lg" className="w-full font-semibold mt-2" isLoading={isLoading}>
         {signupType === 'staff' ? 'Submit Registration for Approval' : 'Create Restaurant Account'}

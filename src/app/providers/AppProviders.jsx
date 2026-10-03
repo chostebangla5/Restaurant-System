@@ -2,12 +2,14 @@ import React from 'react';
 import { MotionConfig } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from '@/features/shared/auth';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 export function AppProviders({ children }) {
   return (
-    <MotionConfig reducedMotion="user">
-      <AuthProvider>
-        {children}
+    <ThemeProvider>
+      <MotionConfig reducedMotion="user">
+        <AuthProvider>
+          {children}
         <Toaster
         position="top-right"
         toastOptions={{
@@ -35,7 +37,8 @@ export function AppProviders({ children }) {
           },
         }}
       />
-      </AuthProvider>
-    </MotionConfig>
+        </AuthProvider>
+      </MotionConfig>
+    </ThemeProvider>
   );
 }

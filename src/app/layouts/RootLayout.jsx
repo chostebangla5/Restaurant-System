@@ -4,6 +4,7 @@ import { ScrollToTop } from '@/components/navigation/ScrollToTop';
 
 // Keeps layout transitions active between top-level flows without remounting nested shells
 const getRootRouteKey = (location) => {
+  if (location.pathname.startsWith('/admin')) return '/admin';
   if (location.pathname.startsWith('/staff')) return '/staff';
   if (location.pathname.startsWith('/t/')) return '/t';
   return location.pathname;
