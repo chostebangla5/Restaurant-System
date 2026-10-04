@@ -141,9 +141,6 @@ export function AuthProvider({ children }) {
   }, [loadProfiles]);
 
   const signInWithPassword = useCallback(async (email, password) => {
-    if (!isSupabaseConfigured()) {
-      throw new Error('Supabase is not configured. Please verify your environment settings.');
-    }
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,

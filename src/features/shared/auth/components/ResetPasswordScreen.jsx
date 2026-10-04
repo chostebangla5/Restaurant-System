@@ -73,11 +73,6 @@ export function ResetPasswordScreen() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!isSupabaseConfigured()) {
-      toast.error('Authentication is not configured.');
-      return;
-    }
-
     if (password.length < 6) {
       toast.error('Password must be at least 6 characters long.');
       return;

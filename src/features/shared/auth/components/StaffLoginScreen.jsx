@@ -156,11 +156,6 @@ function LoginForm({ navigate, onForgotPassword }) {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    if (!isSupabaseConfigured()) {
-      toast.error('Supabase connection is not configured. Please check environment variables.');
-      return;
-    }
-
     setIsLoading(true);
     setUnconfirmedEmail(null);
     try {
@@ -292,10 +287,6 @@ function ForgotPasswordForm({ initialEmail = '', onBack }) {
       toast.error('Please enter your email address.');
       return;
     }
-    if (!isSupabaseConfigured()) {
-      toast.error('Supabase connection is not configured.');
-      return;
-    }
     setIsLoading(true);
     try {
       await sendPasswordResetEmail(email);
@@ -416,11 +407,6 @@ function SignUpForm({ navigate, setMode }) {
 
   const handleSignUp = async (e) => {
     e.preventDefault();
-
-    if (!isSupabaseConfigured()) {
-      toast.error('Supabase not configured — enter your project URL & anon key in .env.local');
-      return;
-    }
 
     if (!formData.fullName || !formData.email || !formData.password) {
       toast.error('Please fill in all required fields');
