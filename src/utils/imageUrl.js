@@ -24,7 +24,7 @@ export function normalizeImageUrl(url) {
   // or https://drive.google.com/open?id=FILE_ID
   const gdriveMatch = trimmed.match(/drive\.google\.com\/(?:file\/d\/|open\?id=)([a-zA-Z0-9_-]+)/);
   if (gdriveMatch && gdriveMatch[1]) {
-    return `https://drive.google.com/thumbnail?id=${gdriveMatch[1]}&sz=w1000`;
+    return `https://drive.google.com/thumbnail?id=${gdriveMatch[1]}&sz=w400`;
   }
 
   // Dropbox links: ensure dl=0 is converted to raw=1
@@ -46,7 +46,7 @@ export function normalizeImageUrl(url) {
   // Unsplash photo page URL (e.g. https://unsplash.com/photos/abc-123)
   const unsplashMatch = trimmed.match(/unsplash\.com\/photos\/([a-zA-Z0-9_-]+)/);
   if (unsplashMatch && unsplashMatch[1] && !trimmed.includes('images.unsplash.com')) {
-    return `https://images.unsplash.com/photo-${unsplashMatch[1]}?w=800&auto=format&fit=crop&q=80`;
+    return `https://images.unsplash.com/photo-${unsplashMatch[1]}?w=320&auto=format&fit=crop&q=75&fm=webp`;
   }
 
   // Protocol-relative or missing protocol
@@ -54,6 +54,44 @@ export function normalizeImageUrl(url) {
     trimmed = 'https:' + trimmed;
   } else if (!/^https?:\/\//i.test(trimmed)) {
     trimmed = 'https://' + trimmed;
+  }
+
+  return trimmed;
+}
+
+/**
+ * Dynamically resizes CDN image URLs to target thumbnail/container dimensions.
+ * Avoids downloading 800px-1000px images for 80px mobile list icons.
+ */
+export function getOptimizedImageUrl(url, { width = 240, quality = 75 } = {}) {
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
+  if (trimmed.startsWith('data:image/')) return trimmed;
+
+  // Unsplash image optimization
+  if (trimmed.includes('images.unsplash.com')) {
+    try {
+      const parsed = new URL(trimmed);
+      parsed.searchParams.set('w', String(width));
+      parsed.searchParams.set('q', String(quality));
+      parsed.searchParams.set('fm', 'webp');
+      parsed.searchParams.set('auto', 'format');
+      parsed.searchParams.set('fit', 'crop');
+      return parsed.toString();
+    } catch {
+      return trimmed;
+    }
+  }
+
+  // Google Drive thumbnail optimization
+  if (trimmed.includes('drive.google.com/thumbnail')) {
+    try {
+      const parsed = new URL(trimmed);
+      parsed.searchParams.set('sz', `w${width}`);
+      return parsed.toString();
+    } catch {
+      return trimmed;
+    }
   }
 
   return trimmed;

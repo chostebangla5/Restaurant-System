@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 
 const ThemeContext = createContext({
   theme: 'dark',
@@ -35,18 +35,25 @@ export function ThemeProvider({ children }) {
     localStorage.setItem('ts_theme', theme);
   }, [theme]);
 
-  const toggleDarkMode = () => {
+  const toggleDarkMode = useCallback(() => {
     setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
-  };
+  }, []);
 
-  const setTheme = (newTheme) => {
+  const setTheme = useCallback((newTheme) => {
     if (newTheme === 'dark' || newTheme === 'light') {
       setThemeState(newTheme);
     }
-  };
+  }, []);
+
+  const contextValue = useMemo(() => ({
+    theme,
+    isDarkMode,
+    toggleDarkMode,
+    setTheme,
+  }), [theme, isDarkMode, toggleDarkMode, setTheme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, isDarkMode, toggleDarkMode, setTheme }}>
+    <ThemeContext.Provider value={contextValue}>
       {children}
     </ThemeContext.Provider>
   );

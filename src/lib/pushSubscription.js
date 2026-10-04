@@ -1,11 +1,7 @@
 import { supabase } from './supabase';
 
-// Production VAPID Public Key fallback (ensures notifications work even if Vercel env var is omitted)
-export const DEFAULT_VAPID_PUBLIC_KEY =
-  'BO-f-I2V2qua0N51iuVEjlGk6jn0ZcYdSaDwxYbeCed_S18iU88YMmH-KZhOnXGhXDDsce7dHuvCsCe6CJlmdiI';
-
 export const VAPID_PUBLIC_KEY =
-  import.meta.env.VITE_VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
+  import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
 
 /**
  * Convert a URL-safe base64 string to a Uint8Array (for VAPID key)
@@ -184,7 +180,7 @@ export async function subscribeToPush(venueId, guestId = null) {
     throw new Error('Push notifications are not supported on this browser.');
   }
 
-  const keyToUse = VAPID_PUBLIC_KEY || DEFAULT_VAPID_PUBLIC_KEY;
+  const keyToUse = VAPID_PUBLIC_KEY;
   if (!keyToUse) {
     throw new Error('Push notifications are not configured yet.');
   }

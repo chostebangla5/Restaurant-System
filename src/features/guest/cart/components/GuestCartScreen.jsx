@@ -434,20 +434,26 @@ export function GuestCartScreen() {
   };
 
   // Payment Success Handler
-  const handlePaymentSuccess = async (txnId = '') => {
+  const handlePaymentSuccess = async (txnId = '', isVerifiedGateway = false) => {
     try {
       setPaymentProcessing(true);
       toast.loading('Confirming order...', { id: 'order-submit' });
 
+      const effectivePaymentStatus = isVerifiedGateway ? 'paid' : 'pending';
+      const upiNote = isVerifiedGateway
+        ? (txnId ? `[Txn: ${txnId}]` : '')
+        : (txnId ? `[UPI Txn: ${txnId} - Verify on POS]` : '[UPI Sent: Verify on POS]');
+      const combinedNotes = [upiNote, guestNotes].filter(Boolean).join(' ').trim();
+
       if (paymentChoice === 'split') {
         await submitOrder({
           paymentMethod: 'split',
-          paymentStatus: 'partially_paid',
+          paymentStatus: isVerifiedGateway ? 'partially_paid' : 'pending',
           splitDetails: {
             onlineAmount: effectiveOnlineAmount,
             cashAmount: effectiveCashAmount,
           },
-          guestNotes: txnId ? `[Txn: ${txnId}] ${guestNotes}`.trim() : guestNotes,
+          guestNotes: combinedNotes,
           tableNumber: tableInfo?.tableNumber || shortCode.replace(/[^0-9]/g, '') || '01',
           guestName: guestName.trim(),
           guestPhone: guestPhone.trim(),
@@ -455,14 +461,19 @@ export function GuestCartScreen() {
       } else {
         await submitOrder({
           paymentMethod: 'online',
-          paymentStatus: 'paid',
-          guestNotes: txnId ? `[Txn: ${txnId}] ${guestNotes}`.trim() : guestNotes,
+          paymentStatus: effectivePaymentStatus,
+          guestNotes: combinedNotes,
           tableNumber: tableInfo?.tableNumber || shortCode.replace(/[^0-9]/g, '') || '01',
           guestName: guestName.trim(),
           guestPhone: guestPhone.trim(),
         });
       }
-      toast.success('Payment verified! Order sent to kitchen.', { id: 'order-submit', duration: 4000 });
+
+      if (isVerifiedGateway) {
+        toast.success('Payment verified! Order sent to kitchen.', { id: 'order-submit', duration: 4000 });
+      } else {
+        toast.success('Order sent to kitchen! Waiter will verify your UPI transaction.', { id: 'order-submit', duration: 5000 });
+      }
       setIsPaymentModalOpen(false);
     } catch (err) {
       toast.error(err.message || 'Error completing order', { id: 'order-submit' });
@@ -489,7 +500,7 @@ export function GuestCartScreen() {
         guestPhone: guestPhone.trim(),
         brandColor: tableInfo?.brandColor || '#E23744',
         onSuccess: (resp) => {
-          handlePaymentSuccess(resp.razorpay_payment_id);
+          handlePaymentSuccess(resp.razorpay_payment_id, true);
         },
         onFailure: () => {
           // Automatic redirect to counter option on failure!
@@ -1257,12 +1268,12 @@ export function GuestCartScreen() {
               <div className="space-y-2.5 pt-2">
                 <button
                   type="button"
-                  onClick={() => handlePaymentSuccess()}
+                  onClick={() => handlePaymentSuccess('', false)}
                   disabled={paymentProcessing}
                   className="g-btn-primary w-full py-3.5 text-sm font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-98"
                 >
                   <CheckCircle2 className="h-4 w-4" />
-                  <span>Yes, Payment Successful</span>
+                  <span>Yes, Payment Sent — Place Order</span>
                 </button>
 
                 <button

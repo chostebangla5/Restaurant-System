@@ -5,7 +5,7 @@ import { useAuth } from '@/features/shared/auth';
 import {
   fetchVenueAttendanceToday,
   fetchAttendanceHistory,
-  getAttendanceSummary,
+  computeAttendanceSummary,
   subscribeToAttendance,
 } from '@/features/staff/attendance/api/attendanceApi';
 import { fetchStaffMembers } from '@/features/staff/team/api/teamApi';
@@ -69,14 +69,14 @@ export function StaffAttendanceScreen() {
 
   const loadToday = useCallback(async () => {
     try {
-      const [records, staff, summaryData] = await Promise.all([
+      const [records, staff] = await Promise.all([
         fetchVenueAttendanceToday(venueId),
         fetchStaffMembers(venueId),
-        getAttendanceSummary(venueId),
       ]);
-      setTodayRecords(records || []);
+      const validRecords = records || [];
+      setTodayRecords(validRecords);
       setAllStaff(staff || []);
-      setSummary(summaryData);
+      setSummary(computeAttendanceSummary(validRecords));
     } catch (err) {
       console.warn('Failed to load attendance:', err);
     } finally {

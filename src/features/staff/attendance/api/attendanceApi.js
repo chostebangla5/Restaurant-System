@@ -22,8 +22,16 @@ async function resolveValidStaffUserId(staffUserId) {
   return staffUserId;
 }
 
+function getLocalDateString() {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 /**
- * Clock in a staff member
+ * Clock in a staff member atomically
  */
 export async function clockIn(staffUserId, venueId, orgId) {
   if (!isSupabaseConfigured() || !staffUserId || !venueId) {
@@ -31,20 +39,7 @@ export async function clockIn(staffUserId, venueId, orgId) {
   }
 
   const validStaffId = await resolveValidStaffUserId(staffUserId);
-
-  // Check if currently clocked in without clocking out
-  const today = new Date().toISOString().split('T')[0];
-  const { data: existing } = await supabase
-    .from('staff_attendance')
-    .select('id')
-    .eq('staff_user_id', validStaffId)
-    .eq('work_date', today)
-    .is('clock_out', null)
-    .maybeSingle();
-
-  if (existing) {
-    throw new Error('Already clocked in right now. Please clock out of your current shift first.');
-  }
+  const today = getLocalDateString();
 
   // Lookup org_id from venue if not passed
   let resolvedOrgId = orgId;
@@ -55,6 +50,38 @@ export async function clockIn(staffUserId, venueId, orgId) {
       .eq('id', venueId)
       .maybeSingle();
     resolvedOrgId = venue?.org_id;
+  }
+
+  // 1. Try atomic PostgreSQL RPC first
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('staff_clock_in', {
+      p_staff_user_id: validStaffId,
+      p_venue_id: venueId,
+      p_org_id: resolvedOrgId,
+      p_work_date: today,
+    });
+    if (!rpcErr && rpcRes) {
+      if (rpcRes.success === false) {
+        throw new Error(rpcRes.error || 'Already clocked in right now.');
+      }
+      return rpcRes.attendance;
+    }
+  } catch (rpcErr) {
+    if (rpcErr?.message && !rpcErr.message.includes('function') && !rpcErr.message.includes('not found')) {
+      throw rpcErr;
+    }
+  }
+
+  // 2. Fallback check-then-act with unique index protection
+  const { data: existing } = await supabase
+    .from('staff_attendance')
+    .select('id')
+    .eq('staff_user_id', validStaffId)
+    .is('clock_out', null)
+    .maybeSingle();
+
+  if (existing) {
+    throw new Error('Already clocked in right now. Please clock out of your current shift first.');
   }
 
   const { data, error } = await supabase
@@ -71,13 +98,16 @@ export async function clockIn(staffUserId, venueId, orgId) {
 
   if (error) {
     console.error('Error clocking in:', error);
+    if (error.code === '23505') {
+      throw new Error('Already clocked in right now. Please clock out of your current shift first.');
+    }
     throw error;
   }
   return data;
 }
 
 /**
- * Clock out a staff member (update active open record)
+ * Clock out a staff member (supports shifts spanning midnight)
  */
 export async function clockOut(staffUserId) {
   if (!isSupabaseConfigured() || !staffUserId) {
@@ -85,21 +115,36 @@ export async function clockOut(staffUserId) {
   }
 
   const validStaffId = await resolveValidStaffUserId(staffUserId);
-  const today = new Date().toISOString().split('T')[0];
-  
-  // Find the open clock-in record for today (without clock_out)
+
+  // 1. Try atomic PostgreSQL RPC first
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('staff_clock_out', {
+      p_staff_user_id: validStaffId,
+    });
+    if (!rpcErr && rpcRes) {
+      if (rpcRes.success === false) {
+        throw new Error(rpcRes.error || 'No active open shift found.');
+      }
+      return rpcRes.attendance;
+    }
+  } catch (rpcErr) {
+    if (rpcErr?.message && !rpcErr.message.includes('function') && !rpcErr.message.includes('not found')) {
+      throw rpcErr;
+    }
+  }
+
+  // 2. Fallback: find any open shift for this staff member (regardless of date, in case of midnight crossing)
   const { data: record, error: fetchErr } = await supabase
     .from('staff_attendance')
     .select('*')
     .eq('staff_user_id', validStaffId)
-    .eq('work_date', today)
     .is('clock_out', null)
     .order('clock_in', { ascending: false })
     .limit(1)
     .maybeSingle();
 
   if (fetchErr || !record) {
-    throw new Error('No active open shift found for today.');
+    throw new Error('No active open shift found.');
   }
 
   const clockOutTime = new Date();
@@ -211,6 +256,28 @@ export async function fetchAttendanceHistory(venueId, { dateFrom = null, dateTo 
 }
 
 /**
+ * Synchronously compute attendance summary from records already in memory (0 DB round-trips)
+ */
+export function computeAttendanceSummary(records) {
+  if (!records || !Array.isArray(records)) {
+    return { clockedIn: 0, clockedOut: 0, totalToday: 0, avgDuration: 0 };
+  }
+  const clockedIn = records.filter((r) => r.clock_out === null).length;
+  const clockedOut = records.filter((r) => r.clock_out !== null).length;
+  const durations = records.filter((r) => r.duration_minutes).map((r) => r.duration_minutes);
+  const avgDuration = durations.length > 0
+    ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
+    : 0;
+
+  return {
+    clockedIn,
+    clockedOut,
+    totalToday: records.length,
+    avgDuration,
+  };
+}
+
+/**
  * Get attendance summary stats for a venue (today)
  */
 export async function getAttendanceSummary(venueId) {
@@ -230,19 +297,7 @@ export async function getAttendanceSummary(venueId) {
     return { clockedIn: 0, clockedOut: 0, totalToday: 0, avgDuration: 0 };
   }
 
-  const clockedIn = data.filter((r) => r.clock_out === null).length;
-  const clockedOut = data.filter((r) => r.clock_out !== null).length;
-  const durations = data.filter((r) => r.duration_minutes).map((r) => r.duration_minutes);
-  const avgDuration = durations.length > 0
-    ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
-    : 0;
-
-  return {
-    clockedIn,
-    clockedOut,
-    totalToday: data.length,
-    avgDuration,
-  };
+  return computeAttendanceSummary(data);
 }
 
 /**
@@ -385,7 +440,7 @@ export async function fetchStaffMonthlyAttendance(
         delayMinutes = clockInMinutes - (expectedStartHour * 60 + expectedStartMinute);
         delayedCount++;
       }
-    } else if (isPast || (isToday && now.getHours() >= 16)) {
+    } else if (isPast) {
       // Past day with no clock in
       if (isSunday) {
         status = 'day_off';

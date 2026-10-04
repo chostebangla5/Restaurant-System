@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { fetchStaffProfiles } from '../api/authApi';
 
@@ -90,6 +90,17 @@ export function AuthProvider({ children }) {
       return;
     }
 
+    // 0. Forward recovery tokens to /reset-password if landed on another path
+    const hasRecovery =
+      window.location.hash.includes('type=recovery') ||
+      window.location.search.includes('type=recovery') ||
+      (window.location.hash.includes('access_token') && window.location.hash.includes('recovery'));
+
+    if (hasRecovery && window.location.pathname !== '/reset-password') {
+      window.location.replace(`/reset-password${window.location.search}${window.location.hash}`);
+      return;
+    }
+
     // 1. Get initial session
     supabase.auth.getSession().then(({ data: { session: s } }) => {
       setSession(s);
@@ -104,7 +115,17 @@ export function AuthProvider({ children }) {
     // 2. Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
+    } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setSession(s);
+        setUser(s?.user ?? null);
+        setIsLoading(false);
+        if (window.location.pathname !== '/reset-password') {
+          window.location.replace('/reset-password');
+        }
+        return;
+      }
+
       setSession(s);
       setUser(s?.user ?? null);
       if (s?.user) {
@@ -119,7 +140,7 @@ export function AuthProvider({ children }) {
     return () => subscription.unsubscribe();
   }, [loadProfiles]);
 
-  const signInWithPassword = async (email, password) => {
+  const signInWithPassword = useCallback(async (email, password) => {
     if (!isSupabaseConfigured()) {
       throw new Error('Supabase is not configured. Please verify your environment settings.');
     }
@@ -129,9 +150,9 @@ export function AuthProvider({ children }) {
     });
     if (error) throw error;
     return data;
-  };
+  }, []);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     localStorage.removeItem('ts_active_venue');
     if (isSupabaseConfigured()) {
       try {
@@ -144,42 +165,58 @@ export function AuthProvider({ children }) {
     setSession(null);
     setStaffProfiles([]);
     setActiveProfileIndex(0);
-  };
+  }, []);
 
-  const switchVenue = (targetVenueId) => {
+  const switchVenue = useCallback((targetVenueId) => {
     const idx = staffProfiles.findIndex((p) => p.venue_id === targetVenueId);
     if (idx >= 0) {
       setActiveProfileIndex(idx);
       localStorage.setItem('ts_active_venue', targetVenueId);
     }
-  };
+  }, [staffProfiles]);
 
-  const refreshProfiles = async () => {
+  const refreshProfiles = useCallback(async () => {
     if (user?.id) {
       await loadProfiles(user.id);
     }
-  };
+  }, [user?.id, loadProfiles]);
+
+  const contextValue = useMemo(() => ({
+    session,
+    user,
+    staffProfile,
+    staffProfiles,
+    role,
+    venueId,
+    orgId,
+    venue,
+    organization,
+    isPendingApproval,
+    isLoading,
+    signInWithPassword,
+    signOut,
+    switchVenue,
+    refreshProfiles,
+  }), [
+    session,
+    user,
+    staffProfile,
+    staffProfiles,
+    role,
+    venueId,
+    orgId,
+    venue,
+    organization,
+    isPendingApproval,
+    isLoading,
+    signInWithPassword,
+    signOut,
+    switchVenue,
+    refreshProfiles,
+  ]);
 
   return (
-    <AuthContext.Provider
-      value={{
-        session,
-        user,
-        staffProfile,
-        staffProfiles,
-        role,
-        venueId,
-        orgId,
-        venue,
-        organization,
-        isPendingApproval,
-        isLoading,
-        signInWithPassword,
-        signOut,
-        switchVenue,
-        refreshProfiles,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

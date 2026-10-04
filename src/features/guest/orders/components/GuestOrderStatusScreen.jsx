@@ -5,9 +5,9 @@ import { formatCurrency } from '@/utils/formatCurrency';
 import {
   fetchOrdersForTable,
   subscribeToOrders,
-  settleOrder,
   cancelOrder,
 } from '@/features/shared/orders/api/ordersApi';
+import { createStaffCall } from '@/features/staff/service-calls/api/staffCallsApi';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft,
@@ -188,38 +188,33 @@ export function GuestOrderStatusScreen() {
   const effectiveSettleOnline = Math.max(1, Math.min(remainingCashDue > 1 ? remainingCashDue - 1 : 1, Number(customSplitOnline) || Math.round(remainingCashDue / 2)));
   const effectiveSettleCash = Math.max(0, remainingCashDue - effectiveSettleOnline);
 
-  const handleSettle = async (paymentMethod, splitDetails = null) => {
+  const handleRequestBill = async (paymentMethod, splitDetails = null) => {
     setSettling(true);
     try {
-      for (const o of orders) {
-        if (o.payment_status === 'pending' || o.payment_status === 'partially_paid' || o.status !== 'completed') {
-          await settleOrder(o.id, paymentMethod, splitDetails);
-        }
+      const primaryOrder = orders[0];
+      const venueId = primaryOrder?.venue_id;
+      const orgId = primaryOrder?.org_id;
+      const tableNumber = primaryOrder?.table_number || shortCode;
+
+      let splitText = '';
+      if (paymentMethod === 'split' && splitDetails) {
+        splitText = ` (Split: ₹${splitDetails.onlineAmount} Online + ₹${splitDetails.cashAmount} Cash)`;
       }
-      toast.success('Bill settled! Thank you for dining with us.');
+
+      await createStaffCall({
+        venueId,
+        orgId,
+        tableNumber,
+        shortCode,
+        reason: 'Bill Settlement Request',
+        notes: `Guest requested bill settlement via ${paymentMethod.toUpperCase()}${splitText}. Due: ₹${remainingCashDue}`,
+      });
+
+      toast.success('Bill request sent to staff! Your server is on their way with the bill and terminal.', { duration: 6000 });
       setIsSettleModalOpen(false);
-
-      // Save settled orders to local order history so they are preserved in Account -> Previous Orders
-      try {
-        if (typeof window !== 'undefined') {
-          const hist = JSON.parse(localStorage.getItem('tablesuite_order_history') || '[]');
-          orders.forEach((ord) => {
-            if (!hist.some((h) => h.id === ord.id)) {
-              hist.unshift({ ...ord, status: 'completed', payment_status: 'paid', is_settled: true });
-            }
-          });
-          localStorage.setItem('tablesuite_order_history', JSON.stringify(hist.slice(0, 30)));
-          // Clear active session pointer so table is ready and isolated for fresh orders
-          localStorage.removeItem('tablesuite_my_session_id');
-        }
-      } catch (e) {
-        // ignore storage errors
-      }
-
-      const updated = await fetchOrdersForTable(shortCode);
-      setOrders(updated);
     } catch (err) {
-      toast.error('Failed to settle bill');
+      console.error('Failed to notify staff:', err);
+      toast.error('Failed to notify staff. Please call your server.');
     } finally {
       setSettling(false);
     }
@@ -532,8 +527,8 @@ export function GuestOrderStatusScreen() {
             >
               <Banknote className="h-4 w-4" strokeWidth={1.75} />
               {hasPartiallyPaid
-                ? `Pay Remaining ${formatCurrency(remainingCashDue)}`
-                : `Settle Bill ${formatCurrency(grandTotalAllRounds)}`}
+                ? `Request Bill (${formatCurrency(remainingCashDue)} Due)`
+                : `Request Bill (${formatCurrency(grandTotalAllRounds)})`}
             </button>
           ) : (
             <div className="p-3.5 text-center rounded-xl text-xs font-medium flex items-center justify-center gap-1.5"
@@ -544,8 +539,8 @@ export function GuestOrderStatusScreen() {
         </div>
       </div>
 
-      {/* ─── Settle Modal ─── */}
-      <Modal isOpen={isSettleModalOpen} onClose={() => !settling && setIsSettleModalOpen(false)} title="Settle Bill" size="sm" guestTheme={true}>
+      {/* ─── Settle Request Modal ─── */}
+      <Modal isOpen={isSettleModalOpen} onClose={() => !settling && setIsSettleModalOpen(false)} title="Request Bill & Settle" size="sm" guestTheme={true}>
         <div className="space-y-4 py-2 font-sans">
           <div className="p-4 rounded-xl text-center space-y-1"
             style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border)' }}>
@@ -588,12 +583,12 @@ export function GuestOrderStatusScreen() {
                   style={{ border: '1px solid var(--g-border)' }}>
                   <QrCode className="h-20 w-20" style={{ color: 'var(--g-text)' }} strokeWidth={1.5} />
                 </div>
-                <p className="text-[11px]" style={{ color: 'var(--g-text-muted)' }}>Scan with any UPI app</p>
+                <p className="text-[11px]" style={{ color: 'var(--g-text-muted)' }}>Scan with any UPI app to pay</p>
               </div>
-              <button type="button" disabled={settling} onClick={() => handleSettle('online')}
+              <button type="button" disabled={settling} onClick={() => handleRequestBill('online')}
                 className="g-btn-primary w-full py-3.5 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50">
                 {settling ? <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <CreditCard className="h-4 w-4" strokeWidth={1.5} />}
-                Pay {formatCurrency(remainingCashDue)}
+                Notify Staff: Pay {formatCurrency(remainingCashDue)} Online
               </button>
             </div>
           )}
@@ -602,12 +597,12 @@ export function GuestOrderStatusScreen() {
           {settleMethod === 'counter' && (
             <div className="space-y-3">
               <div className="p-3.5 rounded-xl text-center space-y-1" style={{ background: 'var(--g-surface-2)', border: '1px solid var(--g-border)' }}>
-                <p className="text-xs" style={{ color: 'var(--g-text-secondary)' }}>Hand over cash to the staff or counter cashier.</p>
+                <p className="text-xs" style={{ color: 'var(--g-text-secondary)' }}>A waiter will bring the paper bill and collect cash at your table.</p>
                 <span className="text-base font-bold block" style={{ color: '#D97706' }}>{formatCurrency(remainingCashDue)}</span>
               </div>
-              <button type="button" disabled={settling} onClick={() => handleSettle('counter')}
-                className="g-btn-outline w-full py-3.5 text-sm font-semibold flex items-center justify-center gap-2">
-                <Banknote className="h-4 w-4" strokeWidth={1.5} /> Request Cash Settlement
+              <button type="button" disabled={settling} onClick={() => handleRequestBill('counter')}
+                className="g-btn-outline w-full py-3.5 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50">
+                <Banknote className="h-4 w-4" strokeWidth={1.5} /> Call Waiter to Pay Cash
               </button>
             </div>
           )}
@@ -652,10 +647,10 @@ export function GuestOrderStatusScreen() {
                 </div>
               </div>
               <button type="button" disabled={settling}
-                onClick={() => handleSettle('split', { onlineAmount: effectiveSettleOnline, cashAmount: effectiveSettleCash })}
+                onClick={() => handleRequestBill('split', { onlineAmount: effectiveSettleOnline, cashAmount: effectiveSettleCash })}
                 className="g-btn-primary w-full py-3.5 text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-50">
                 {settling ? <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Coins className="h-4 w-4" strokeWidth={1.5} />}
-                Pay {formatCurrency(effectiveSettleOnline)} Online &bull; {formatCurrency(effectiveSettleCash)} Cash
+                Call Waiter: Split (₹{effectiveSettleOnline} Online + ₹{effectiveSettleCash} Cash)
               </button>
             </div>
           )}

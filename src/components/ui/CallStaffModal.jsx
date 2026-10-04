@@ -63,6 +63,7 @@ export function CallStaffModal({ isOpen, onClose, tableData = {}, shortCode = ''
         const syncChannel = new BroadcastChannel('tablesuite_realtime_sync');
         syncChannel.postMessage({
           type: 'CALL_STAFF',
+          target: 'staff',
           payload: callPayload,
           timestamp: Date.now(),
         });
@@ -72,16 +73,7 @@ export function CallStaffModal({ isOpen, onClose, tableData = {}, shortCode = ''
       console.warn('BroadcastChannel error:', e);
     }
 
-    // 3. Dispatch window event
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(
-        new CustomEvent('tablesuite_orders_change', {
-          detail: { type: 'CALL_STAFF', payload: callPayload },
-        })
-      );
-    }
-
-    // 4. Save to localStorage for staff dashboard recovery
+    // 3. Save to localStorage for staff dashboard recovery
     try {
       const existing = JSON.parse(localStorage.getItem('tablesuite_staff_calls') || '[]');
       existing.unshift(callPayload);
@@ -93,12 +85,8 @@ export function CallStaffModal({ isOpen, onClose, tableData = {}, shortCode = ''
     setTimeout(() => {
       setIsSubmitting(false);
       setIsSent(true);
-      toast.success(`Server called! Staff is on the way to Table ${tableData.tableNumber || ''}`, {
-        duration: 3500,
-        icon: '🔔',
-      });
 
-      // Auto close after 2.5s
+      // Auto close modal after 2.5s
       setTimeout(() => {
         setIsSent(false);
         setNotes('');

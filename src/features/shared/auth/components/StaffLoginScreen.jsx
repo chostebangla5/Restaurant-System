@@ -5,19 +5,30 @@ import { TRANSITION_EASE, DURATION_SECTION, DURATION_REDUCED } from '@/lib/motio
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { useAuth } from '../context/AuthContext';
-import { signUpOwner, signUpStaff, generateSlug, resendConfirmationEmail, fetchStaffProfiles } from '../api/authApi';
+import { signUpOwner, signUpStaff, generateSlug, resendConfirmationEmail, fetchStaffProfiles, sendPasswordResetEmail } from '../api/authApi';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { Mail, ShieldCheck, KeyRound } from 'lucide-react';
+import { Mail, ShieldCheck, KeyRound, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export function StaffLoginScreen() {
-  const [mode, setMode] = useState('login'); // 'login' | 'signup'
+  const [mode, setMode] = useState('login'); // 'login' | 'signup' | 'forgot'
+  const [prefillEmail, setPrefillEmail] = useState('');
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
   const { user, role, isLoading: authLoading } = useAuth();
 
-  // If already authenticated, redirect to appropriate portal
+  // If already authenticated or recovering password, handle routing
   useEffect(() => {
+    const hasRecovery =
+      window.location.hash.includes('type=recovery') ||
+      window.location.search.includes('type=recovery') ||
+      (window.location.hash.includes('access_token') && window.location.hash.includes('recovery'));
+
+    if (hasRecovery) {
+      navigate(`/reset-password${window.location.search}${window.location.hash}`, { replace: true });
+      return;
+    }
+
     if (user && !authLoading) {
       if (role === 'owner' || role === 'manager') {
         navigate('/admin', { replace: true });
@@ -28,12 +39,18 @@ export function StaffLoginScreen() {
   }, [user, role, authLoading, navigate]);
 
   useEffect(() => {
-    document.title = mode === 'login' ? 'Staff Login | TableSuite' : 'Create Staff Account | TableSuite';
+    if (mode === 'forgot') {
+      document.title = 'Forgot Password | TableSuite';
+    } else {
+      document.title = mode === 'login' ? 'Staff Login | TableSuite' : 'Create Staff Account | TableSuite';
+    }
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) {
       metaDesc.setAttribute(
         'content',
-        mode === 'login'
+        mode === 'forgot'
+          ? 'Recover your TableSuite account password.'
+          : mode === 'login'
           ? 'Secure staff sign-in for TableSuite restaurant management platform.'
           : 'Create a new restaurant owner or staff account on TableSuite.'
       );
@@ -56,47 +73,62 @@ export function StaffLoginScreen() {
         {/* Header */}
         <div className="text-center space-y-2">
           <div className="mx-auto h-11 w-11 rounded-full bg-surface-2 border border-white/10 flex items-center justify-center text-accent font-heading font-extrabold text-base shadow-sm">
-            TS
+            {mode === 'forgot' ? <KeyRound className="h-5 w-5" /> : 'TS'}
           </div>
           <h1 className="font-heading text-2xl font-bold tracking-tight text-text">
-            TableSuite
+            {mode === 'forgot' ? 'Forgot Password' : 'TableSuite'}
           </h1>
           <p className="text-xs text-muted">
-            {mode === 'login'
+            {mode === 'forgot'
+              ? 'Enter your email to receive a password reset link'
+              : mode === 'login'
               ? 'Sign in to manage your restaurant'
               : 'Create your restaurant or staff account'}
           </p>
         </div>
 
         {/* Mode Tabs */}
-        <div className="flex p-1 rounded-full bg-surface-2 border border-white/10">
-          <button
-            type="button"
-            onClick={() => setMode('login')}
-            className={`flex-1 py-2 min-h-[40px] text-xs font-medium rounded-full touch-manipulation transition-all duration-200 cursor-pointer flex items-center justify-center ${
-              mode === 'login'
-                ? 'bg-surface text-text shadow-sm border border-white/15'
-                : 'text-muted hover:text-text'
-            }`}
-          >
-            Staff Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode('signup')}
-            className={`flex-1 py-2 min-h-[40px] text-xs font-medium rounded-full touch-manipulation transition-all duration-200 cursor-pointer flex items-center justify-center ${
-              mode === 'signup'
-                ? 'bg-surface text-text shadow-sm border border-white/15'
-                : 'text-muted hover:text-text'
-            }`}
-          >
-            Create Account
-          </button>
-        </div>
+        {mode !== 'forgot' && (
+          <div className="flex p-1 rounded-full bg-surface-2 border border-white/10">
+            <button
+              type="button"
+              onClick={() => setMode('login')}
+              className={`flex-1 py-2 min-h-[40px] text-xs font-medium rounded-full touch-manipulation transition-all duration-200 cursor-pointer flex items-center justify-center ${
+                mode === 'login'
+                  ? 'bg-surface text-text shadow-sm border border-white/15'
+                  : 'text-muted hover:text-text'
+              }`}
+            >
+              Staff Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('signup')}
+              className={`flex-1 py-2 min-h-[40px] text-xs font-medium rounded-full touch-manipulation transition-all duration-200 cursor-pointer flex items-center justify-center ${
+                mode === 'signup'
+                  ? 'bg-surface text-text shadow-sm border border-white/15'
+                  : 'text-muted hover:text-text'
+              }`}
+            >
+              Create Account
+            </button>
+          </div>
+        )}
 
         <div>
-          {mode === 'login' ? (
-            <LoginForm navigate={navigate} />
+          {mode === 'forgot' ? (
+            <ForgotPasswordForm
+              initialEmail={prefillEmail}
+              onBack={() => setMode('login')}
+            />
+          ) : mode === 'login' ? (
+            <LoginForm
+              navigate={navigate}
+              onForgotPassword={(typedEmail) => {
+                setPrefillEmail(typedEmail || '');
+                setMode('forgot');
+              }}
+            />
           ) : (
             <SignUpForm navigate={navigate} setMode={setMode} />
           )}
@@ -113,7 +145,7 @@ export function StaffLoginScreen() {
   );
 }
 
-function LoginForm({ navigate }) {
+function LoginForm({ navigate, onForgotPassword }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -181,38 +213,8 @@ function LoginForm({ navigate }) {
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
-        placeholder="e.g. samim@ditoech.com"
+        placeholder="name@example.com"
       />
-
-      {/* Quick Select Registered Accounts */}
-      <div className="space-y-1.5">
-        <p className="text-[11px] text-muted font-medium">
-          Registered Accounts (tap to autofill):
-        </p>
-        <div className="flex flex-wrap gap-1.5">
-          <button
-            type="button"
-            onClick={() => setEmail('samim@ditoech.com')}
-            className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-2 border border-white/10 hover:border-accent/50 text-text transition-colors cursor-pointer"
-          >
-            👑 Owner: samim@ditoech.com
-          </button>
-          <button
-            type="button"
-            onClick={() => setEmail('chostebangla@gmail.com')}
-            className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-2 border border-white/10 hover:border-accent/50 text-text transition-colors cursor-pointer"
-          >
-            👨‍🍳 Kitchen: chostebangla@gmail.com
-          </button>
-          <button
-            type="button"
-            onClick={() => setEmail('manager@petpooja.com')}
-            className="text-[11px] px-2.5 py-1 rounded-lg bg-surface-2 border border-white/10 hover:border-accent/50 text-text transition-colors cursor-pointer"
-          >
-            📋 Manager: manager@petpooja.com
-          </button>
-        </div>
-      </div>
 
       <Input
         label="Password"
@@ -254,25 +256,11 @@ function LoginForm({ navigate }) {
         Sign In to Portal
       </Button>
 
-      {/* Password Recovery */}
+      {/* Password Recovery Trigger */}
       <div className="text-center pt-1">
         <button
           type="button"
-          onClick={async () => {
-            if (!email) {
-              toast.error('Enter your email address above, then click Forgot Password.');
-              return;
-            }
-            try {
-              const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: `${window.location.origin}/staff`,
-              });
-              if (error) throw error;
-              toast.success(`Password reset link sent to ${email}. Check your inbox.`, { duration: 6000 });
-            } catch (err) {
-              toast.error(err.message || 'Failed to send reset link.');
-            }
-          }}
+          onClick={() => onForgotPassword?.(email)}
           className="text-xs text-accent hover:underline font-medium cursor-pointer inline-flex items-center gap-1"
         >
           <KeyRound className="h-3 w-3" strokeWidth={1.5} />
@@ -282,6 +270,104 @@ function LoginForm({ navigate }) {
     </form>
   );
 }
+
+function ForgotPasswordForm({ initialEmail = '', onBack }) {
+  const [email, setEmail] = useState(initialEmail);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSent, setIsSent] = useState(false);
+
+  const handleReset = async (e) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error('Please enter your email address.');
+      return;
+    }
+    if (!isSupabaseConfigured()) {
+      toast.error('Supabase connection is not configured.');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      await sendPasswordResetEmail(email);
+      setIsSent(true);
+      toast.success('Password reset link sent! Check your inbox.');
+    } catch (err) {
+      console.error('Password reset error:', err);
+      toast.error(err.message || 'Failed to send reset link. Please check the email.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (isSent) {
+    return (
+      <div className="space-y-4">
+        <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-200 text-xs space-y-2">
+          <div className="flex items-start gap-2.5">
+            <Mail className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-bold text-white text-sm">Check your inbox</p>
+              <p className="text-[11px] text-stone-300 mt-1 leading-relaxed">
+                We've sent a password reset link to <strong className="text-white">{email}</strong>.
+                Click the link in that email to reset your password.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 pt-2">
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full text-xs"
+            onClick={handleReset}
+            isLoading={isLoading}
+          >
+            Resend Email
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full text-xs"
+            onClick={onBack}
+          >
+            Back to Sign In
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <form onSubmit={handleReset} className="space-y-4">
+      <Input
+        label="Email Address"
+        type="email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        placeholder="name@example.com"
+        autoFocus
+      />
+
+      <Button type="submit" size="lg" className="w-full font-semibold mt-2" isLoading={isLoading}>
+        Send Reset Link
+      </Button>
+
+      <div className="text-center pt-2">
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-xs text-muted hover:text-text font-medium cursor-pointer inline-flex items-center gap-1.5"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Back to Sign In
+        </button>
+      </div>
+    </form>
+  );
+}
+
 
 function SignUpForm({ navigate, setMode }) {
   const [signupType, setSignupType] = useState('staff'); // 'staff' | 'owner'

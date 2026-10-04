@@ -26,15 +26,19 @@ export async function createStaffCall({ venueId, orgId, tableNumber, shortCode, 
     return null;
   }
 
+  const cleanNotes = notes ? String(notes).trim().slice(0, 200) : null;
+  const cleanReason = reason ? String(reason).trim().slice(0, 80) : 'Server Assistance';
+  const cleanTable = tableNumber ? String(tableNumber).trim().slice(0, 20) : 'Unknown';
+
   const { data, error } = await supabase
     .from('staff_calls')
     .insert({
       venue_id: venueId,
       org_id: resolvedOrgId,
-      table_number: tableNumber || 'Unknown',
+      table_number: cleanTable,
       short_code: shortCode || null,
-      reason: reason || 'Server Assistance',
-      notes: notes || null,
+      reason: cleanReason,
+      notes: cleanNotes,
       status: 'pending',
     })
     .select()
@@ -42,8 +46,7 @@ export async function createStaffCall({ venueId, orgId, tableNumber, shortCode, 
 
   if (error) {
     console.error('Error creating staff call:', error);
-    // Don't throw – the BroadcastChannel fallback still works
-    return null;
+    throw new Error('Failed to notify staff via server. Please ask your server in person.');
   }
 
   return data;

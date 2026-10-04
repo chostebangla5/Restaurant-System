@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { useCart } from '@/features/guest/cart/context/CartContext';
@@ -39,16 +39,166 @@ function QtyDisplay({ qty }) {
   );
 }
 
+/* ─── Memoized Dish Item Card (prevents re-rendering 100 items on every cart tap) ─── */
+const MenuItemCard = React.memo(function MenuItemCard({ item, qty, onAdd, onUpdateQty }) {
+  return (
+    <div className="g-card p-4 flex items-start gap-3.5 transition-all">
+      {/* Text content */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+          <span
+            className="h-3.5 w-3.5 rounded-sm border-2 flex items-center justify-center p-0.5 shrink-0"
+            style={{ borderColor: item.is_veg ? 'var(--g-green)' : 'var(--g-accent)' }}
+            title={item.is_veg ? 'Vegetarian' : 'Non-Vegetarian'}
+          >
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ background: item.is_veg ? 'var(--g-green)' : 'var(--g-accent)' }}
+            />
+          </span>
+
+          {item.is_bestseller ? (
+            <span
+              className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md"
+              style={{ background: 'rgba(226,55,68,0.08)', color: 'var(--g-accent)', border: '1px solid rgba(226,55,68,0.18)' }}
+            >
+              <Flame className="h-2.5 w-2.5" strokeWidth={2.5} />
+              Bestseller
+            </span>
+          ) : (
+            <span
+              className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md"
+              style={{ background: 'rgba(16,185,129,0.08)', color: '#059669', border: '1px solid rgba(16,185,129,0.18)' }}
+            >
+              Best deal
+            </span>
+          )}
+        </div>
+
+        <h3 className="font-bold text-sm leading-snug tracking-tight" style={{ color: 'var(--g-text)' }}>
+          {item.name}
+        </h3>
+
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-sm font-extrabold" style={{ color: 'var(--g-text)' }}>
+            {formatCurrency(item.price)}
+          </span>
+          <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200/60">
+            <Star className="h-3 w-3 fill-emerald-600 text-emerald-600" />
+            5.0
+          </span>
+        </div>
+
+        {item.description && (
+          <p className="text-xs line-clamp-2 mt-1.5 leading-relaxed" style={{ color: 'var(--g-text-muted)' }}>
+            {item.description}
+          </p>
+        )}
+      </div>
+
+      {/* Image + Add Button Column */}
+      <div className="flex flex-col items-center gap-2 shrink-0">
+        <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-2xl overflow-hidden border shadow-xs" style={{ borderColor: 'var(--g-border)' }}>
+          <img
+            src={getFoodImage(item, { width: 240 })}
+            alt={item.name}
+            className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+            loading="lazy"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              const fallback = getCatalogFoodImage(item);
+              if (e.target.src !== fallback) {
+                e.target.src = fallback;
+              } else {
+                e.target.src = DEFAULT_FOOD_IMAGE;
+              }
+            }}
+          />
+        </div>
+
+        {qty === 0 ? (
+          <button
+            type="button"
+            onClick={() => onAdd(item)}
+            className="h-8.5 px-4 w-24 sm:w-28 rounded-xl text-xs font-bold cursor-pointer flex items-center justify-center gap-1 transition-all active:scale-95 shadow-sm"
+            style={{
+              background: 'linear-gradient(135deg, var(--g-accent) 0%, #C41E2D 100%)',
+              color: '#fff',
+            }}
+          >
+            <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+            <span>Add</span>
+          </button>
+        ) : (
+          <div
+            className="h-8.5 w-24 sm:w-28 flex items-center justify-between rounded-xl overflow-hidden shadow-sm px-1"
+            style={{
+              background: 'linear-gradient(135deg, var(--g-accent) 0%, #C41E2D 100%)',
+              color: '#fff',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => onUpdateQty(item.id, qty - 1)}
+              aria-label={`Decrease quantity of ${item.name}`}
+              className="h-7 w-7 flex items-center justify-center text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            >
+              <Minus className="h-3.5 w-3.5" strokeWidth={2.5} />
+            </button>
+            <span className="text-xs font-extrabold text-white select-none">
+              {qty}
+            </span>
+            <button
+              type="button"
+              onClick={() => onUpdateQty(item.id, qty + 1)}
+              aria-label={`Increase quantity of ${item.name}`}
+              className="h-7 w-7 flex items-center justify-center text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            >
+              <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+});
+
 export function GuestMenuScreen() {
   const { shortCode } = useParams();
   const { addToCart, updateQty, getItemQty, totalItemCount, grandTotal } = useCart();
+  const codeKey = (shortCode || '').trim().toUpperCase();
 
-  const [categories, setCategories] = useState([{ id: 'all', name: 'All' }]);
-  const [items, setItems] = useState([]);
+  // Instant hydration from sessionStorage (Stale-While-Revalidate: 0ms load time)
+  const [categories, setCategories] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(`tablesuite_categories_${codeKey}`);
+      return saved ? JSON.parse(saved) : [{ id: 'all', name: 'All' }];
+    } catch {
+      return [{ id: 'all', name: 'All' }];
+    }
+  });
+
+  const [items, setItems] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(`tablesuite_menu_${codeKey}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [vegOnly, setVegOnly] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(`tablesuite_menu_${codeKey}`);
+      return !saved || JSON.parse(saved).length === 0;
+    } catch {
+      return true;
+    }
+  });
   const categoryRef = useRef(null);
 
   // Load menu from Supabase filtered by the table's venue
@@ -59,38 +209,49 @@ export function GuestMenuScreen() {
         return;
       }
       try {
-        setIsLoading(true);
-        // 1. Resolve venue_id from table short code
-        const { data: tableData } = await supabase
-          .from('tables')
-          .select('venue_id')
-          .eq('short_code', shortCode)
-          .single();
+        const cachedVenueId = sessionStorage.getItem(`tablesuite_venue_${codeKey}`);
 
-        if (!tableData?.venue_id) {
-          setIsLoading(false);
-          return;
+        // If venue ID was already cached, query categories and items in parallel immediately!
+        let targetVenueId = cachedVenueId;
+
+        if (!targetVenueId) {
+          const { data: tableData } = await supabase
+            .from('tables')
+            .select('venue_id')
+            .eq('short_code', shortCode)
+            .single();
+
+          if (!tableData?.venue_id) {
+            setIsLoading(false);
+            return;
+          }
+          targetVenueId = tableData.venue_id;
         }
 
         const [catRes, itemRes] = await Promise.all([
           supabase
             .from('menu_categories')
             .select('*')
-            .eq('venue_id', tableData.venue_id)
+            .eq('venue_id', targetVenueId)
             .eq('is_active', true)
             .order('sort_order', { ascending: true }),
           supabase
             .from('menu_items')
             .select('*')
-            .eq('venue_id', tableData.venue_id)
+            .eq('venue_id', targetVenueId)
             .eq('is_available', true)
             .eq('is_deleted', false)
             .order('sort_order', { ascending: true }),
         ]);
 
         if (catRes.data && catRes.data.length > 0) {
-          setCategories([{ id: 'all', name: 'All' }, ...catRes.data]);
+          const catList = [{ id: 'all', name: 'All' }, ...catRes.data];
+          setCategories(catList);
+          try {
+            sessionStorage.setItem(`tablesuite_categories_${codeKey}`, JSON.stringify(catList));
+          } catch (e) {}
         }
+
         if (itemRes.data) {
           const mappedItems = itemRes.data.map((i) => ({
             id: i.id,
@@ -106,11 +267,8 @@ export function GuestMenuScreen() {
           }));
           setItems(mappedItems);
           try {
-            if (shortCode) {
-              const codeKey = shortCode.trim().toUpperCase();
-              sessionStorage.setItem(`tablesuite_menu_${codeKey}`, JSON.stringify(mappedItems));
-              sessionStorage.setItem(`tablesuite_venue_${codeKey}`, tableData.venue_id);
-            }
+            sessionStorage.setItem(`tablesuite_menu_${codeKey}`, JSON.stringify(mappedItems));
+            sessionStorage.setItem(`tablesuite_venue_${codeKey}`, targetVenueId);
           } catch (e) {}
         }
       } catch (err) {
@@ -120,7 +278,11 @@ export function GuestMenuScreen() {
       }
     }
     loadMenu();
-  }, [shortCode]);
+  }, [shortCode, codeKey]);
+
+  const handleAdd = useCallback((item) => {
+    addToCart(item);
+  }, [addToCart]);
 
   const filteredItems = items.filter((item) => {
     const matchesCat = activeCategory === 'all' || item.category === activeCategory;
@@ -136,10 +298,6 @@ export function GuestMenuScreen() {
   const regularItems = chefSpecialItem
     ? filteredItems.filter((item) => item.id !== chefSpecialItem.id)
     : filteredItems;
-
-  const handleAdd = (item) => {
-    addToCart(item);
-  };
 
   // Get the active category name for display
   const activeCategoryName = categories.find(c => c.id === activeCategory)?.name || 'All';
@@ -374,129 +532,15 @@ export function GuestMenuScreen() {
           </div>
         ) : (
           <div className="space-y-3">
-            {regularItems.map((item) => {
-              const qty = getItemQty(item.id);
-              return (
-                <div
-                  key={item.id}
-                  className="g-card p-4 flex items-start gap-3.5 transition-all"
-                >
-                  {/* Text content */}
-                  <div className="flex-1 min-w-0">
-                    {/* Badges row: Veg/Non-veg + Bestseller / Best deal */}
-                    <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                      <span
-                        className="h-3.5 w-3.5 rounded-sm border-2 flex items-center justify-center p-0.5 shrink-0"
-                        style={{ borderColor: item.is_veg ? 'var(--g-green)' : 'var(--g-accent)' }}
-                        title={item.is_veg ? 'Vegetarian' : 'Non-Vegetarian'}
-                      >
-                        <span className="h-1.5 w-1.5 rounded-full"
-                          style={{ background: item.is_veg ? 'var(--g-green)' : 'var(--g-accent)' }} />
-                      </span>
-
-                      {item.is_bestseller ? (
-                        <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md"
-                          style={{ background: 'rgba(226,55,68,0.08)', color: 'var(--g-accent)', border: '1px solid rgba(226,55,68,0.18)' }}>
-                          <Flame className="h-2.5 w-2.5" strokeWidth={2.5} />
-                          Bestseller
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md"
-                          style={{ background: 'rgba(16,185,129,0.08)', color: '#059669', border: '1px solid rgba(16,185,129,0.18)' }}>
-                          Best deal
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="font-bold text-sm leading-snug tracking-tight" style={{ color: 'var(--g-text)' }}>
-                      {item.name}
-                    </h3>
-
-                    {/* Price and Rating */}
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm font-extrabold" style={{ color: 'var(--g-text)' }}>
-                        {formatCurrency(item.price)}
-                      </span>
-                      <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-200/60">
-                        <Star className="h-3 w-3 fill-emerald-600 text-emerald-600" />
-                        5.0
-                      </span>
-                    </div>
-
-                    {item.description && (
-                      <p className="text-xs line-clamp-2 mt-1.5 leading-relaxed" style={{ color: 'var(--g-text-muted)' }}>
-                        {item.description}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Image + Add Button Column */}
-                  <div className="flex flex-col items-center gap-2 shrink-0">
-                    <div className="relative h-24 w-24 sm:h-28 sm:w-28 rounded-2xl overflow-hidden border shadow-xs" style={{ borderColor: 'var(--g-border)' }}>
-                      <img
-                        src={getFoodImage(item)}
-                        alt={item.name}
-                        className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-                        loading="lazy"
-                        decoding="async"
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          const fallback = getCatalogFoodImage(item);
-                          if (e.target.src !== fallback) {
-                            e.target.src = fallback;
-                          } else {
-                            e.target.src = DEFAULT_FOOD_IMAGE;
-                          }
-                        }}
-                      />
-                    </div>
-
-                    {qty === 0 ? (
-                      <button
-                        type="button"
-                        onClick={() => handleAdd(item)}
-                        className="h-8.5 px-4 w-24 sm:w-28 rounded-xl text-xs font-bold cursor-pointer flex items-center justify-center gap-1 transition-all active:scale-95 shadow-sm"
-                        style={{
-                          background: 'linear-gradient(135deg, var(--g-accent) 0%, #C41E2D 100%)',
-                          color: '#fff',
-                        }}
-                      >
-                        <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                        <span>Add</span>
-                      </button>
-                    ) : (
-                      <div
-                        className="h-8.5 w-24 sm:w-28 flex items-center justify-between rounded-xl overflow-hidden shadow-sm px-1"
-                        style={{
-                          background: 'linear-gradient(135deg, var(--g-accent) 0%, #C41E2D 100%)',
-                          color: '#fff',
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => updateQty(item.id, qty - 1)}
-                          aria-label={`Decrease quantity of ${item.name}`}
-                          className="h-7 w-7 flex items-center justify-center text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Minus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                        </button>
-                        <span className="text-xs font-extrabold text-white select-none">
-                          {qty}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => updateQty(item.id, qty + 1)}
-                          aria-label={`Increase quantity of ${item.name}`}
-                          className="h-7 w-7 flex items-center justify-center text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Plus className="h-3.5 w-3.5" strokeWidth={2.5} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {regularItems.map((item) => (
+              <MenuItemCard
+                key={item.id}
+                item={item}
+                qty={getItemQty(item.id)}
+                onAdd={handleAdd}
+                onUpdateQty={updateQty}
+              />
+            ))}
           </div>
         )}
       </div>

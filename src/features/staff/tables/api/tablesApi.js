@@ -72,22 +72,36 @@ export async function createTable({ orgId, venueId, tableNumber, capacity = 4 })
   let targetVenueId = venueId;
   let targetOrgId = orgId;
 
-  // Auto-resolve venue if not provided
+  // Resolve org_id scoped to the provided venue_id if needed
+  if (targetVenueId && !targetOrgId) {
+    const { data: venue } = await supabase
+      .from('venues')
+      .select('id, org_id')
+      .eq('id', targetVenueId)
+      .maybeSingle();
+
+    if (venue) {
+      targetOrgId = venue.org_id;
+    }
+  }
+
+  // Fallback for single-venue development environments only if venueId is truly omitted
   if (!targetVenueId || !targetOrgId) {
     const { data: venues } = await supabase
       .from('venues')
       .select('id, org_id')
       .eq('is_active', true)
-      .limit(1);
+      .limit(2);
 
-    if (venues && venues.length > 0) {
+    // If there is strictly 1 venue in the DB, it is safe to infer it. Otherwise require explicit venueId
+    if (venues && venues.length === 1) {
       targetVenueId = targetVenueId || venues[0].id;
       targetOrgId = targetOrgId || venues[0].org_id;
     }
   }
 
-  if (!targetVenueId) {
-    throw new Error('Restaurant venue not found. Please verify your settings.');
+  if (!targetVenueId || !targetOrgId) {
+    throw new Error('Restaurant venue and organization are required to create a table. Please select an active venue.');
   }
 
   const cleanNumber = String(tableNumber).replace(/^T-/i, '').trim();

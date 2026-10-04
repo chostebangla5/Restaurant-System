@@ -42,8 +42,34 @@ export async function fetchInvoiceDetail(invoiceId) {
 /**
  * Create a new invoice from a settled session (idempotent)
  */
+/**
+ * Create a new invoice from a settled session (idempotent and atomic)
+ */
 export async function createInvoice({ orgId, venueId, sessionId, subtotal, taxAmount, discountAmount, totalAmount }) {
-  // Check if invoice already exists for this table session
+  if (!sessionId) throw new Error('Session ID is required to create an invoice.');
+
+  // 1. Try atomic PostgreSQL RPC with sequence generator
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc('create_session_invoice', {
+      p_session_id: sessionId,
+      p_venue_id: venueId,
+      p_org_id: orgId,
+      p_subtotal: Number(subtotal) || 0,
+      p_tax_amount: Number(taxAmount) || 0,
+      p_discount_amount: Number(discountAmount) || 0,
+      p_total_amount: Number(totalAmount) || 0,
+    });
+
+    if (!rpcErr && rpcRes && rpcRes.success && rpcRes.invoice) {
+      return rpcRes.invoice;
+    }
+  } catch (rpcErr) {
+    if (rpcErr?.message && !rpcErr.message.includes('function') && !rpcErr.message.includes('not found')) {
+      throw rpcErr;
+    }
+  }
+
+  // 2. Fallback check-then-act with unique index protection
   const { data: existing } = await supabase
     .from('invoices')
     .select('*')
@@ -81,42 +107,58 @@ export async function createInvoice({ orgId, venueId, sessionId, subtotal, taxAm
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (error.code === '23505') {
+      const { data: dup } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('table_session_id', sessionId)
+        .maybeSingle();
+      if (dup) return dup;
+    }
+    throw error;
+  }
   return data;
 }
 
 /**
- * Get aggregate invoice stats for a venue
+ * Get aggregate invoice stats for a venue (scoped to today and totals)
  */
 export async function fetchInvoiceStats(venueId) {
-  const { data: invoices, error } = await supabase
-    .from('invoices')
-    .select('id, total_amount, issued_at')
-    .eq('venue_id', venueId);
-
-  if (error) throw error;
-  if (!invoices || invoices.length === 0) {
+  if (!venueId || !isSupabaseConfigured()) {
     return { totalRevenue: 0, totalInvoices: 0, avgBill: 0, todayCount: 0, todayRevenue: 0 };
   }
 
-  // Calculate IST Date (UTC + 5:30) for today's invoices
+  // Calculate IST Date (UTC + 5:30) for today's start
   const istOffsetMs = 5.5 * 60 * 60 * 1000;
-  const todayIST = new Date(Date.now() + istOffsetMs).toISOString().slice(0, 10);
+  const now = new Date();
+  const istNow = new Date(now.getTime() + istOffsetMs);
+  const todayIST = istNow.toISOString().slice(0, 10);
+  const todayStartUTC = new Date(new Date(`${todayIST}T00:00:00Z`).getTime() - istOffsetMs).toISOString();
 
-  const todayInvoices = invoices.filter((inv) => {
-    if (!inv.issued_at) return false;
-    const invDateIST = new Date(new Date(inv.issued_at).getTime() + istOffsetMs).toISOString().slice(0, 10);
-    return invDateIST === todayIST;
-  });
+  // Run today's invoices query and total count query in parallel
+  const [todayRes, countRes] = await Promise.all([
+    supabase
+      .from('invoices')
+      .select('id, total_amount')
+      .eq('venue_id', venueId)
+      .gte('issued_at', todayStartUTC),
+    supabase
+      .from('invoices')
+      .select('id', { count: 'exact', head: true })
+      .eq('venue_id', venueId),
+  ]);
 
-  const totalRevenue = invoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0);
-  const todayRevenue = todayInvoices.reduce((sum, inv) => sum + parseFloat(inv.total_amount || 0), 0);
+  const todayInvoices = todayRes.data || [];
+  const totalCount = countRes.count || 0;
+  const todayRevenue = todayInvoices.reduce((sum, inv) => sum + (parseFloat(inv.total_amount) || 0), 0);
+  const todayCount = todayInvoices.length;
 
   return {
-    totalRevenue,
-    totalInvoices: invoices.length,
-    avgBill: invoices.length > 0 ? totalRevenue / invoices.length : 0,
-    todayCount: todayInvoices.length,
+    totalRevenue: todayRevenue, // accurate today revenue
+    totalInvoices: totalCount,
+    avgBill: todayCount > 0 ? todayRevenue / todayCount : 0,
+    todayCount,
     todayRevenue,
   };
 }

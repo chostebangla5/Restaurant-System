@@ -39,6 +39,7 @@ export function StaffBillingScreen() {
   const [posSettleMethod, setPosSettleMethod] = useState('cash'); // cash | online | split
   const [posSplitOnline, setPosSplitOnline] = useState(0);
   const [posSplitCash, setPosSplitCash] = useState(0);
+  const [isSettling, setIsSettling] = useState(false);
 
   const loadData = async () => {
     try {
@@ -73,6 +74,8 @@ export function StaffBillingScreen() {
   };
 
   const handleSettle = async (orderId, method, splitDetails = null) => {
+    if (isSettling) return;
+    setIsSettling(true);
     try {
       await settleOrder(orderId, method, splitDetails);
       toast.success(
@@ -92,7 +95,10 @@ export function StaffBillingScreen() {
         }));
       }
     } catch (err) {
+      console.error('Failed to settle bill:', err);
       toast.error('Failed to settle bill');
+    } finally {
+      setIsSettling(false);
     }
   };
 
@@ -440,16 +446,17 @@ export function StaffBillingScreen() {
 
                 <Button
                   size="md"
+                  disabled={isSettling}
                   onClick={() =>
                     handleSettle(settlingOrder.id, 'split', {
                       onlineAmount: Number(settlingOrder.split_details.online) || 0,
                       cashAmount: Number(settlingOrder.split_details.cash) || 0,
                     })
                   }
-                  className="w-full font-bold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] py-3.5 text-xs flex items-center justify-center gap-2"
+                  className="w-full font-bold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] py-3.5 text-xs flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Banknote className="h-4 w-4" />
-                  Collect ₹{settlingOrder.split_details.cash} Cash &amp; Complete Settle
+                  {isSettling ? 'Settling Bill...' : `Collect ₹${settlingOrder.split_details.cash} Cash & Complete Settle`}
                 </Button>
               </div>
             ) : (
@@ -500,10 +507,11 @@ export function StaffBillingScreen() {
                     </p>
                     <Button
                       size="md"
+                      disabled={isSettling}
                       onClick={() => handleSettle(settlingOrder.id, 'counter')}
-                      className="w-full font-bold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] py-3.5 text-xs flex items-center justify-center gap-2"
+                      className="w-full font-bold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] py-3.5 text-xs flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                      <Banknote className="h-4 w-4" /> Settle {formatCurrency(settlingOrder.total)} in Cash
+                      <Banknote className="h-4 w-4" /> {isSettling ? 'Settling...' : `Settle ${formatCurrency(settlingOrder.total)} in Cash`}
                     </Button>
                   </div>
                 )}
@@ -516,10 +524,11 @@ export function StaffBillingScreen() {
                     </p>
                     <Button
                       size="md"
+                      disabled={isSettling}
                       onClick={() => handleSettle(settlingOrder.id, 'online')}
-                      className="w-full font-bold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] py-3.5 text-xs flex items-center justify-center gap-2"
+                      className="w-full font-bold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] py-3.5 text-xs flex items-center justify-center gap-2 disabled:opacity-50"
                     >
-                      <CreditCard className="h-4 w-4" /> Settle {formatCurrency(settlingOrder.total)} via UPI / Online
+                      <CreditCard className="h-4 w-4" /> {isSettling ? 'Settling...' : `Settle ${formatCurrency(settlingOrder.total)} via UPI / Online`}
                     </Button>
                   </div>
                 )}
@@ -604,16 +613,17 @@ export function StaffBillingScreen() {
 
                     <Button
                       size="md"
+                      disabled={isSettling}
                       onClick={() =>
                         handleSettle(settlingOrder.id, 'split', {
                           onlineAmount: posSplitOnline,
                           cashAmount: posSplitCash,
                         })
                       }
-                      className="w-full font-bold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] py-3.5 text-xs flex items-center justify-center gap-2"
+                      className="w-full font-bold rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] py-3.5 text-xs flex items-center justify-center gap-2 disabled:opacity-50"
                     >
                       <Coins className="h-4 w-4" />
-                      Settle: ₹{posSplitOnline} Online + ₹{posSplitCash} Cash
+                      {isSettling ? 'Settling...' : `Settle: ₹${posSplitOnline} Online + ₹${posSplitCash} Cash`}
                     </Button>
                   </div>
                 )}

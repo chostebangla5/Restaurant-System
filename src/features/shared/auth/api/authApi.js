@@ -306,3 +306,28 @@ export async function resendConfirmationEmail(email) {
   if (error) throw error;
 }
 
+/**
+ * Send password reset email with redirect to /reset-password.
+ * @param {string} email
+ */
+export async function sendPasswordResetEmail(email) {
+  const redirectUrl = `${window.location.origin}/reset-password`;
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: redirectUrl,
+  });
+  if (error) throw error;
+  return data;
+}
+
+/**
+ * Update authenticated user's password.
+ * @param {string} newPassword
+ */
+export async function updatePassword(newPassword) {
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+  if (error) throw error;
+  return data;
+}
+

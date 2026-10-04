@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Toggle';
@@ -32,6 +32,8 @@ export function StaffLiveOrdersScreen() {
   const [activeFilter, setActiveFilter] = useState('all');
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
+  const soundEnabledRef = useRef(soundEnabled);
+  soundEnabledRef.current = soundEnabled;
 
   const load = async () => {
     try {
@@ -49,12 +51,12 @@ export function StaffLiveOrdersScreen() {
     load();
     const unsubscribe = subscribeToOrders(() => {
       load();
-      if (soundEnabled) {
+      if (soundEnabledRef.current) {
         playOrderAlertSound();
       }
     });
     return () => unsubscribe();
-  }, [venueId, soundEnabled]);
+  }, [venueId]);
 
   const handleStatusChange = async (orderId, nextStatus) => {
     try {

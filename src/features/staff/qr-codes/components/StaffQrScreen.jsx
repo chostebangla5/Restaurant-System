@@ -71,9 +71,16 @@ export function StaffQrScreen() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 print:grid-cols-2">
+        <div className="space-y-4">
+          {typeof window !== 'undefined' && window.location.hostname === 'localhost' && !import.meta.env.VITE_PUBLIC_APP_URL && (
+            <div className="p-3.5 bg-amber-500/10 border border-amber-500/25 rounded-xl text-xs text-amber-300 print:hidden flex items-center gap-2">
+              <span>⚠️ Notice: Running on localhost. For physical scanning with guest smartphones, set VITE_PUBLIC_APP_URL in your environment or test on your deployed domain.</span>
+            </div>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 print:grid-cols-2">
           {tables.map((tbl) => {
-            const tableUrl = `${window.location.origin}/t/${tbl.code}`;
+            const baseUrl = import.meta.env.VITE_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+            const tableUrl = `${baseUrl}/t/${tbl.code}`;
             return (
               <div
                 key={tbl.code}
@@ -111,6 +118,7 @@ export function StaffQrScreen() {
               </div>
             );
           })}
+          </div>
         </div>
       )}
     </div>

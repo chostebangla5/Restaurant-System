@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
+import { useStaffLiveNotifications } from '@/features/staff/common/hooks/useStaffLiveNotifications';
 
 export function AdminLayout() {
   const {
@@ -45,6 +46,9 @@ export function AdminLayout() {
   const location = useLocation();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isVenueSwitcherOpen, setIsVenueSwitcherOpen] = useState(false);
+
+  // Realtime alerts for service calls and orders strictly on admin portal
+  useStaffLiveNotifications(venueId || venue?.id || staffProfile?.venue_id);
 
   useEffect(() => {
     const pageMetadata = {

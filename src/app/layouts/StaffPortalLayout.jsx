@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { cn } from '@/lib/utils';
+import { useStaffLiveNotifications } from '@/features/staff/common/hooks/useStaffLiveNotifications';
 
 export function StaffPortalLayout() {
   const {
@@ -23,12 +24,16 @@ export function StaffPortalLayout() {
     staffProfile,
     role,
     venue,
+    venueId,
     signOut,
   } = useAuth();
   const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Realtime alerts for service calls and orders strictly on staff portal
+  useStaffLiveNotifications(venueId || venue?.id || staffProfile?.venue_id);
 
   useEffect(() => {
     const pageMetadata = {

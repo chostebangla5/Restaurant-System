@@ -191,7 +191,12 @@ export async function validateCoupon({ shortCode, venueId, code, subtotal = 0 })
     return { valid: false, error: 'Please enter a coupon code' };
   }
 
-  const normalizedCode = code.trim().toUpperCase();
+  // Sanitize to prevent wildcard injection (% and _)
+  const normalizedCode = code.trim().replace(/[%_]/g, '').toUpperCase();
+  if (!normalizedCode) {
+    return { valid: false, error: 'Please enter a valid coupon code.' };
+  }
+
   const targetVenueId = await resolveVenueId(shortCode, venueId);
 
   if (!targetVenueId) {
@@ -203,7 +208,7 @@ export async function validateCoupon({ shortCode, venueId, code, subtotal = 0 })
     .from('coupons')
     .select('*')
     .eq('venue_id', targetVenueId)
-    .ilike('code', normalizedCode)
+    .eq('code', normalizedCode)
     .eq('is_active', true)
     .maybeSingle();
 
@@ -229,6 +234,8 @@ export async function validateCoupon({ shortCode, venueId, code, subtotal = 0 })
         min_order_amount: offerWithCode.min_order_amount || 0,
         title: offerWithCode.title,
         description: offerWithCode.description,
+        valid_from: offerWithCode.valid_from,
+        valid_until: offerWithCode.valid_until,
       };
     }
   }
@@ -238,6 +245,20 @@ export async function validateCoupon({ shortCode, venueId, code, subtotal = 0 })
       valid: false,
       error: `Coupon "${normalizedCode}" is invalid or expired.`,
     };
+  }
+
+  // 2b. Check expiration date & usage limits
+  const nowIso = new Date().toISOString();
+  if (matched.valid_until && matched.valid_until < nowIso) {
+    return { valid: false, error: `Coupon "${normalizedCode}" has expired.` };
+  }
+  if (matched.valid_from && matched.valid_from > nowIso) {
+    return { valid: false, error: `Coupon "${normalizedCode}" is not yet active.` };
+  }
+  if (matched.usage_limit != null && matched.usage_limit > 0) {
+    if ((matched.times_used || 0) >= matched.usage_limit) {
+      return { valid: false, error: `Coupon "${normalizedCode}" has reached its maximum usage limit.` };
+    }
   }
 
   // 3. Validate minimum order amount

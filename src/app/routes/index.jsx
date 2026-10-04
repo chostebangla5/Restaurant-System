@@ -40,6 +40,11 @@ const loadStaffLoginScreen = () =>
     default: m.StaffLoginScreen,
   }));
 
+const loadResetPasswordScreen = () =>
+  import('@/features/shared/auth/components/ResetPasswordScreen').then((m) => ({
+    default: m.ResetPasswordScreen,
+  }));
+
 // ─── Admin Dashboard Factories (was /staff, now /admin) ───
 const loadStaffDashboardScreen = () =>
   import('@/features/staff/dashboard/components/StaffDashboardScreen').then((m) => ({
@@ -158,6 +163,7 @@ const GuestCartScreen = lazyWithRetry(loadGuestCartScreen, 'GuestCartScreen');
 const GuestOrderStatusScreen = lazyWithRetry(loadGuestOrderStatusScreen, 'GuestOrderStatusScreen');
 const GuestAccountScreen = lazyWithRetry(loadGuestAccountScreen, 'GuestAccountScreen');
 const StaffLoginScreen = lazyWithRetry(loadStaffLoginScreen, 'StaffLoginScreen');
+const ResetPasswordScreen = lazyWithRetry(loadResetPasswordScreen, 'ResetPasswordScreen');
 
 // Admin screens
 const StaffDashboardScreen = lazyWithRetry(loadStaffDashboardScreen, 'StaffDashboardScreen');
@@ -208,6 +214,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<SuspenseFallback />}>
             <StaffLoginScreen />
+          </Suspense>
+        ),
+      },
+      {
+        path: 'reset-password',
+        element: (
+          <Suspense fallback={<SuspenseFallback />}>
+            <ResetPasswordScreen />
           </Suspense>
         ),
       },

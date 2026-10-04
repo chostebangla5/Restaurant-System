@@ -54,6 +54,7 @@ export function GuestAccountScreen() {
       const orders = await fetchGuestPreviousOrders({
         phone: phoneToUse || guestPhone,
         name: nameToUse || guestName,
+        shortCode,
       });
       setPreviousOrders(Array.isArray(orders) ? orders : []);
     } catch (err) {

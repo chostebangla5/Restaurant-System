@@ -1,4 +1,18 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { supabase, supabaseUrl, supabaseAnonKey } from '@/lib/supabase';
+
+// Non-persisting client ensuring invited staff creation never overwrites the active admin session in localStorage
+const nonPersistingAuthClient = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-key',
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  }
+);
 
 // ─── Venue ────────────────────────────────────────────────────────────────────
 
@@ -128,8 +142,8 @@ export async function inviteStaff({ venueId, orgId, email, fullName, role }) {
   // Generate a temporary password
   const tempPassword = `TS-${Math.random().toString(36).slice(2, 10)}`;
 
-  // Create auth user (this sends a confirmation email if configured)
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  // Create auth user via non-persisting client so admin's active session is never replaced
+  const { data: authData, error: authError } = await nonPersistingAuthClient.auth.signUp({
     email,
     password: tempPassword,
     options: {

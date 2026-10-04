@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { Toggle } from '@/components/ui/Toggle';
@@ -26,11 +26,13 @@ export function StaffKitchenScreen() {
   const [selectedStation, setSelectedStation] = useState('all'); // all | hot | cold | bar
   const [tickedItems, setTickedItems] = useState({});
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const soundEnabledRef = useRef(soundEnabled);
+  soundEnabledRef.current = soundEnabled;
 
   const load = async () => {
     try {
-      const data = await fetchOrders(venueId);
-      // Kitchen is interested in active cooking/placed tickets
+      // Pass activeOnly: true to fetch only active cooking/placed tickets without hundreds of historical completed orders
+      const data = await fetchOrders(venueId, { activeOnly: true });
       const kitchenOrders = (Array.isArray(data) ? data : []).filter((o) =>
         o && ['placed', 'acknowledged', 'cooking'].includes(o.status)
       );
@@ -45,10 +47,10 @@ export function StaffKitchenScreen() {
     load();
     const unsubscribe = subscribeToOrders(() => {
       load();
-      if (soundEnabled) playOrderAlertSound();
+      if (soundEnabledRef.current) playOrderAlertSound();
     });
     return () => unsubscribe();
-  }, [venueId, soundEnabled]);
+  }, [venueId]);
 
   const toggleItemTick = (orderId, itemIdx) => {
     const key = `${orderId}-${itemIdx}`;

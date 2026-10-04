@@ -123,33 +123,34 @@ export function StaffSettingsScreen() {
 
         const activeId = venue.id;
 
-        // Load venue settings
-        try {
-          const settings = await fetchVenueSettings(activeId);
-          if (settings) {
-            setSettingsData({
-              gstin: settings.gstin || '',
-              fssai_number: settings.fssai_number || '',
-              allow_guest_ordering: settings.allow_guest_ordering ?? true,
-              require_guest_phone: settings.require_guest_phone ?? false,
-              enable_sound_alerts: settings.enable_sound_alerts ?? true,
-              upi_id: settings.upi_id || venue.upi_id || '',
-              upi_merchant_name: settings.upi_merchant_name || venue.upi_merchant_name || venue.name || '',
-              razorpay_key_id: settings.razorpay_key_id || '',
-              enable_upi_intent: settings.enable_upi_intent ?? true,
-              fallback_to_counter_on_failure: settings.fallback_to_counter_on_failure ?? true,
-            });
-          }
-        } catch (settingsErr) {
-          console.warn('Failed to load venue settings (non-critical):', settingsErr);
+        // Load venue settings and staff list concurrently (batched)
+        const [settingsRes, staffRes] = await Promise.allSettled([
+          fetchVenueSettings(activeId),
+          fetchStaffList(activeId),
+        ]);
+
+        if (settingsRes.status === 'fulfilled' && settingsRes.value) {
+          const settings = settingsRes.value;
+          setSettingsData({
+            gstin: settings.gstin || '',
+            fssai_number: settings.fssai_number || '',
+            allow_guest_ordering: settings.allow_guest_ordering ?? true,
+            require_guest_phone: settings.require_guest_phone ?? false,
+            enable_sound_alerts: settings.enable_sound_alerts ?? true,
+            upi_id: settings.upi_id || venue.upi_id || '',
+            upi_merchant_name: settings.upi_merchant_name || venue.upi_merchant_name || venue.name || '',
+            razorpay_key_id: settings.razorpay_key_id || '',
+            enable_upi_intent: settings.enable_upi_intent ?? true,
+            fallback_to_counter_on_failure: settings.fallback_to_counter_on_failure ?? true,
+          });
+        } else if (settingsRes.status === 'rejected') {
+          console.warn('Failed to load venue settings (non-critical):', settingsRes.reason);
         }
 
-        // Load staff list
-        try {
-          const staff = await fetchStaffList(activeId);
-          setStaffList(staff || []);
-        } catch (staffErr) {
-          console.warn('Failed to load staff list (non-critical):', staffErr);
+        if (staffRes.status === 'fulfilled' && staffRes.value) {
+          setStaffList(staffRes.value || []);
+        } else if (staffRes.status === 'rejected') {
+          console.warn('Failed to load staff list (non-critical):', staffRes.reason);
         }
       }
 
@@ -435,9 +436,8 @@ export function StaffSettingsScreen() {
 
                 {/* Guest URL Preview Incorporating Slug */}
                 <div className="mt-2 p-2.5 rounded-lg bg-[#141721] border border-white/[0.08] text-xs">
-                  <span className="text-[11px] font-mono text-[#8A8F9C] block mb-1">Public Guest Link Preview:</span>
                   <div className="font-mono text-[#C6FF3D] flex items-center gap-1.5 break-all text-[11px]">
-                    <span>https://www.ditoech.in/venue/</span>
+                    <span>{(import.meta.env.VITE_PUBLIC_APP_URL || (typeof window !== 'undefined' ? window.location.origin : '')) + '/venue/'}</span>
                     <span className="underline decoration-[#C6FF3D] font-bold text-white">
                       {venueData.slug || '{venue-slug}'}
                     </span>

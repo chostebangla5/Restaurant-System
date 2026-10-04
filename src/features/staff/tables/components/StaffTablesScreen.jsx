@@ -81,14 +81,15 @@ export function StaffTablesScreen() {
   const handleSettleTable = async (table) => {
     try {
       const activeOrders = getTableOrders(table).filter((o) => o.status !== 'completed');
-      for (const o of activeOrders) {
-        await settleOrder(o.id, 'counter');
+      if (activeOrders.length > 0) {
+        // Settle the primary order; settleOrder atomically settles the entire table session and frees the table
+        await settleOrder(activeOrders[0].id, 'counter');
       }
       toast.success(`Table ${table.number} settled and freed!`);
       setSelectedTable(null);
       loadData();
     } catch (err) {
-      console.error(err);
+      console.error('Failed to settle table:', err);
       toast.error('Failed to settle table');
     }
   };

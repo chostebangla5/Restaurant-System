@@ -65,20 +65,31 @@ export async function deleteCategory(id) {
 }
 
 export async function reorderCategories(orderedIds) {
-  // Batch update sort_order for each category
-  const updates = orderedIds.map((id, index) => ({
-    id,
-    sort_order: index,
-  }));
+  if (!orderedIds || orderedIds.length === 0) return;
 
-  for (const u of updates) {
-    const { error } = await supabase
-      .from('menu_categories')
-      .update({ sort_order: u.sort_order })
-      .eq('id', u.id);
-
-    if (error) throw error;
+  // 1. Attempt atomic PostgreSQL RPC
+  try {
+    const { data, error } = await supabase.rpc('batch_reorder_categories', {
+      p_category_ids: orderedIds,
+    });
+    if (!error && data?.success) {
+      return;
+    }
+  } catch (rpcErr) {
+    // If RPC is not yet created in the DB, fall back to concurrent updates
   }
+
+  // 2. Fallback: parallelized execution instead of sequential N+1 loop
+  const updatePromises = orderedIds.map((id, index) =>
+    supabase
+      .from('menu_categories')
+      .update({ sort_order: index })
+      .eq('id', id)
+  );
+
+  const results = await Promise.all(updatePromises);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) throw failed.error;
 }
 
 // ─── Menu Items ──────────────────────────────────────────────────────────────

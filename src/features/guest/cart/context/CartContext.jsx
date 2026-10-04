@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { createOrder } from '@/features/shared/orders/api/ordersApi';
 import { validateCoupon, fetchAvailableCoupons } from '@/features/staff/offers/api/offersApi';
@@ -70,7 +70,7 @@ export function CartProvider({ children }) {
     loadAvailableCoupons();
   }, [loadAvailableCoupons]);
 
-  const addToCart = (item) => {
+  const addToCart = useCallback((item) => {
     setItems((prev) => {
       const existingIdx = prev.findIndex((i) => i.id === item.id);
       if (existingIdx > -1) {
@@ -95,9 +95,13 @@ export function CartProvider({ children }) {
       ];
     });
     toast.success(`Added ${item.name} to cart`, { id: `add-${item.id}`, duration: 1500 });
-  };
+  }, []);
 
-  const updateQty = (itemId, qty) => {
+  const removeFromCart = useCallback((itemId) => {
+    setItems((prev) => prev.filter((i) => i.id !== itemId));
+  }, []);
+
+  const updateQty = useCallback((itemId, qty) => {
     if (qty <= 0) {
       removeFromCart(itemId);
       return;
@@ -105,44 +109,39 @@ export function CartProvider({ children }) {
     setItems((prev) =>
       prev.map((i) => (i.id === itemId ? { ...i, qty } : i))
     );
-  };
+  }, [removeFromCart]);
 
-  const removeFromCart = (itemId) => {
-    setItems((prev) => prev.filter((i) => i.id !== itemId));
-  };
-
-  const clearCart = () => {
+  const clearCart = useCallback(() => {
     setItems([]);
     setAppliedCoupon(null);
     try {
       localStorage.removeItem(storageKey);
       localStorage.removeItem(couponStorageKey);
     } catch (e) {}
-  };
+  }, [storageKey, couponStorageKey]);
 
   // Pricing calculations
-  const totalItemCount = items.reduce((sum, i) => sum + i.qty, 0);
-  const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const totalItemCount = useMemo(() => items.reduce((sum, i) => sum + i.qty, 0), [items]);
+  const subtotal = useMemo(() => items.reduce((sum, i) => sum + i.price * i.qty, 0), [items]);
 
   // Dynamic coupon discount calculation
-  let discountAmount = 0;
-  if (appliedCoupon && subtotal > 0) {
+  const discountAmount = useMemo(() => {
+    if (!appliedCoupon || subtotal <= 0) return 0;
     if (appliedCoupon.discountType === 'percent') {
-      discountAmount = Math.round((subtotal * appliedCoupon.discountValue) / 100);
-      if (appliedCoupon.maxDiscountAmount && discountAmount > appliedCoupon.maxDiscountAmount) {
-        discountAmount = appliedCoupon.maxDiscountAmount;
-      }
-    } else {
-      discountAmount = Math.min(appliedCoupon.discountValue, subtotal);
+      const disc = Math.round((subtotal * appliedCoupon.discountValue) / 100);
+      return appliedCoupon.maxDiscountAmount && disc > appliedCoupon.maxDiscountAmount
+        ? appliedCoupon.maxDiscountAmount
+        : disc;
     }
-  }
+    return Math.min(appliedCoupon.discountValue, subtotal);
+  }, [appliedCoupon, subtotal]);
 
   const discountedSubtotal = Math.max(0, subtotal - discountAmount);
   const tax = Math.round(discountedSubtotal * 0.05); // 5% GST on discounted amount
   const grandTotal = discountedSubtotal + tax;
 
   // Apply a coupon code
-  const applyCoupon = async (code) => {
+  const applyCoupon = useCallback(async (code) => {
     if (!code || !code.trim()) {
       toast.error('Please enter a coupon code');
       return { success: false, error: 'Please enter a coupon code' };
@@ -167,24 +166,24 @@ export function CartProvider({ children }) {
       toast.error(err.message || 'Failed to apply coupon');
       return { success: false, error: err.message };
     }
-  };
+  }, [shortCode, subtotal]);
 
   // Remove applied coupon
-  const removeCoupon = () => {
+  const removeCoupon = useCallback(() => {
     setAppliedCoupon(null);
     toast.success('Coupon removed', { duration: 2000 });
-  };
+  }, []);
 
-  const getItemQty = (itemId) => {
+  const getItemQty = useCallback((itemId) => {
     const item = items.find((i) => i.id === itemId);
     return item ? item.qty : 0;
-  };
+  }, [items]);
 
-  const isItemInCart = (itemId) => {
+  const isItemInCart = useCallback((itemId) => {
     return items.some((i) => i.id === itemId);
-  };
+  }, [items]);
 
-  const submitOrder = async ({
+  const submitOrder = useCallback(async ({
     paymentMethod = 'counter',
     paymentStatus = 'pending',
     guestNotes = '',
@@ -227,35 +226,58 @@ export function CartProvider({ children }) {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [items, shortCode, subtotal, discountAmount, appliedCoupon, tax, grandTotal, clearCart, navigate]);
+
+  const contextValue = useMemo(() => ({
+    items,
+    shortCode,
+    addToCart,
+    updateQty,
+    removeFromCart,
+    clearCart,
+    totalItemCount,
+    subtotal,
+    discountAmount,
+    discountedSubtotal,
+    appliedCoupon,
+    applyCoupon,
+    removeCoupon,
+    availableCoupons,
+    isLoadingCoupons,
+    loadAvailableCoupons,
+    tax,
+    grandTotal,
+    getItemQty,
+    isItemInCart,
+    submitOrder,
+    isSubmitting,
+  }), [
+    items,
+    shortCode,
+    addToCart,
+    updateQty,
+    removeFromCart,
+    clearCart,
+    totalItemCount,
+    subtotal,
+    discountAmount,
+    discountedSubtotal,
+    appliedCoupon,
+    applyCoupon,
+    removeCoupon,
+    availableCoupons,
+    isLoadingCoupons,
+    loadAvailableCoupons,
+    tax,
+    grandTotal,
+    getItemQty,
+    isItemInCart,
+    submitOrder,
+    isSubmitting,
+  ]);
 
   return (
-    <CartContext.Provider
-      value={{
-        items,
-        shortCode,
-        addToCart,
-        updateQty,
-        removeFromCart,
-        clearCart,
-        totalItemCount,
-        subtotal,
-        discountAmount,
-        discountedSubtotal,
-        appliedCoupon,
-        applyCoupon,
-        removeCoupon,
-        availableCoupons,
-        isLoadingCoupons,
-        loadAvailableCoupons,
-        tax,
-        grandTotal,
-        getItemQty,
-        isItemInCart,
-        submitOrder,
-        isSubmitting,
-      }}
-    >
+    <CartContext.Provider value={contextValue}>
       {children}
     </CartContext.Provider>
   );

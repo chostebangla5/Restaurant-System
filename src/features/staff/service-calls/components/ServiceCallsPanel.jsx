@@ -54,6 +54,7 @@ export function ServiceCallsPanel({ compact = false }) {
         const newest = data[0];
         if (newest) {
           toast(`🔔 Table ${newest.table_number}: ${newest.reason}`, {
+            id: `staff-call-${newest.id}`,
             duration: 5000,
             style: {
               background: '#141721',
