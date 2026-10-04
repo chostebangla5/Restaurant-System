@@ -12,6 +12,8 @@ import {
   settleOrder,
   cancelOrder,
   playOrderAlertSound,
+  parseGuestInfo,
+  cleanGuestInstructions,
 } from '@/features/shared/orders/api/ordersApi';
 import toast from 'react-hot-toast';
 import {
@@ -24,6 +26,9 @@ import {
   Check,
   XCircle,
   AlertTriangle,
+  User,
+  MessageSquare,
+  Tag,
 } from 'lucide-react';
 
 export function StaffLiveOrdersScreen() {
@@ -48,68 +53,66 @@ export function StaffLiveOrdersScreen() {
   };
 
   useEffect(() => {
+    if (!venueId) return;
     load();
-    const unsubscribe = subscribeToOrders(() => {
+
+    const unsub = subscribeToOrders(venueId, () => {
       load();
       if (soundEnabledRef.current) {
         playOrderAlertSound();
       }
     });
-    return () => unsubscribe();
+
+    return () => unsub();
   }, [venueId]);
 
-  const handleStatusChange = async (orderId, nextStatus) => {
+  const handleStatusChange = async (orderId, newStatus) => {
     try {
-      await updateOrderStatus(orderId, nextStatus);
-      toast.success(`Order updated to ${nextStatus.toUpperCase()}`);
-      load();
+      await updateOrderStatus(orderId, newStatus);
+      toast.success(`Order moved to ${newStatus}`);
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
+      );
     } catch (err) {
-      console.error(err);
-      toast.error('Failed to update order');
+      toast.error('Failed to update order status');
     }
   };
 
   const handleSettle = async (orderId) => {
-    // Find target order to determine table or session
-    const targetOrder = (orders || []).find((o) => o.id === orderId);
-
-    // Optimistically update orders of this table/session to completed
-    setOrders((prev) =>
-      (prev || []).map((o) => {
-        if (
-          o.id === orderId ||
-          (targetOrder && o.table_number === targetOrder.table_number && o.status === 'served')
-        ) {
-          return { ...o, status: 'completed', payment_status: 'paid' };
-        }
-        return o;
-      })
-    );
-
     try {
-      await settleOrder(orderId, 'counter');
-      toast.success('Order marked as settled & completed!');
-      load();
+      await settleOrder(orderId, 'cash');
+      toast.success('Order settled successfully');
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId
+            ? { ...o, status: 'completed', payment_status: 'paid' }
+            : o
+        )
+      );
     } catch (err) {
-      console.error(err);
       toast.error('Failed to settle order');
-      load();
     }
   };
 
   const handleCancelByStaff = async (order) => {
-    const ok = window.confirm(
-      `Cancel Table ${order.table_number} Round #${order.round_number}? This will immediately pull the order from the kitchen.`
+    const reason = window.prompt(
+      `Void / Cancel order for Table ${order.table_number}? Enter reason (optional):`,
+      'Customer cancelled'
     );
-    if (!ok) return;
+    if (reason === null) return;
 
     try {
-      await cancelOrder(order.id, null, 'Cancelled by staff');
-      toast.success(`Table ${order.table_number} Round #${order.round_number} cancelled.`);
-      load();
+      await cancelOrder(order.id, reason || 'Cancelled by staff');
+      toast.success(`Order for Table ${order.table_number} cancelled.`);
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id
+            ? { ...o, status: 'cancelled', cancel_reason: reason }
+            : o
+        )
+      );
     } catch (err) {
-      console.error(err);
-      toast.error(err?.message || 'Failed to cancel order');
+      toast.error(err.message || 'Failed to cancel order');
     }
   };
 
@@ -125,30 +128,26 @@ export function StaffLiveOrdersScreen() {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'placed':
-        return <Badge variant="danger">Placed (New)</Badge>;
+        return <Badge variant="danger" size="sm">New Order</Badge>;
       case 'acknowledged':
-        return <Badge variant="warning">Acknowledged</Badge>;
+        return <Badge variant="warning" size="sm">Acknowledged</Badge>;
       case 'cooking':
-        return <Badge variant="warning">Cooking</Badge>;
+        return <Badge variant="warning" size="sm">Cooking</Badge>;
       case 'ready':
-        return <Badge variant="primary">Ready to Serve</Badge>;
+        return <Badge variant="primary" size="sm">Ready to Serve</Badge>;
       case 'served':
-        return <Badge variant="success">Served</Badge>;
+        return <Badge variant="success" size="sm">Served</Badge>;
       case 'completed':
-        return <Badge variant="accent">Settled</Badge>;
+        return <Badge variant="success" size="sm">Settled</Badge>;
       case 'cancelled':
         return (
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-400">
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full border border-rose-500/30 bg-rose-500/10 text-rose-500">
             Cancelled
           </span>
         );
       default:
-        return <Badge variant="default">{status}</Badge>;
+        return <Badge variant="default" size="sm">{status}</Badge>;
     }
-  };
-
-  const formatElapsed = (isoString) => {
-    return getElapsedTime(isoString);
   };
 
   return (
@@ -156,20 +155,20 @@ export function StaffLiveOrdersScreen() {
       {/* Header & Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-heading font-bold text-[#F4F5F7] flex items-center gap-3">
+          <h1 className="text-xl sm:text-2xl font-heading font-bold text-text flex items-center gap-3">
             Live Orders Stream
-            <span className="font-mono text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#C6FF3D]/10 text-[#C6FF3D] border border-[#C6FF3D]/25">
+            <span className="font-mono text-xs font-semibold px-2.5 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20">
               {filteredOrders.length} tickets
             </span>
           </h1>
-          <p className="text-xs text-[#8A8F9C] mt-1">
-            Realtime dining ticket feed connected directly to tables & kitchen
+          <p className="text-xs text-muted mt-1">
+            Realtime dining ticket feed connected directly to tables &amp; kitchen
           </p>
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2.5 bg-[#0E1016] px-3.5 py-2 rounded-full border border-white/[0.08]">
-            <Volume2 className="h-4 w-4 text-[#8A8F9C]" strokeWidth={1.5} />
+          <div className="flex items-center gap-2.5 bg-surface px-3.5 py-2 rounded-full border border-border shadow-sm">
+            <Volume2 className="h-4 w-4 text-muted" strokeWidth={1.5} />
             <Toggle
               size="sm"
               checked={soundEnabled}
@@ -201,8 +200,8 @@ export function StaffLiveOrdersScreen() {
             onClick={() => setActiveFilter(tab.id)}
             className={`whitespace-nowrap px-4 py-2 min-h-[38px] rounded-full text-xs font-medium touch-manipulation transition-all shrink-0 flex items-center justify-center ${
               activeFilter === tab.id
-                ? 'bg-[#C6FF3D] text-[#07080B] font-semibold shadow-sm'
-                : 'bg-[#0E1016] text-[#8A8F9C] hover:text-[#F4F5F7] border border-white/[0.08]'
+                ? 'bg-accent text-bg font-semibold shadow-sm'
+                : 'bg-surface text-muted hover:text-text border border-border hover:bg-surface-2'
             }`}
           >
             {tab.label}
@@ -212,230 +211,280 @@ export function StaffLiveOrdersScreen() {
 
       {/* Order Tickets Grid */}
       {filteredOrders.length === 0 ? (
-        <div className="py-20 text-center rounded-card bg-[#0E1016] border border-white/[0.08] space-y-3">
-          <div className="h-12 w-12 rounded-full bg-[#141721] border border-white/[0.08] text-[#C6FF3D] flex items-center justify-center mx-auto">
+        <div className="py-20 text-center rounded-2xl bg-surface border border-border space-y-3 shadow-sm">
+          <div className="h-12 w-12 rounded-full bg-surface-2 border border-border text-accent flex items-center justify-center mx-auto">
             <Utensils className="h-5 w-5" strokeWidth={1.5} />
           </div>
-          <h3 className="text-sm font-heading font-semibold text-[#F4F5F7]">
+          <h3 className="text-sm font-heading font-semibold text-text">
             No orders match this filter
           </h3>
-          <p className="text-xs text-[#8A8F9C] max-w-xs mx-auto">
+          <p className="text-xs text-muted max-w-xs mx-auto">
             Guest orders placed from table QR codes will appear here in real time.
           </p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredOrders.map((order) => {
-            const elapsed = formatElapsed(order.created_at);
+            const elapsed = getElapsedTime(order.created_at);
             const isStale = elapsed.isOverdue && order.status !== 'completed' && order.status !== 'cancelled';
+            const guestInfo = parseGuestInfo(order.guest_notes);
+            const customerName = order.customer_name || guestInfo.name;
+            const customerPhone = guestInfo.phone;
+            const cleanNotes = cleanGuestInstructions(order.guest_notes);
+            const couponMatch = (order.guest_notes || '').match(/\[Coupon:\s*([^\]]+)\]/i);
+            const couponText = couponMatch ? couponMatch[1].trim() : null;
 
             return (
               <div
                 key={order.id}
-                className={`p-5 rounded-card bg-[#0E1016] border transition-all duration-300 flex flex-col justify-between ${
+                className={`p-4 sm:p-5 rounded-2xl bg-surface border transition-all duration-200 flex flex-col justify-between gap-4 shadow-sm hover:shadow-md ${
                   isStale
-                    ? 'border-rose-500/80 bg-[#160d10] ring-1 ring-rose-500/40 shadow-md shadow-rose-950/30'
+                    ? 'border-rose-500/80 bg-rose-500/[0.03] ring-1 ring-rose-500/30'
                     : order.status === 'placed'
-                    ? 'border-rose-500/60 shadow-sm'
+                    ? 'border-rose-500/40 ring-1 ring-rose-500/20'
                     : order.status === 'cooking'
-                    ? 'border-amber-400/60 shadow-sm'
+                    ? 'border-amber-500/40 ring-1 ring-amber-500/20'
                     : order.status === 'ready'
-                    ? 'border-[#C6FF3D]/60 shadow-sm'
+                    ? 'border-accent/50 ring-1 ring-accent/30'
                     : order.status === 'cancelled'
-                    ? 'border-rose-500/20 bg-[#0E1016]/60 opacity-80'
-                    : 'border-white/[0.08] hover:border-white/[0.18]'
+                    ? 'border-rose-500/20 opacity-70'
+                    : 'border-border'
                 }`}
               >
-                <div className="space-y-3.5">
-                  {/* Ticket Top Bar */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-bold text-xs px-2.5 py-1 bg-[#141721] text-[#C6FF3D] border border-white/[0.08] rounded-full">
-                        T-{order.table_number}
+                <div className="space-y-3">
+                  {/* Row 1: Table & Round, plus Status */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-mono font-bold text-xs px-2.5 py-1 rounded-lg bg-surface-2 border border-border text-text whitespace-nowrap shrink-0">
+                        Table {order.table_number}
                       </span>
-                      <span className="text-xs font-mono font-semibold text-[#F4F5F7]">
+                      <span className="font-mono text-xs text-muted font-medium whitespace-nowrap shrink-0">
                         Round #{order.round_number}
                       </span>
-                      {order.customer_name && (
-                        <span className="text-[11px] font-semibold text-[#C6FF3D] bg-[#C6FF3D]/10 px-2 py-0.5 rounded-full border border-[#C6FF3D]/25">
-                          👤 {order.customer_name}
-                        </span>
-                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[11px] font-mono flex items-center gap-1 ${
-                          elapsed.isOverdue
-                            ? 'text-rose-400 font-bold bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/30'
-                            : elapsed.isUrgent
-                            ? 'text-amber-400 font-semibold'
-                            : 'text-[#8A8F9C]'
-                        }`}
-                      >
-                        <Clock className="h-3 w-3" strokeWidth={1.5} /> {elapsed.text}
-                      </span>
+                    <div className="shrink-0">
                       {getStatusBadge(order.status)}
                     </div>
                   </div>
 
-                  {/* Overdue / Stale Banner */}
+                  {/* Row 2: Customer info & Elapsed time */}
+                  <div className="flex items-center justify-between gap-2 text-xs text-muted pt-0.5 border-b border-border/50 pb-2">
+                    <div className="flex items-center gap-1.5 min-w-0 truncate">
+                      {customerName ? (
+                        <span className="font-medium text-text truncate flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-muted shrink-0" />
+                          <span className="truncate">{customerName}</span>
+                          {customerPhone && (
+                            <span className="text-[11px] text-muted font-mono shrink-0">
+                              ({customerPhone})
+                            </span>
+                          )}
+                        </span>
+                      ) : (
+                        <span className="text-muted flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 shrink-0" /> Guest Order
+                        </span>
+                      )}
+                    </div>
+
+                    <span
+                      className={`font-mono text-[11px] flex items-center gap-1 shrink-0 ${
+                        elapsed.isOverdue
+                          ? 'text-rose-500 font-bold bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20'
+                          : elapsed.isUrgent
+                          ? 'text-amber-500 font-semibold'
+                          : 'text-muted'
+                      }`}
+                    >
+                      <Clock className="h-3 w-3" strokeWidth={1.5} /> {elapsed.text}
+                    </span>
+                  </div>
+
+                  {/* Overdue / Stale Warning Banner */}
                   {isStale && (
-                    <div className="flex items-center gap-1.5 p-2 rounded-lg bg-rose-500/20 border border-rose-500/40 text-[11px] font-mono text-rose-300">
-                      <AlertTriangle className="h-3.5 w-3.5 text-rose-400 shrink-0" />
+                    <div className="flex items-center gap-1.5 p-2 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs font-mono text-rose-600 dark:text-rose-400">
+                      <AlertTriangle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
                       <span>Overdue ({elapsed.text}) — Review table / settle</span>
                     </div>
                   )}
 
-                {/* Items List */}
-                <div className="space-y-2 py-2.5 border-y border-white/[0.06] text-xs">
-                  {(order.items || []).map((item, idx) => (
-                    <div key={idx} className={`flex justify-between items-start ${order.status === 'cancelled' ? 'text-muted line-through' : 'text-[#F4F5F7]'}`}>
-                      <div className="min-w-0 pr-2">
-                        <span className={`font-mono font-bold mr-1.5 ${order.status === 'cancelled' ? 'text-muted' : 'text-[#C6FF3D]'}`}>
-                          {item.qty}x
-                        </span>
-                        <span className="font-medium">{item.name}</span>
-                        {item.notes && (
-                          <span className="block text-[10px] font-mono text-amber-300 mt-0.5">
-                            Note: {item.notes}
+                  {/* Items List */}
+                  <div className="space-y-2 py-1 text-xs">
+                    {(order.items || []).map((item, idx) => (
+                      <div
+                        key={idx}
+                        className={`flex justify-between items-start gap-2 ${
+                          order.status === 'cancelled' ? 'text-muted line-through' : 'text-text'
+                        }`}
+                      >
+                        <div className="min-w-0 pr-2">
+                          <span
+                            className={`font-mono font-bold mr-1.5 ${
+                              order.status === 'cancelled' ? 'text-muted' : 'text-accent font-extrabold'
+                            }`}
+                          >
+                            {item.qty}x
                           </span>
-                        )}
+                          <span className="font-medium text-text">{item.name}</span>
+                          {item.notes && (
+                            <span className="block text-[11px] font-mono text-amber-600 dark:text-amber-400 mt-0.5">
+                              ↳ {item.notes}
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-mono font-medium text-muted shrink-0">
+                          {formatCurrency((item?.price || 0) * (item?.qty || 1))}
+                        </span>
                       </div>
-                      <span className="font-mono font-medium text-[#8A8F9C] shrink-0">
-                        {formatCurrency((item?.price || 0) * (item?.qty || 1))}
-                      </span>
+                    ))}
+                  </div>
+
+                  {/* Clean Coupon Tag (if applied) */}
+                  {couponText && (
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-xs text-purple-700 dark:text-purple-300 font-mono">
+                      <Tag className="h-3 w-3" />
+                      <span>Coupon: <strong>{couponText}</strong></span>
                     </div>
-                  ))}
+                  )}
+
+                  {/* Real Kitchen Cooking Notes (cleaned of metadata) */}
+                  {cleanNotes && (
+                    <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2">
+                      <MessageSquare className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold text-amber-900 dark:text-amber-200">Note:</span>{' '}
+                        {cleanNotes}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Guest notes */}
-                {order.guest_notes && (
-                  <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/20 text-xs font-sans text-amber-300">
-                    <span className="font-semibold">Guest Note:</span> {order.guest_notes}
+                {/* Ticket Footer & Actions */}
+                <div className="pt-3 border-t border-border/60 space-y-3">
+                  <div className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      {order.status === 'cancelled' ? (
+                        <span className="text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-500 border border-rose-500/20">
+                          Voided
+                        </span>
+                      ) : order.payment_status === 'paid' ? (
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1">
+                          <Check className="h-3 w-3 shrink-0" strokeWidth={2.5} /> Paid ({order.payment_method || 'counter'})
+                        </span>
+                      ) : (
+                        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                          Unpaid (Counter)
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className={`text-sm font-mono font-bold ${
+                        order.status === 'cancelled' ? 'text-muted line-through' : 'text-text'
+                      }`}
+                    >
+                      {formatCurrency(order?.total || 0)}
+                    </span>
                   </div>
-                )}
-              </div>
 
-              {/* Ticket Footer & Actions */}
-              <div className="pt-4 mt-2 space-y-3">
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-1.5">
-                    {order.status === 'cancelled' ? (
-                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/30">
-                        Voided
-                      </span>
-                    ) : order.payment_status === 'paid' ? (
-                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 inline-flex items-center gap-1">
-                        <Check className="h-3 w-3 shrink-0" strokeWidth={2} /> Paid ({order.payment_method})
-                      </span>
-                    ) : (
-                      <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-amber-400/15 text-amber-300 border border-amber-400/30">
-                        Unpaid (Pay at Counter)
-                      </span>
+                  {/* Action Buttons */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {order.status === 'placed' && (
+                      <>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleStatusChange(order.id, 'acknowledged')}
+                          className="text-xs font-medium rounded-xl"
+                        >
+                          Acknowledge
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={() => handleStatusChange(order.id, 'cooking')}
+                          className="text-xs font-semibold rounded-xl bg-accent text-bg hover:opacity-90"
+                        >
+                          Start Cooking
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={() => handleCancelByStaff(order)}
+                          className="col-span-2 text-[11px] font-mono text-rose-500 hover:underline py-1 flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <XCircle className="h-3 w-3" /> Void / Cancel Ticket
+                        </button>
+                      </>
                     )}
-                  </div>
-                  <span className={`text-sm font-mono font-bold ${order.status === 'cancelled' ? 'text-muted line-through' : 'text-[#F4F5F7]'}`}>
-                    {formatCurrency(order?.total || 0)}
-                  </span>
-                </div>
 
-                {/* Action Buttons */}
-                <div className="grid grid-cols-2 gap-2">
-                  {order.status === 'placed' && (
-                    <>
+                    {order.status === 'acknowledged' && (
+                      <>
+                        <Button
+                          size="sm"
+                          onClick={() => handleStatusChange(order.id, 'cooking')}
+                          className="col-span-2 text-xs font-semibold rounded-xl bg-accent text-bg hover:opacity-90"
+                        >
+                          Start Cooking
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={() => handleCancelByStaff(order)}
+                          className="col-span-2 text-[11px] font-mono text-rose-500 hover:underline py-1 flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <XCircle className="h-3 w-3" /> Void / Cancel Ticket
+                        </button>
+                      </>
+                    )}
+
+                    {order.status === 'cooking' && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleStatusChange(order.id, 'ready')}
+                        className="col-span-2 rounded-xl bg-accent text-bg hover:opacity-90 text-xs font-semibold"
+                      >
+                        <ShoppingBag className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} /> Mark Ready
+                      </Button>
+                    )}
+
+                    {order.status === 'ready' && (
+                      <Button
+                        size="sm"
+                        onClick={() => handleStatusChange(order.id, 'served')}
+                        className="col-span-2 rounded-xl bg-accent text-bg hover:opacity-90 text-xs font-semibold"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} /> Mark Served
+                      </Button>
+                    )}
+
+                    {order.status === 'served' && (
                       <Button
                         size="sm"
                         variant="secondary"
-                        onClick={() => handleStatusChange(order.id, 'acknowledged')}
-                        className="text-xs font-medium rounded-full border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25]"
+                        onClick={() => handleSettle(order.id)}
+                        className="col-span-2 text-xs font-medium rounded-xl"
                       >
-                        Acknowledge
+                        <Banknote className="h-3.5 w-3.5 mr-1.5 text-accent" strokeWidth={1.5} /> Settle &amp; Complete
                       </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => handleStatusChange(order.id, 'cooking')}
-                        className="text-xs font-medium rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e]"
-                      >
-                        Start Cooking
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={() => handleCancelByStaff(order)}
-                        className="col-span-2 text-[11px] font-mono text-rose-400 hover:text-rose-300 py-1 transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <XCircle className="h-3 w-3" /> Void / Cancel Ticket
-                      </button>
-                    </>
-                  )}
+                    )}
 
-                  {order.status === 'acknowledged' && (
-                    <>
-                      <Button
-                        size="sm"
-                        onClick={() => handleStatusChange(order.id, 'cooking')}
-                        className="col-span-2 text-xs font-medium rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e]"
-                      >
-                        Start Cooking
-                      </Button>
-                      <button
-                        type="button"
-                        onClick={() => handleCancelByStaff(order)}
-                        className="col-span-2 text-[11px] font-mono text-rose-400 hover:text-rose-300 py-1 transition-colors flex items-center justify-center gap-1 cursor-pointer"
-                      >
-                        <XCircle className="h-3 w-3" /> Void / Cancel Ticket
-                      </button>
-                    </>
-                  )}
+                    {order.status === 'completed' && (
+                      <div className="col-span-2 text-center text-xs font-medium text-muted py-2 flex items-center justify-center gap-1.5 bg-surface-2 rounded-xl border border-border">
+                        <Check className="h-3.5 w-3.5 text-emerald-500" strokeWidth={2.5} /> Order Fulfilled
+                      </div>
+                    )}
 
-                  {order.status === 'cooking' && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleStatusChange(order.id, 'ready')}
-                      className="col-span-2 rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] text-xs font-medium"
-                    >
-                      <ShoppingBag className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} /> Mark Ready
-                    </Button>
-                  )}
-
-                  {order.status === 'ready' && (
-                    <Button
-                      size="sm"
-                      onClick={() => handleStatusChange(order.id, 'served')}
-                      className="col-span-2 rounded-full bg-[#C6FF3D] text-[#07080B] hover:bg-[#b8f52e] text-xs font-medium"
-                    >
-                      <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" strokeWidth={1.5} /> Mark Served
-                    </Button>
-                  )}
-
-                  {order.status === 'served' && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => handleSettle(order.id)}
-                      className="col-span-2 text-xs font-medium rounded-full border-white/[0.12] text-[#F4F5F7] hover:border-white/[0.25]"
-                    >
-                      <Banknote className="h-3.5 w-3.5 mr-1.5 text-[#C6FF3D]" strokeWidth={1.5} /> Settle & Complete
-                    </Button>
-                  )}
-
-                  {order.status === 'completed' && (
-                    <div className="col-span-2 text-center text-xs font-mono text-[#8A8F9C] py-1 flex items-center justify-center gap-1.5">
-                      <Check className="h-3.5 w-3.5 text-accent" strokeWidth={1.5} /> Order Fulfilled
-                    </div>
-                  )}
-
-                  {order.status === 'cancelled' && (
-                    <div className="col-span-2 text-center text-xs font-mono text-rose-400 py-1.5 flex items-center justify-center gap-1.5 bg-rose-500/10 rounded-full border border-rose-500/20">
-                      <XCircle className="h-3.5 w-3.5 text-rose-400" strokeWidth={1.5} /> Ticket Cancelled
-                    </div>
-                  )}
+                    {order.status === 'cancelled' && (
+                      <div className="col-span-2 text-center text-xs font-medium text-rose-500 py-2 flex items-center justify-center gap-1.5 bg-rose-500/10 rounded-xl border border-rose-500/20">
+                        <XCircle className="h-3.5 w-3.5 text-rose-500" strokeWidth={1.5} /> Ticket Cancelled
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
+
+export default StaffLiveOrdersScreen;
