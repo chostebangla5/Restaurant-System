@@ -183,16 +183,15 @@ export function subscribeToInvoices(callback) {
   }
 
   let supabaseChannel = null;
-  if (isSupabaseConfigured()) {
-    supabaseChannel = supabase
-      .channel('invoices_realtime_stream')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'invoices' },
-        handleEvent
-      )
-      .subscribe();
-  }
+  const channelId = `invoices_realtime_${Math.random().toString(36).slice(2, 8)}`;
+  supabaseChannel = supabase
+    .channel(channelId)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'invoices' },
+      handleEvent
+    )
+    .subscribe();
 
   return () => {
     if (typeof window !== 'undefined') {

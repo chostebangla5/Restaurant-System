@@ -304,10 +304,11 @@ export async function getAttendanceSummary(venueId) {
  * Subscribe to realtime attendance changes for a venue
  */
 export function subscribeToAttendance(venueId, callback) {
-  if (!isSupabaseConfigured() || !venueId) return () => {};
+  if (!venueId) return () => {};
 
+  const channelId = `staff_attendance_${venueId}_${Math.random().toString(36).slice(2, 8)}`;
   const channel = supabase
-    .channel(`staff_attendance_${venueId}`)
+    .channel(channelId)
     .on(
       'postgres_changes',
       {

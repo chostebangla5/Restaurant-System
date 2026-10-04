@@ -143,10 +143,9 @@ export async function removeStaffMember(staffId) {
  * Subscribe to realtime staff updates
  */
 export function subscribeToStaff(callback) {
-  if (!isSupabaseConfigured()) return () => {};
-
+  const channelId = `staff_realtime_${Math.random().toString(36).slice(2, 8)}`;
   const channel = supabase
-    .channel('staff_realtime_channel')
+    .channel(channelId)
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'staff_users' },

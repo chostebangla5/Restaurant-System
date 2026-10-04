@@ -157,10 +157,11 @@ export async function resolveStaffCall(callId, staffUserId = null) {
  * Subscribe to realtime staff call changes for a venue
  */
 export function subscribeToStaffCalls(venueId, callback) {
-  if (!isSupabaseConfigured() || !venueId) return () => {};
+  if (!venueId) return () => {};
 
+  const channelId = `staff_calls_${venueId}_${Math.random().toString(36).slice(2, 8)}`;
   const channel = supabase
-    .channel(`staff_calls_${venueId}`)
+    .channel(channelId)
     .on(
       'postgres_changes',
       {
