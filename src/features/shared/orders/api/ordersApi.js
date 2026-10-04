@@ -714,8 +714,8 @@ export async function createOrder({
   // Determine effective status
   const effectivePaymentStatus = paymentMethod === 'split' ? 'partially_paid' : paymentStatus;
 
-  // 4. Insert order with fallback resilience and typed financial columns
-  const baseOrderInsert = {
+  // 4. Insert order with progressive fallback resilience across schema versions
+  const coreOrderInsert = {
     org_id: session.org_id || targetOrgId,
     venue_id: targetVenueId,
     table_session_id: session.id,
@@ -723,6 +723,16 @@ export async function createOrder({
     status: 'placed',
     notes: finalGuestNotes,
     subtotal: verifiedBill.subtotal,
+  };
+
+  const orderWithCustomer = {
+    ...coreOrderInsert,
+    customer_name: cleanName,
+    customer_phone: cleanPhone,
+  };
+
+  const orderWithTypedFinancials = {
+    ...orderWithCustomer,
     payment_method: paymentMethod || 'counter',
     payment_status: effectivePaymentStatus || 'pending',
     discount_amount: verifiedBill.discount,
@@ -733,29 +743,41 @@ export async function createOrder({
   };
 
   let createdOrder = null;
-  try {
-    const { data: oWithCust, error: oErr1 } = await supabase
+  // Strategy 1: Try full typed financials schema (if fully migrated)
+  const { data: oTyped, error: oErrTyped } = await supabase
+    .from('orders')
+    .insert(orderWithTypedFinancials)
+    .select()
+    .single();
+
+  if (!oErrTyped && oTyped) {
+    createdOrder = oTyped;
+  } else {
+    // Strategy 2: Fallback to core columns + customer info (current production schema)
+    const { data: oCust, error: oErrCust } = await supabase
       .from('orders')
-      .insert({
-        ...baseOrderInsert,
-        customer_name: cleanName,
-        customer_phone: cleanPhone,
-      })
+      .insert(orderWithCustomer)
       .select()
       .single();
 
-    if (oErr1) throw oErr1;
-    createdOrder = oWithCust;
-  } catch (errCol) {
-    const { data: oFallback, error: oErr2 } = await supabase
-      .from('orders')
-      .insert(baseOrderInsert)
-      .select()
-      .single();
+    if (!oErrCust && oCust) {
+      createdOrder = oCust;
+    } else {
+      // Strategy 3: Minimal fallback (legacy schema without customer columns)
+      const { data: oMin, error: oErrMin } = await supabase
+        .from('orders')
+        .insert(coreOrderInsert)
+        .select()
+        .single();
 
-    if (oErr2) throw oErr2;
-    createdOrder = oFallback;
+      if (oErrMin) {
+        console.error('All order insert strategies failed:', oErrMin);
+        throw oErrMin;
+      }
+      createdOrder = oMin;
+    }
   }
+
 
   // 4a. If split payment, record online portion in payments table
   if (paymentMethod === 'split' && splitDetails?.onlineAmount > 0) {
@@ -1209,27 +1231,52 @@ export async function settleOrder(orderId, paymentMethod = 'counter', splitDetai
     // Fallback to manual queries below if RPC not yet migrated
   }
 
-  // 2. Mark this order (and any other uncancelled orders in this session) as 'served' with typed payment fields
-  const updatePayload = {
+  // 2. Mark this order (and any other uncancelled orders in this session) as 'served' with progressive fallback
+  const coreUpdate = {
     status: 'served',
-    payment_status: 'paid',
-    payment_method: paymentMethod,
-    split_details: splitDetails || null,
     notes: finalNotes,
     updated_at: new Date().toISOString(),
   };
 
+  const typedUpdate = {
+    ...coreUpdate,
+    payment_status: 'paid',
+    payment_method: paymentMethod,
+    split_details: splitDetails || null,
+  };
+
   if (order.table_session_id) {
-    await supabase
+    const { error: updErr1 } = await supabase
       .from('orders')
-      .update(updatePayload)
+      .update(typedUpdate)
       .eq('table_session_id', order.table_session_id)
       .neq('status', 'cancelled');
+
+    if (updErr1) {
+      const { error: fbErr1 } = await supabase
+        .from('orders')
+        .update(coreUpdate)
+        .eq('table_session_id', order.table_session_id)
+        .neq('status', 'cancelled');
+      if (fbErr1) {
+        console.warn('Fallback update for table session orders failed:', fbErr1);
+      }
+    }
   } else {
-    await supabase
+    const { error: updErr2 } = await supabase
       .from('orders')
-      .update(updatePayload)
+      .update(typedUpdate)
       .eq('id', orderId);
+
+    if (updErr2) {
+      const { error: fbErr2 } = await supabase
+        .from('orders')
+        .update(coreUpdate)
+        .eq('id', orderId);
+      if (fbErr2) {
+        console.warn('Fallback update for order failed:', fbErr2);
+      }
+    }
   }
 
   // 3. Settle session, generate tax invoice, and free table
