@@ -1,7 +1,8 @@
 import { supabase } from './supabase';
 
 export const VAPID_PUBLIC_KEY =
-  import.meta.env.VITE_VAPID_PUBLIC_KEY || '';
+  import.meta.env.VITE_VAPID_PUBLIC_KEY ||
+  'BO-f-I2V2qua0N51iuVEjlGk6jn0ZcYdSaDwxYbeCed_S18iU88YMmH-KZhOnXGhXDDsce7dHuvCsCe6CJlmdiI';
 
 /**
  * Convert a URL-safe base64 string to a Uint8Array (for VAPID key)

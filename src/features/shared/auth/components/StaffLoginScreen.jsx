@@ -181,11 +181,21 @@ function LoginForm({ navigate, onForgotPassword }) {
       navigate('/staff');
     } catch (err) {
       const msg = err.message || '';
-      if (msg.toLowerCase().includes('email not confirmed')) {
+      const lower = msg.toLowerCase();
+      if (lower.includes('email not confirmed')) {
         setUnconfirmedEmail(email);
         toast.error('Email not confirmed yet. Check your inbox or resend the verification link.');
+      } else if (
+        lower.includes('invalid login credentials') ||
+        lower.includes('invalid credentials') ||
+        lower.includes('invalid_grant') ||
+        lower.includes('user not found') ||
+        lower.includes('wrong password') ||
+        lower.includes('invalid email or password')
+      ) {
+        toast.error('Wrong email or password. Please try again.');
       } else {
-        toast.error(msg || 'Invalid email or password');
+        toast.error(msg || 'Wrong email or password. Please try again.');
       }
     } finally {
       setIsLoading(false);
