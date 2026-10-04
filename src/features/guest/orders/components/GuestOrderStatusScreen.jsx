@@ -6,8 +6,10 @@ import {
   fetchOrdersForTable,
   subscribeToOrders,
   cancelOrder,
+  parseGuestInfo,
 } from '@/features/shared/orders/api/ordersApi';
 import { createStaffCall } from '@/features/staff/service-calls/api/staffCallsApi';
+import { GuestFeedbackCard } from '@/features/guest/feedback/components/GuestFeedbackCard';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft,
@@ -157,6 +159,12 @@ export function GuestOrderStatusScreen() {
 
   const ordersList = orders || [];
   const latestOrder = ordersList[0] || null;
+  const primaryOrder = ordersList[0] || null;
+  const guestInfo = parseGuestInfo(primaryOrder?.guest_notes);
+  const customerName = primaryOrder?.customer_name || guestInfo.name;
+  const customerPhone = guestInfo.phone;
+  const isServedOrCompleted = ordersList.some((o) => ['served', 'completed'].includes(o.status));
+  const showFeedback = isServedOrCompleted || (!hasUnpaid && ordersList.length > 0);
 
   const grandTotalAllRounds = ordersList
     .filter((o) => o.status !== 'cancelled')
@@ -538,6 +546,19 @@ export function GuestOrderStatusScreen() {
           )}
         </div>
       </div>
+
+      {/* ─── Dining Feedback & Google Review ─── */}
+      {showFeedback && primaryOrder && (
+        <div className="pt-2">
+          <GuestFeedbackCard
+            venueId={primaryOrder.venue_id}
+            tableSessionId={primaryOrder.table_session_id}
+            guestName={customerName}
+            guestPhone={customerPhone}
+            venueName="Firangi Dhaba"
+          />
+        </div>
+      )}
 
       {/* ─── Settle Request Modal ─── */}
       <Modal isOpen={isSettleModalOpen} onClose={() => !settling && setIsSettleModalOpen(false)} title="Request Bill & Settle" size="sm" guestTheme={true}>

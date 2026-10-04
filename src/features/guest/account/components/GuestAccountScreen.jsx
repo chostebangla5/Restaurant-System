@@ -18,6 +18,7 @@ import {
   X,
   Bell,
   RefreshCw,
+  ExternalLink,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CallStaffModal } from '@/components/ui/CallStaffModal';
@@ -485,6 +486,28 @@ export function GuestAccountScreen() {
             })}
           </div>
         )}
+
+        {/* Google Review & Feedback Banner */}
+        <div className="pt-2">
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-amber-500/10 border border-amber-500/30 shadow-sm space-y-3">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xl">🌟</span>
+              <div>
+                <h4 className="font-bold text-sm" style={{ color: 'var(--g-text)' }}>Enjoyed Firangi Dhaba?</h4>
+                <p className="text-xs" style={{ color: 'var(--g-text-muted)' }}>Share your experience on Google — it means a lot to us!</p>
+              </div>
+            </div>
+            <a
+              href="https://www.google.com/search?q=firangi+dhaba&oq=fir&gs_lcrp=EgZjaHJvbWUqCAgBEEUYJxg7MgYIABBFGDkyCAgBEEUYJxg7MgwIAhAAGEMYgAQYigUyDAgDEAAYQxiABBiKBTIPCAQQABhDGLEDGIAEGIoFMgYIBRBFGDwyBggGEEUYPTIGCAcQRRg90gEIMTg3MGowajmoAgawAgHxBcXZ_hbrLG46&sourceid=chrome&source=chrome.ob&ie=UTF-8#lrd=0x3a020b5c1e665a75:0x35b9182a3b42578,1,,,,"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-2.5 rounded-xl font-bold text-xs bg-[#4285F4] hover:bg-[#3367D6] text-white shadow-sm transition-all flex items-center justify-center gap-2 active:scale-95"
+            >
+              <span>Write a Review on Google</span>
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* Call Staff Modal */}

@@ -71,3 +71,38 @@ export async function fetchFeedbackStats(venueId) {
     thisMonth,
   };
 }
+
+/**
+ * Submit feedback from a guest for a venue
+ */
+export async function submitFeedback({
+  venueId,
+  tableSessionId = null,
+  rating,
+  foodRating = null,
+  serviceRating = null,
+  ambienceRating = null,
+  comment = '',
+  guestName = '',
+  guestPhone = '',
+}) {
+  const { data, error } = await supabase
+    .from('feedback')
+    .insert({
+      venue_id: venueId,
+      table_session_id: tableSessionId,
+      rating,
+      food_rating: foodRating,
+      service_rating: serviceRating,
+      ambience_rating: ambienceRating,
+      comment: comment ? comment.trim() : null,
+      guest_name: guestName ? guestName.trim() : null,
+      guest_phone: guestPhone ? guestPhone.trim() : null,
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
