@@ -23,6 +23,46 @@ const RATING_LABELS = {
   5: 'Exceptional! 🌟',
 };
 
+function GoogleReviewBanner({
+  isHighlight = false,
+  venueName = 'Firangi Dhaba',
+  googleReviewUrl = FIRANGI_DHABA_GOOGLE_REVIEW_URL,
+}) {
+  return (
+    <div
+      className={`p-4 rounded-2xl transition-all border ${
+        isHighlight
+          ? 'bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-amber-500/10 border-amber-500/30 shadow-sm'
+          : 'bg-surface-2 border-border'
+      }`}
+    >
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🌟</span>
+            <h4 className="font-bold text-sm text-text">
+              Review {venueName} on Google
+            </h4>
+          </div>
+          <p className="text-xs text-muted leading-relaxed">
+            Loved your meal? Sharing your review on Google takes 10 seconds and helps our team immensely!
+          </p>
+        </div>
+
+        <a
+          href={googleReviewUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-[#4285F4] hover:bg-[#3367D6] text-white shadow-sm transition-all active:scale-95 shrink-0"
+        >
+          <span>Write a Google Review</span>
+          <ExternalLink className="h-3.5 w-3.5" />
+        </a>
+      </div>
+    </div>
+  );
+}
+
 export function GuestFeedbackCard({
   venueId,
   tableSessionId = null,
@@ -101,41 +141,6 @@ export function GuestFeedbackCard({
     }
   };
 
-  // Google Review Callout Component
-  const GoogleReviewBanner = ({ isHighlight = false }) => (
-    <div
-      className={`p-4 rounded-2xl transition-all border ${
-        isHighlight
-          ? 'bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-amber-500/10 border-amber-500/30 shadow-sm'
-          : 'bg-surface-2 border-border'
-      }`}
-    >
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-base">🌟</span>
-            <h4 className="font-bold text-sm text-text">
-              Review {venueName} on Google
-            </h4>
-          </div>
-          <p className="text-xs text-muted leading-relaxed">
-            Loved your meal? Sharing your review on Google takes 10 seconds and helps our team immensely!
-          </p>
-        </div>
-
-        <a
-          href={googleReviewUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs bg-[#4285F4] hover:bg-[#3367D6] text-white shadow-sm transition-all active:scale-95 shrink-0"
-        >
-          <span>Write a Google Review</span>
-          <ExternalLink className="h-3.5 w-3.5" />
-        </a>
-      </div>
-    </div>
-  );
-
   if (isSubmitted) {
     return (
       <div className="g-card p-5 sm:p-6 space-y-5 text-center transition-all border border-emerald-500/20 bg-emerald-500/[0.02]">
@@ -152,7 +157,11 @@ export function GuestFeedbackCard({
           </p>
         </div>
 
-        <GoogleReviewBanner isHighlight={true} />
+        <GoogleReviewBanner
+          isHighlight={true}
+          venueName={venueName}
+          googleReviewUrl={googleReviewUrl}
+        />
 
         <div className="pt-1">
           <button
@@ -331,7 +340,11 @@ export function GuestFeedbackCard({
 
         {/* Direct Google Review Link option */}
         <div className="pt-2 border-t border-border">
-          <GoogleReviewBanner isHighlight={false} />
+          <GoogleReviewBanner
+            isHighlight={false}
+            venueName={venueName}
+            googleReviewUrl={googleReviewUrl}
+          />
         </div>
       </form>
     </div>

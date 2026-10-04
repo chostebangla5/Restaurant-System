@@ -248,7 +248,7 @@ export async function fetchOrdersForTable(shortCode) {
   try {
     const { data: tableData } = await supabase
       .from('tables')
-      .select('id, venue_id, table_number')
+      .select('id, venue_id, org_id, table_number')
       .eq('short_code', shortCode)
       .single();
 
@@ -351,6 +351,9 @@ export async function fetchOrdersForTable(shortCode) {
 
       return {
         id: o.id,
+        venue_id: o.venue_id || tableData.venue_id,
+        org_id: o.org_id || tableData.org_id,
+        table_session_id: o.table_session_id || session.id,
         table_number: tableData.table_number,
         short_code: shortCode,
         round_number: o.round_number || 1,

@@ -163,31 +163,42 @@ export function GuestOrderStatusScreen() {
   const guestInfo = parseGuestInfo(primaryOrder?.guest_notes);
   const customerName = primaryOrder?.customer_name || guestInfo.name;
   const customerPhone = guestInfo.phone;
-  const isServedOrCompleted = ordersList.some((o) => ['served', 'completed'].includes(o.status));
-  const showFeedback = isServedOrCompleted || (!hasUnpaid && ordersList.length > 0);
 
-  const grandTotalAllRounds = ordersList
-    .filter((o) => o.status !== 'cancelled')
+  let venueName = 'Restaurant';
+  try {
+    const cachedInfo = sessionStorage.getItem(`tablesuite_table_info_${shortCode?.toUpperCase()}`);
+    if (cachedInfo) {
+      const parsed = JSON.parse(cachedInfo);
+      if (parsed.venueName) venueName = parsed.venueName;
+    }
+  } catch (e) {}
+
+  const activeOrders = ordersList.filter((o) => o.status !== 'cancelled');
+
+  const grandTotalAllRounds = activeOrders
     .reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
-  const totalPaidOnlinePortion = ordersList
-    .filter((o) => o.status !== 'cancelled' && o.split_details?.online)
+  const totalPaidOnlinePortion = activeOrders
+    .filter((o) => o.split_details?.online)
     .reduce((sum, o) => sum + (Number(o.split_details.online) || 0), 0);
 
-  const remainingCashDue = ordersList
-    .filter((o) => o.status !== 'cancelled' && o.payment_status !== 'paid' && o.status !== 'completed')
+  const remainingCashDue = activeOrders
+    .filter((o) => o.payment_status !== 'paid' && o.status !== 'completed')
     .reduce((sum, o) => {
       if (o.split_details?.cash) return sum + Number(o.split_details.cash);
       return sum + (Number(o.total) || 0);
     }, 0);
 
-  const hasUnpaid = ordersList.some(
-    (o) => (o.payment_status === 'pending' || o.payment_status === 'partially_paid') && o.status !== 'cancelled' && o.status !== 'completed'
+  const hasUnpaid = activeOrders.some(
+    (o) => (o.payment_status === 'pending' || o.payment_status === 'partially_paid') && o.status !== 'completed'
   );
 
-  const hasPartiallyPaid = ordersList.some(
-    (o) => o.payment_status === 'partially_paid' && o.status !== 'cancelled' && o.status !== 'completed'
+  const hasPartiallyPaid = activeOrders.some(
+    (o) => o.payment_status === 'partially_paid' && o.status !== 'completed'
   );
+
+  const isServedOrCompleted = activeOrders.some((o) => ['served', 'completed'].includes(o.status));
+  const showFeedback = activeOrders.length > 0 && (isServedOrCompleted || !hasUnpaid);
 
   useEffect(() => {
     if (remainingCashDue > 0) setCustomSplitOnline(Math.round(remainingCashDue / 2));
@@ -321,7 +332,6 @@ export function GuestOrderStatusScreen() {
     );
   }
 
-  const activeOrders = ordersList.filter((o) => o.status !== 'cancelled');
   const displayOrder = activeOrders[0] || latestOrder;
   const headline = getHeadline(displayOrder?.status);
   const HeadlineIcon = headline.Icon;
@@ -555,7 +565,7 @@ export function GuestOrderStatusScreen() {
             tableSessionId={primaryOrder.table_session_id}
             guestName={customerName}
             guestPhone={customerPhone}
-            venueName="Firangi Dhaba"
+            venueName={venueName || 'Restaurant'}
           />
         </div>
       )}
